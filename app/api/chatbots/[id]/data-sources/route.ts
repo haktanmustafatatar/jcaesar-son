@@ -70,7 +70,7 @@ export async function POST(
     }
 
     const body = await req.json();
-    const { type, name, content, fileUrl, fileType, fileSize } = body;
+    const { type, name, content, fileUrl, fileType, fileSize, qnaList } = body;
     let { url } = body;
 
     if (!type || !name) {
@@ -92,18 +92,11 @@ export async function POST(
         fileUrl: fileUrl || null,
         fileType: fileType || null,
         fileSize: fileSize || null,
-        status: type === "TEXT" ? "COMPLETED" : "PENDING",
-        // If it's text, we can create the document immediately if content is provided
-        documents: type === "TEXT" && content ? {
-          create: [{
-            content,
-            title: name,
-          }]
-        } : undefined,
+        status: "PENDING",
       },
     });
 
-    // Trigger crawl job if it's a website or file that needs processing
+    // Trigger crawl job based on type
     if (type === "WEBSITE" && url) {
       await addCrawlJob({
         type: "crawl-website",
@@ -123,6 +116,37 @@ export async function POST(
         dataSourceId: dataSource.id,
         userId: user.id,
       });
+    } else if (type === "TEXT" && content) {
+      // TEXT sources must also go through the worker for embedding generation
+      await addCrawlJob({
+        type: "process-document",
+        url: "text-input",
+        fileUrl: "text-input",
+        fileType: "text/plain",
+        chatbotId,
+        dataSourceId: dataSource.id,
+        userId: user.id,
+        content,
+      } as any);
+    } else if (type === "QA" && qnaList && qnaList.length > 0) {
+      // Convert Q&A pairs to structured text for embedding
+      const qaContent = qnaList
+        .filter((qa: any) => qa.question?.trim())
+        .map((qa: any) => `Question: ${qa.question.trim()}\nAnswer: ${qa.answer?.trim() || 'No answer provided.'}`)
+        .join('\n\n---\n\n');
+      
+      if (qaContent) {
+        await addCrawlJob({
+          type: "process-document",
+          url: "qna-input",
+          fileUrl: "qna-input",
+          fileType: "text/plain",
+          chatbotId,
+          dataSourceId: dataSource.id,
+          userId: user.id,
+          content: qaContent,
+        } as any);
+      }
     }
 
     return NextResponse.json(dataSource, { status: 201 });

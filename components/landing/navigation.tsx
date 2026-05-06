@@ -44,7 +44,7 @@ export function Navigation() {
         <div className="flex justify-between items-center bg-white/30 backdrop-blur-sm rounded-3xl px-6 py-2 border border-white/20 shadow-sm">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 group">
-            <div className="relative w-52 h-16 overflow-hidden transition-all duration-500 group-hover:scale-105">
+            <div className="relative w-40 h-12 md:w-52 md:h-16 overflow-hidden transition-all duration-500 group-hover:scale-105">
               <Image 
                 src="/logo.svg" 
                 alt="JCaesar Logo" 

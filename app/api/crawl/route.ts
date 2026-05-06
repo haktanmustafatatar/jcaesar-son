@@ -6,16 +6,22 @@ import { addCrawlJob } from "@/lib/queue";
 // POST /api/crawl - Yeni crawl işlemi başlat
 export async function POST(req: NextRequest) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
+    const { userId: clerkId } = await auth();
+    if (!clerkId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Resolve internal user ID from Clerk ID
+    const user = await prisma.user.findUnique({ where: { clerkId } });
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
     const { chatbotId, url, type = "crawl-website", maxDepth = 3, limit = 100 } = await req.json();
 
-    // Chatbot'u kontrol et
+    // Chatbot'u kontrol et — user.id ile (clerkId değil!)
     const chatbot = await prisma.chatbot.findFirst({
-      where: { id: chatbotId, userId },
+      where: { id: chatbotId, userId: user.id },
     });
 
     if (!chatbot) {
@@ -42,7 +48,7 @@ export async function POST(req: NextRequest) {
       limit,
       chatbotId,
       dataSourceId: dataSource.id,
-      userId,
+      userId: user.id,
     });
 
     return NextResponse.json({
@@ -63,9 +69,14 @@ export async function POST(req: NextRequest) {
 // GET /api/crawl/status - Crawl durumunu kontrol et
 export async function GET(req: NextRequest) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
+    const { userId: clerkId } = await auth();
+    if (!clerkId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const user = await prisma.user.findUnique({ where: { clerkId } });
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
     const { searchParams } = new URL(req.url);
@@ -81,7 +92,7 @@ export async function GET(req: NextRequest) {
     const dataSource = await prisma.dataSource.findFirst({
       where: {
         id: dataSourceId,
-        chatbot: { userId },
+        chatbot: { userId: user.id },
       },
       include: {
         _count: {
@@ -119,9 +130,14 @@ export async function GET(req: NextRequest) {
 // DELETE /api/crawl - Data source sil
 export async function DELETE(req: NextRequest) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
+    const { userId: clerkId } = await auth();
+    if (!clerkId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const user = await prisma.user.findUnique({ where: { clerkId } });
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
     const { searchParams } = new URL(req.url);
@@ -138,7 +154,7 @@ export async function DELETE(req: NextRequest) {
     await prisma.dataSource.deleteMany({
       where: {
         id: dataSourceId,
-        chatbot: { userId },
+        chatbot: { userId: user.id },
       },
     });
 

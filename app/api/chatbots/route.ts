@@ -49,13 +49,39 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Ensure user exists in our DB (Synced via Clerk Webhook)
-    const user = await prisma.user.findUnique({
+    // Ensure user exists in our DB (Auto-sync if missing)
+    let user = await prisma.user.findUnique({
       where: { clerkId }
     });
     
     if (!user) {
-      return NextResponse.json({ error: "User profile not synced yet. Please wait a moment or sign in again." }, { status: 404 });
+      console.log(`[ChatbotAPI] User ${clerkId} not found by clerkId, checking by email...`);
+      const { currentUser } = await import("@clerk/nextjs/server");
+      const clerkUser = await currentUser();
+      const email = clerkUser?.emailAddresses[0]?.emailAddress || "";
+      
+      if (email) {
+        user = await prisma.user.findUnique({
+          where: { email }
+        });
+      }
+
+      if (user) {
+        console.log(`[ChatbotAPI] Found user by email ${email}, linking clerkId ${clerkId}...`);
+        user = await prisma.user.update({
+          where: { id: user.id },
+          data: { clerkId }
+        });
+      } else {
+        console.log(`[ChatbotAPI] Creating new user for ${clerkId}...`);
+        user = await prisma.user.create({
+          data: {
+            clerkId,
+            email,
+            name: `${clerkUser?.firstName || ""} ${clerkUser?.lastName || ""}`.trim() || "User",
+          }
+        });
+      }
     }
 
     const userId = user.id;
@@ -76,6 +102,7 @@ export async function POST(req: NextRequest) {
       rawText,
       qnaList,
       suggestedMessages,
+      links,
     } = body;
 
     if (!name) {
@@ -84,7 +111,6 @@ export async function POST(req: NextRequest) {
 
     // Generate unique slug
     const slug = `${name.toLowerCase().replace(/\s+/g, "-")}-${Date.now()}`;
-
     const chatbot = await prisma.chatbot.create({
       data: {
         name,
@@ -108,33 +134,27 @@ export async function POST(req: NextRequest) {
               name: "Website Source",
               url: websiteUrl,
               status: "PENDING" as any,
+              urls: {
+                create: (links || []).map((link: string) => ({
+                  url: link,
+                  status: "PENDING" as any,
+                }))
+              }
             }] : []),
             ...(rawText ? [{
               type: "TEXT" as any,
               name: "Text Source",
-              status: "COMPLETED" as any,
-              documents: {
-                create: [{
-                  content: rawText,
-                  title: "Raw Text Source",
-                }]
-              }
+              status: "PENDING" as any,
             }] : []),
-            ...(qnaList && qnaList.filter((qa: any) => qa.question.trim() !== "").length > 0 ? [{
+            ...(qnaList && Array.isArray(qnaList) && qnaList.filter((qa: any) => qa.question?.trim()).length > 0 ? [{
               type: "QNA" as any,
               name: "Q&A Source",
-              status: "COMPLETED" as any,
-              documents: {
-                create: qnaList.filter((qa: any) => qa.question.trim() !== "").map((qa: any) => ({
-                  content: `Question: ${qa.question}\nAnswer: ${qa.answer}`,
-                  title: qa.question.substring(0, 50),
-                }))
-              }
+              status: "PENDING" as any,
             }] : []),
           ]
         },
         suggestedQuestions: {
-          create: (suggestedMessages || []).filter((m: string) => m.trim() !== "").map((m: string, i: number) => ({
+          create: (suggestedMessages || []).filter((m: any) => m && typeof m === 'string' && m.trim() !== "").map((m: string, i: number) => ({
             question: m,
             order: i,
           }))
@@ -145,18 +165,52 @@ export async function POST(req: NextRequest) {
       }
     });
 
-    // Fire up the training engine!
-    const createdDataSources = (chatbot as any).dataSources;
-    if (websiteUrl && createdDataSources && createdDataSources.length > 0) {
-      await addCrawlJob({
-        type: "crawl-website",
-        url: websiteUrl,
-        chatbotId: chatbot.id,
-        dataSourceId: createdDataSources[0].id,
-        userId: userId,
-        maxDepth: 3,
-        limit: 500,
-      });
+    // Queue jobs for all sources
+    try {
+      const createdDataSources = (chatbot as any).dataSources;
+      
+      for (const ds of createdDataSources) {
+        if (ds.type === "WEBSITE" && websiteUrl) {
+          // If we have specific links, we should probably pass them, 
+          // but for now the crawler handles discovery or takes the root.
+          await addCrawlJob({
+            type: "crawl-website",
+            url: websiteUrl,
+            urls: links, // Pass specific links if provided
+            chatbotId: chatbot.id,
+            dataSourceId: ds.id,
+            userId,
+          });
+        } else if (ds.type === "TEXT" && rawText) {
+          await addCrawlJob({
+            type: "process-document",
+            fileUrl: "text-input",
+            fileType: "text/plain",
+            chatbotId: chatbot.id,
+            dataSourceId: ds.id,
+            userId,
+            content: rawText
+          } as any);
+        } else if (ds.type === "QNA" && qnaList) {
+          const qnaContent = qnaList
+            .filter((qa: any) => qa.question?.trim())
+            .map((qa: any) => `Question: ${qa.question}\nAnswer: ${qa.answer}`)
+            .join("\n\n");
+
+          await addCrawlJob({
+            type: "process-document",
+            fileUrl: "qna-input",
+            fileType: "text/plain",
+            chatbotId: chatbot.id,
+            dataSourceId: ds.id,
+            userId,
+            content: qnaContent
+          } as any);
+        }
+      }
+    } catch (jobError) {
+      console.error("[ChatbotAPI] Failed to add jobs to queue:", jobError);
+      // We don't throw here to avoid 500 if the chatbot is already created
     }
 
     return NextResponse.json(chatbot, { status: 201 });

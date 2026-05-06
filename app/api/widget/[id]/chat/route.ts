@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { createEmbedding, streamRAGResponse, logTokenUsage, LLMModel } from "@/lib/ai";
+import { streamRAGResponse, logTokenUsage, LLMModel, performRAGSearch } from "@/lib/ai";
 import { rateLimit } from "@/lib/ratelimit";
 
 export async function POST(
@@ -67,29 +67,12 @@ export async function POST(
       }
     });
 
-    // 4. Generate Embedding for Context Search
-    const embedding = await createEmbedding(userMessageContent);
-    const vectorString = `[${embedding.join(",")}]`;
-
-    // 5. Similarity Search
-    const dataSourceIds = chatbot.dataSources.map((ds) => ds.id);
-    
-    let context = "";
-    let sources: any[] = [];
-    if (dataSourceIds.length > 0) {
-      sources = await prisma.$queryRaw`
-        SELECT content, title, url, 1 - (embedding <=> ${vectorString}::vector) as similarity
-        FROM "Document"
-        WHERE "dataSourceId" = ANY(${dataSourceIds})
-        ORDER BY similarity DESC
-        LIMIT 5
-      `;
-
-      context = sources
-        .filter((doc) => doc.similarity > 0.5)
-        .map((doc) => `Source: ${doc.title || doc.url}\nContent: ${doc.content}`)
-        .join("\n\n");
-    }
+    // 4. Perform RAG Search
+    const { context, sources } = await performRAGSearch({
+      chatbotId,
+      query: userMessageContent,
+      limit: 5,
+    });
 
     // 6. Stream Response & Log Usage
     const response = await streamRAGResponse({

@@ -1,6 +1,6 @@
 import { Worker } from "bullmq";
 import IORedis from "ioredis";
-import { crawlWebsite, scrapePage, processDocument } from "@/lib/crawler";
+import { crawlWebsite, processDocument, NeuralIndexer } from "@/lib/crawler";
 import { prisma } from "@/lib/prisma";
 
 const redisConnection = new IORedis(process.env.REDIS_URL || "redis://localhost:6379", {
@@ -21,11 +21,13 @@ export const crawlWorker = new Worker(
     console.log(`[CrawlWorker] Processing job ${job.id} - ${type}`);
 
     try {
-      // Data source'u processing durumuna getir
-      await prisma.dataSource.update({
-        where: { id: dataSourceId },
-        data: { status: "CRAWLING", crawlStatus: "In progress..." },
-      });
+      // Update data source to processing state
+      if (dataSourceId) {
+        await prisma.dataSource.update({
+          where: { id: dataSourceId },
+          data: { status: "CRAWLING", crawlStatus: "In progress..." },
+        });
+      }
 
       // Mark chatbot as ACTIVE early to allow interaction during crawl
       await prisma.chatbot.update({
@@ -34,65 +36,82 @@ export const crawlWorker = new Worker(
       });
 
       let result;
+      const { content, fileUrl } = job.data;
 
       switch (type) {
         case "crawl-website":
           result = await crawlWebsite({
             url: job.data.url,
+            urls: job.data.urls,
             maxDepth: job.data.maxDepth || 3,
             limit: job.data.limit || 100,
             chatbotId,
             dataSourceId,
+            knowledgeSourceId: job.data.knowledgeSourceId,
+            userId,
           });
-          break;
-
-        case "crawl-page":
-          const pageData = await scrapePage(job.data.url);
-          // Tek sayfa için document oluştur
-          result = { success: true, page: pageData };
           break;
 
         case "process-document":
-          result = await processDocument({
-            fileUrl: job.data.fileUrl,
-            fileType: job.data.fileType,
-            chatbotId,
-            dataSourceId,
-          });
+          // Check if content is provided directly (for Text/Q&A)
+          if (content && (fileUrl === "text-input" || fileUrl === "qna-input")) {
+             const indexedChunks = await NeuralIndexer.indexContent({
+                content,
+                title: fileUrl === "text-input" ? "Text Source" : "Q&A Source",
+                chatbotId,
+                dataSourceId,
+                knowledgeSourceId: job.data.knowledgeSourceId
+             });
+             
+             await NeuralIndexer.updateStatus(
+                dataSourceId || job.data.knowledgeSourceId!,
+                dataSourceId ? "data" : "knowledge",
+                "COMPLETED",
+                { fileSize: content.length, lastCrawledAt: new Date() }
+             );
+             result = { success: true, chunks: indexedChunks };
+          } else {
+            result = await processDocument({
+              fileUrl: job.data.fileUrl,
+              fileType: job.data.fileType,
+              chatbotId,
+              dataSourceId,
+              knowledgeSourceId: job.data.knowledgeSourceId,
+            });
+          }
           break;
 
         default:
           throw new Error(`Unknown crawl type: ${type}`);
       }
 
-      // Chatbot'u active durumuna getir
-      await prisma.chatbot.update({
-        where: { id: chatbotId },
-        data: { status: "ACTIVE" },
-      });
-
       console.log(`[CrawlWorker] Job ${job.id} completed successfully`);
-
       return result;
     } catch (error) {
       console.error(`[CrawlWorker] Job ${job.id} failed:`, error);
-
-      // Hata durumunu kaydet
-      await prisma.dataSource.update({
-        where: { id: dataSourceId },
-        data: {
-          status: "ERROR",
-          crawlStatus: error instanceof Error ? error.message : "Unknown error",
-        },
-      });
-
+      
+      // Mark data source as ERROR so UI shows the failure
+      if (dataSourceId) {
+        try {
+          await prisma.dataSource.update({
+            where: { id: dataSourceId },
+            data: { 
+              status: "ERROR", 
+              crawlStatus: error instanceof Error ? error.message : "Job failed" 
+            },
+          });
+        } catch (updateErr) {
+          console.error("[CrawlWorker] Failed to update error status:", updateErr);
+        }
+      }
+      
       throw error;
     }
   },
   {
     connection: redisConnection,
-    concurrency: 3, // Aynı anda 3 crawl işlemi (multi-customer desteği)
-    lockDuration: 300000, // 5 dakika (Playwright için yeterli süre)
+    concurrency: 10,
+    lockDuration: 300000, 
   }
 );
 

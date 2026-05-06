@@ -2,8 +2,7 @@ import { streamText } from "ai";
 import { NextRequest } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
-import { LLM_MODELS } from "@/lib/ai";
-import { searchDocuments } from "@/lib/crawler";
+import { LLM_MODELS, performRAGSearch } from "@/lib/ai";
 import { addTokenUsageJob } from "@/lib/queue";
 
 export async function POST(req: NextRequest) {
@@ -58,16 +57,11 @@ export async function POST(req: NextRequest) {
     });
 
     // RAG: İlgili dokümanları ara
-    const relevantDocs = await searchDocuments({
+    const { context, sources } = await performRAGSearch({
       query: message,
       chatbotId,
       limit: 5,
     });
-
-    // Context oluştur
-    const context = relevantDocs
-      .map((doc) => `Source: ${doc.title || "Unknown"}\n${doc.content}`)
-      .join("\n\n---\n\n");
 
     // Mesajları formatla
     const messages = previousMessages.map((m) => ({
@@ -117,7 +111,7 @@ Instructions:
             model,
             promptTokens,
             completionTokens,
-            sources: relevantDocs.map((d) => ({
+            sources: sources.map((d) => ({
               title: d.title,
               url: d.url,
               similarity: d.similarity,

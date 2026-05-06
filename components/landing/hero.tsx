@@ -40,7 +40,7 @@ export function Hero() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, delay: 0.1 }}
-                  className="text-6xl md:text-7xl lg:text-8xl font-black tracking-tighter leading-[0.9] text-zinc-900"
+                  className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-black tracking-tighter leading-[0.9] text-zinc-900"
                >
                   {t("title1")} <span className="text-primary translate-y-2 inline-block">{t("titleElite")}</span> <br />
                   {t("title2")}

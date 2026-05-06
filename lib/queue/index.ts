@@ -41,6 +41,7 @@ export type CrawlJob = {
   dataSourceId?: string;
   knowledgeSourceId?: string;
   userId: string;
+  urls?: string[];
 };
 
 export type EmbeddingJob = {
@@ -80,22 +81,22 @@ export type TokenUsageJob = {
 // Job ekleme fonksiyonları
 export async function addCrawlJob(data: CrawlJob) {
   return queues.crawl.add(`crawl-${data.type}`, data, {
-    attempts: 3,
+    attempts: 5,
     backoff: {
       type: "exponential",
-      delay: 5000,
+      delay: 10000,
     },
-    removeOnComplete: 100,
-    removeOnFail: 50,
+    removeOnComplete: 500,
+    removeOnFail: 200,
   });
 }
 
 export async function addEmbeddingJob(data: EmbeddingJob) {
   return queues.embedding.add("create-embedding", data, {
-    attempts: 3,
+    attempts: 5,
     backoff: {
       type: "exponential",
-      delay: 2000,
+      delay: 5000,
     },
   });
 }

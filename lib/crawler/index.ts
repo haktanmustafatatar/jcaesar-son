@@ -1,9 +1,14 @@
 import { prisma } from "@/lib/prisma";
-import { createEmbedding } from "@/lib/ai";
-import { chromium } from "playwright";
 import { Readability } from "@mozilla/readability";
 import { JSDOM } from "jsdom";
 import TurndownService from "turndown";
+import { NeuralIndexer } from "./indexer";
+import fs from "fs";
+import path from "path";
+import pdf from "pdf-parse";
+
+// Re-export NeuralIndexer so workers can import from "@/lib/crawler"
+export { NeuralIndexer } from "./indexer";
 
 // Turndown configuration
 const turndownService = new TurndownService({
@@ -23,271 +28,34 @@ async function getFirecrawl() {
   return _firecrawl;
 }
 
-// --- HELPER WRAPPERS AND UTILITIES ---
-
 /**
- * Detect platform (Shopify, WooCommerce, etc)
+ * Normalize URL - handle cases where user might have added extra protocol or spaces
  */
-async function detectPlatform(baseUrl: string) {
-  try {
-    const response = await fetch(baseUrl, { 
-      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36' }
-    });
-    const html = await response.text();
-    const headers = response.headers;
-
-    if (html.includes('cdn.shopify.com') || html.includes('Shopify.shop') || html.includes('myshopify.com')) {
-      return "SHOPIFY";
-    }
-    if (html.includes('wp-content/plugins/woocommerce')) {
-      return "WOOCOMMERCE";
-    }
-    return "CUSTOM";
-  } catch (err) {
-    console.error(`[Detector] Failed to detect platform for ${baseUrl}:`, err);
-    return "CUSTOM";
+function normalizeUrl(url: string): string {
+  url = url.trim();
+  if (url.startsWith('https://') || url.startsWith('http://')) {
+    return url.replace(/https?:\/\/(https?:\/\/)+/g, 'https://');
   }
+  return `https://${url}`;
 }
 
 /**
- * Enhanced Sitemap Discovery
+ * Robust Web Crawler with Firecrawl First logic
+ * 
+ * Strategy:
+ * - If specificUrls provided → scrape each URL individually via Firecrawl
+ * - If no specificUrls → use Firecrawl crawlUrl for discovery
+ * - Fallback → HTTP + JSDOM internal scraper (no Playwright needed)
  */
-export async function discoverSitemaps(baseUrl: string): Promise<string[]> {
-  const sitemaps = new Set<string>();
-  
-  try {
-    // 1. Check robots.txt
-    const robotsRes = await fetch(`${baseUrl}/robots.txt`);
-    if (robotsRes.ok) {
-      const text = await robotsRes.text();
-      const matches = text.matchAll(/^Sitemap:\s*(.*)$/gim);
-      for (const match of matches) {
-        if (match[1]) sitemaps.add(match[1].trim());
-      }
-    }
-    
-    // 2. Common paths if robots.txt didn't help
-    if (sitemaps.size === 0) {
-      const commonPaths = ['/sitemap.xml', '/sitemap_index.xml', '/sitemap-products.xml'];
-      for (const path of commonPaths) {
-        const res = await fetch(`${baseUrl}${path}`, { method: 'HEAD' });
-        if (res.ok) sitemaps.add(`${baseUrl}${path}`);
-      }
-    }
-  } catch (err) {
-    console.warn(`[SitemapDiscovery] Error discovering sitemaps for ${baseUrl}:`, err);
-  }
-
-  return Array.from(sitemaps);
-}
-
-/**
- * Shopify Products API Scraper
- */
-async function scrapeShopifyProducts(baseUrl: string, limit = 100) {
-  try {
-    const productsUrl = `${baseUrl}/products.json?limit=${limit}`;
-    console.log(`[ShopifyScraper] Fetching products from ${productsUrl}`);
-    
-    const response = await fetch(productsUrl);
-    if (!response.ok) throw new Error(`Shopify API responded with ${response.status}`);
-    
-    const data = await response.json();
-    const products = data.products || [];
-    
-    return products.map((p: any) => {
-      // Create a markdown summary of the product
-      let markdown = `# ${p.title}\n\n`;
-      if (p.body_html) {
-          // Shopify bodies are usually HTML
-          markdown += turndownService.turndown(p.body_html);
-      }
-      
-      // Variants & Pricing
-      const variants = p.variants || [];
-      if (variants.length > 0) {
-        markdown += `\n\n### Options & Pricing\n`;
-        variants.forEach((v: any) => {
-          markdown += `- **${v.title}**: ${v.price} (SKU: ${v.sku || 'N/A'})\n`;
-        });
-      }
-
-      return {
-        markdown,
-        html: p.body_html || p.title,
-        metadata: {
-          title: p.title,
-          sourceURL: `${baseUrl}/products/${p.handle}`,
-          price: variants[0]?.price,
-          sku: variants[0]?.sku,
-          handle: p.handle,
-          images: p.images?.map((img: any) => img.src) || [],
-          platform: "SHOPIFY",
-          type: "PRODUCT"
-        }
-      };
-    });
-  } catch (err) {
-    console.error(`[ShopifyScraper] Failed:`, err);
-    return [];
-  }
-}
-
-/**
- * Extract Structured Data (JSON-LD)
- */
-function extractStructuredData(html: string) {
-  const dom = new JSDOM(html);
-  const scripts = dom.window.document.querySelectorAll('script[type="application/ld+json"]');
-  let result: any = {};
-
-  scripts.forEach(script => {
-    try {
-      const data = JSON.parse(script.textContent || "{}");
-      
-      // Look for Product info
-      const findProduct = (obj: any): any => {
-        if (obj?.["@type"] === "Product" || obj?.type === "Product") return obj;
-        if (Array.isArray(obj)) {
-          for (const item of obj) {
-            const res = findProduct(item);
-            if (res) return res;
-          }
-        }
-        if (typeof obj === 'object' && obj !== null) {
-          if (obj["@graph"] && Array.isArray(obj["@graph"])) return findProduct(obj["@graph"]);
-          for (const k in obj) {
-            const res = findProduct(obj[k]);
-            if (res) return res;
-          }
-        }
-        return null;
-      };
-
-      const product = findProduct(data);
-      if (product) {
-        result = {
-          ...result,
-          title: product.name || result.title,
-          description: product.description || result.description,
-          sku: product.sku || product.mpn || result.sku,
-          brand: product.brand?.name || product.brand || result.brand,
-          price: product.offers?.price || product.offers?.[0]?.price || result.price,
-          currency: product.offers?.priceCurrency || product.offers?.[0]?.priceCurrency || result.currency,
-          availability: product.offers?.availability || product.offers?.[0]?.availability || result.availability
-        };
-      }
-    } catch {}
-  });
-
-  // Fallback: Check for meta tags
-  if (!result.price) {
-    const ogPrice = dom.window.document.querySelector('meta[property="product:price:amount"]')?.getAttribute('content');
-    const ogCurrency = dom.window.document.querySelector('meta[property="product:price:currency"]')?.getAttribute('content');
-    if (ogPrice) {
-      result.price = ogPrice;
-      result.currency = ogCurrency;
-    }
-  }
-
-  // Fallback 2: Aggressive CSS selection for common price patterns
-  if (!result.price) {
-    const priceSelectors = [
-      '.price', '.product-price', '#price', '[itemprop="price"]', 
-      '.current-price', '.amount', '.money', '.Price'
-    ];
-    for (const selector of priceSelectors) {
-      const el = dom.window.document.querySelector(selector);
-      if (el && el.textContent) {
-        const text = el.textContent.trim();
-        // Regex for price: optionally currency, then numbers with . or ,
-        const priceMatch = text.match(/([0-9.,]+)/);
-        if (priceMatch) {
-          result.price = priceMatch[1];
-          // Try to guess currency
-          if (text.includes('$')) result.currency = 'USD';
-          else if (text.includes('€')) result.currency = 'EUR';
-          else if (text.includes('₺') || text.includes('TL')) result.currency = 'TRY';
-          break;
-        }
-      }
-    }
-  }
-
-  return result;
-}
-
-/**
- * Lightweight Scraper (No Browser)
- */
-async function lightweightScrape(url: string) {
-  try {
-    const response = await fetch(url, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36' },
-      signal: AbortSignal.timeout(30000)
-    });
-
-    if (!response.ok) throw new Error(`Fetch failed with status ${response.status}`);
-
-    const html = await response.text();
-    const contentType = response.headers.get('content-type') || '';
-
-    if (!contentType.includes('text/html')) {
-        throw new Error(`Invalid content type: ${contentType}`);
-    }
-
-    // 1. Extract Structured Data
-    const structuredData = extractStructuredData(html);
-
-    // 2. Extract Main Content via Readability
-    const dom = new JSDOM(html, { url });
-    const reader = new Readability(dom.window.document);
-    const article = reader.parse();
-
-    if (!article || (!article.content && !structuredData.title)) {
-      throw new Error("Page seems to be empty or requires JavaScript");
-    }
-
-    // 3. Convert to Markdown
-    let contentToConvert = article?.content || `<div>${structuredData.description || ''}</div>`;
-    let markdown = turndownService.turndown(contentToConvert);
-
-    // 4. Enrich markdown with structured data if it's a product
-    if (structuredData.price) {
-      markdown = `## Product Details\n- **Price**: ${structuredData.price} ${structuredData.currency || ''}\n- **SKU**: ${structuredData.sku || 'N/A'}\n- **Brand**: ${structuredData.brand || 'N/A'}\n\n${markdown}`;
-    }
-
-    return {
-      success: true,
-      data: {
-        markdown,
-        html: contentToConvert,
-        metadata: {
-          title: structuredData.title || article?.title || "Untitled",
-          description: structuredData.description || article?.excerpt || "",
-          sourceURL: url,
-          price: structuredData.price,
-          currency: structuredData.currency,
-          sku: structuredData.sku,
-          isLightweight: true
-        }
-      }
-    };
-  } catch (err) {
-    console.warn(`[LightweightScrape] Failed for ${url}:`, err);
-    return { success: false, error: err instanceof Error ? err.message : "Fetch failed" };
-  }
-}
-
-// Website crawling
-// Website crawling
 export async function crawlWebsite({
-  url,
-  maxDepth = 5,
-  limit = 500,
+  url: rawUrl,
+  maxDepth = 3,
+  limit = 100,
   chatbotId,
   dataSourceId,
   knowledgeSourceId,
+  userId,
+  urls: specificUrls,
 }: {
   url: string;
   maxDepth?: number;
@@ -295,621 +63,247 @@ export async function crawlWebsite({
   chatbotId: string;
   dataSourceId?: string;
   knowledgeSourceId?: string;
+  userId?: string;
+  urls?: string[];
 }) {
+  const normalizedUrl = normalizeUrl(rawUrl);
+  console.log(`[Crawler] Starting crawl for ${normalizedUrl}`);
+
   try {
-    // Normalize URL - handle cases where user might have added extra protocol or spaces
-    url = url.trim();
-    if (url.startsWith('https://')) {
-      // Do nothing
-    } else if (url.startsWith('http://')) {
-      url = url.replace('http://', 'https://');
-    } else {
-      url = `https://${url}`;
-    }
-    
-    // Remove potential double slashes after protocol
-    url = url.replace(/https:\/\/(https:\/\/|http:\/\/)+/g, 'https://');
-    
-    // 1. Detect Platform & Sitemaps
-    const baseUrl = new URL(url).origin;
-    const platform = await detectPlatform(baseUrl);
-    console.log(`[Crawler] Platform detected: ${platform}`);
-
-    // Discover Sitemaps
-    const sitemaps = await discoverSitemaps(baseUrl);
-    console.log(`[Crawler] Found ${sitemaps.length} sitemaps`);
-
-    const pages: any[] = [];
-    const visited = new Set<string>();
-    const queue: { url: string; depth: number }[] = [{ url, depth: 0 }];
-
-    if (sitemaps.length > 0) {
-      for (const sitemap of sitemaps) {
-        const sitemapUrls = await getSitemapUrls(sitemap);
-        console.log(`[Crawler] Extracted ${sitemapUrls.length} URLs from sitemap ${sitemap}`);
-        for (const sUrl of sitemapUrls) {
-          if (!visited.has(sUrl)) {
-            queue.push({ url: sUrl, depth: 1 }); // Sitemaps are depth 0 or 1
-          }
-        }
-      }
+    // 1. Update status to CRAWLING
+    if (dataSourceId) {
+      await prisma.dataSource.update({
+        where: { id: dataSourceId },
+        data: { status: "CRAWLING", crawlStatus: "Starting crawl..." },
+      });
     }
 
-    // Shopify Specific: Scrape products via API immediately (much faster)
-    if (platform === "SHOPIFY") {
-      console.log(`[Crawler] Shopify detected. Utilizing Products API for faster indexing.`);
-      const shopifyPages = await scrapeShopifyProducts(baseUrl, limit);
-      pages.push(...shopifyPages);
-      
-      // If we got enough products, we might not need a deep crawl, 
-      // but let's continue for other pages (about, contact, etc.)
-      for (const p of shopifyPages) {
-        const sUrl = p.metadata.sourceURL;
-        if (!sUrl) continue;
-        
-        visited.add(sUrl);
-        // Also add to DataSourceUrl so it shows in the UI if we are in a DataSource context
-        if (dataSourceId) {
-          await prisma.dataSourceUrl.upsert({
-            where: { dataSourceId_url: { dataSourceId, url: sUrl } },
-            update: { status: "COMPLETED", lastCrawledAt: new Date(), charCount: p.markdown.length, title: p.metadata.title },
-            create: { dataSourceId, url: sUrl, status: "COMPLETED", lastCrawledAt: new Date(), charCount: p.markdown.length, title: p.metadata.title }
-          });
-        }
-      }
+    // 2. Determine URLs to process
+    let linksToProcess: string[] = [];
+    if (specificUrls && specificUrls.length > 0) {
+      console.log(`[Crawler] Using ${specificUrls.length} specific URLs provided by user`);
+      linksToProcess = specificUrls;
     }
 
-    let browser: any;
+    // 3. Strategy A: If we have specific URLs, scrape each one individually
+    if (linksToProcess.length > 0) {
+      return await scrapeSpecificUrls({
+        urls: linksToProcess,
+        chatbotId,
+        dataSourceId,
+        knowledgeSourceId,
+      });
+    }
+
+    // 4. Strategy B: No specific URLs — use Firecrawl full crawl
     try {
-      // --- BATCH PARALLEL CRAWLING ---
-      const CONCURRENCY = 8; // Higher concurrency allowed for lightweight
-      
-      while (queue.length > 0 && pages.length < limit) {
-        // Get next batch of URLs
-        const batch = [];
-        while (queue.length > 0 && batch.length < CONCURRENCY && (pages.length + batch.length) < limit) {
-          const item = queue.shift()!;
-          if (!visited.has(item.url)) {
-            visited.add(item.url);
-            batch.push(item);
-          }
+      console.log(`[Crawler] Attempting Firecrawl full crawl for ${normalizedUrl}...`);
+      const firecrawl = await getFirecrawl();
+      const crawlResult = await firecrawl.crawlUrl(normalizedUrl, {
+        limit,
+        maxDepth,
+        scrapeOptions: {
+          formats: ["markdown"],
+          onlyMainContent: true
         }
+      });
 
-        if (batch.length === 0) continue;
-
-        console.log(`[Crawler] Processing batch of ${batch.length} pages. Total indexed so far: ${pages.length}`);
-
-        // Process batch in parallel
-        await Promise.all(batch.map(async ({ url: currentUrl, depth }) => {
-          try {
-            // STEP 1: Try Lightweight Scrape (HTTP Fetch + JSDOM)
-            const lightResult = await lightweightScrape(currentUrl);
-            
-            if (lightResult.success && lightResult.data) {
-              pages.push(lightResult.data);
-              
-              // Mark as COMPLETED with metadata
-              const charCount = lightResult.data.markdown.length;
-              const title = lightResult.data.metadata.title;
-
-              if (dataSourceId) {
-                try {
-                  await prisma.dataSourceUrl.upsert({
-                    where: { dataSourceId_url: { dataSourceId, url: currentUrl } },
-                    update: { 
-                      status: "COMPLETED", 
-                      lastCrawledAt: new Date(),
-                      charCount,
-                      title
-                    },
-                    create: { 
-                      dataSourceId, 
-                      url: currentUrl, 
-                      status: "COMPLETED", 
-                      lastCrawledAt: new Date(),
-                      charCount,
-                      title
-                    }
-                  });
-                } catch (upsertErr) {
-                  console.error(`[Crawler] Upsert failed for ${currentUrl}:`, upsertErr);
-                }
-              }
-
-              // Discover links from lightweight if depth permits
-              if (depth < maxDepth) { 
-                const dom = new JSDOM(lightResult.data.html, { url: currentUrl });
-                const links = Array.from(dom.window.document.querySelectorAll("a"))
-                  .map(a => (a as HTMLAnchorElement).href)
-                  .filter(href => {
-                    try {
-                      const u = new URL(href, currentUrl);
-                      // Skip assets and external links
-                      const isInternal = u.origin === baseUrl;
-                      const isNotAsset = !/\.(png|jpg|jpeg|gif|pdf|zip|css|js|svg)$/i.test(u.pathname);
-                      return isInternal && isNotAsset && !href.includes("#");
-                    } catch { return false; }
-                  });
-
-                for (const link of Array.from(new Set(links))) {
-                  // Normalize and clean link
-                  const cleanLink = link.split('#')[0].split('?')[0].replace(/\/$/, "");
-                  if (!visited.has(cleanLink) && queue.length < (limit * 2)) {
-                    queue.push({ url: cleanLink, depth: depth + 1 });
-                  }
-                }
-              }
-              return;
-            }
-
-            // STEP 2: Fallback to Playwright (Browser)
-            console.log(`[Crawler] Lightweight failed for ${currentUrl}. Falling back to Playwright...`);
-            
-            if (!browser) {
-              browser = await chromium.launch({ headless: true });
-            }
-            const context = await browser.newContext({
-              userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-            });
-            const pageInstance = await context.newPage();
-            pageInstance.setDefaultTimeout(60000);
-
-            await pageInstance.goto(currentUrl, { waitUntil: "networkidle" });
-            const html = await pageInstance.content();
-            const pageTitle = await pageInstance.title();
-
-            // Use the same structured data extraction logic
-            const structuredData = extractStructuredData(html);
-            const dom = new JSDOM(html, { url: currentUrl });
-            const reader = new Readability(dom.window.document);
-            const article = reader.parse();
-
-            if (article && article.content) {
-              let markdown = turndownService.turndown(article.content);
-              if (structuredData.price) {
-                markdown = `## Product Details\n- **Price**: ${structuredData.price} ${structuredData.currency || ''}\n- **SKU**: ${structuredData.sku || 'N/A'}\n\n${markdown}`;
-              }
-
-              pages.push({
-                markdown,
-                html: article.content,
-                metadata: {
-                  title: structuredData.title || article.title || pageTitle,
-                  description: structuredData.description || article.excerpt,
-                  sourceURL: currentUrl,
-                  price: structuredData.price,
-                  currency: structuredData.currency,
-                  sku: structuredData.sku
-                }
-              });
-
-              if (dataSourceId) {
-                await prisma.dataSourceUrl.upsert({
-                  where: { dataSourceId_url: { dataSourceId, url: currentUrl } },
-                  update: { 
-                    status: "COMPLETED", 
-                    lastCrawledAt: new Date(),
-                    charCount: markdown.length,
-                    title: structuredData.title || article.title || pageTitle
-                  },
-                  create: { 
-                    dataSourceId, 
-                    url: currentUrl, 
-                    status: "COMPLETED", 
-                    lastCrawledAt: new Date(),
-                    charCount: markdown.length,
-                    title: structuredData.title || article.title || pageTitle
-                  },
-                });
-              }
-            }
-            await pageInstance.close();
-          } catch (err) {
-            console.error(`[Crawler] Failed to scrape ${currentUrl}:`, err);
-            if (dataSourceId) {
-              await prisma.dataSourceUrl.upsert({
-                where: { dataSourceId_url: { dataSourceId, url: currentUrl } },
-                update: { status: "ERROR", errorMessage: err instanceof Error ? err.message : "Scrape failed" },
-                create: { dataSourceId, url: currentUrl, status: "ERROR", errorMessage: err instanceof Error ? err.message : "Scrape failed" }
-              });
-            }
-          }
-        }));
-      }
-    } finally {
-      if (browser) await browser.close();
-    }
-
-    if (pages.length === 0) {
-      // Eğer dahili tarayıcı hiç sonuç bulamadıysa Firecrawl dene (Opsiyonel B Planı)
-      console.log(`[Crawler] Internal crawl yielded 0 pages. Trying Firecrawl as fallback...`);
-      return crawlWithFirecrawl({ url, maxDepth, limit, chatbotId, dataSourceId, knowledgeSourceId });
-    }
-
-    // 2. Process each page
-    console.log(`[Crawler] Processing ${pages.length} pages...`);
-    
-    for (const page of pages) {
-      if (!page.markdown && !page.html) continue;
-      const content = page.markdown || page.html;
-
-      // Metadata hazırlama
-      const finalMetadata = {
-        description: page.metadata?.description || "",
-        ogImage: page.metadata?.ogImage || "",
-        language: page.metadata?.language || "tr",
-        sourceURL: page.metadata?.sourceURL || url,
-        ...page.metadata
-      };
-
-      const pageTitle = page.metadata?.title || "Untitled Page";
-      const pageUrl = page.metadata?.sourceURL || url;
-
-      // Chunk'lara böl (512 token, 50 overlap)
-      const chunks = chunkText(content, 512, 50);
-      console.log(`[Crawler] Page ${pageUrl} split into ${chunks.length} chunks`);
-
-      for (const chunk of chunks) {
-        // Embedding oluştur
-        const embedding = await createEmbedding(chunk);
-        const docId = `doc_${Math.random().toString(36).substring(2, 11)}`;
+      if (crawlResult.success && crawlResult.data && crawlResult.data.length > 0) {
+        console.log(`[Crawler] Firecrawl successful. Found ${crawlResult.data.length} pages.`);
         
-        // Format embedding for pgvector: [val1, val2, ...]
-        const vectorStr = `[${embedding.join(",")}]`;
+        let indexedCount = 0;
+        for (const page of crawlResult.data) {
+          const content = page.markdown || page.content || "";
+          if (content.trim().length < 10) continue;
 
-        // pgvector için raw SQL (URL ve Title zorunlu)
-        await prisma.$executeRaw`
-          INSERT INTO "Document" ("id", "dataSourceId", "knowledgeSourceId", "content", "url", "title", "metadata", "embedding", "createdAt", "updatedAt")
-          VALUES (
-            ${docId},
-            ${dataSourceId || null},
-            ${knowledgeSourceId || null},
-            ${chunk},
-            ${pageUrl},
-            ${pageTitle},
-            ${JSON.stringify(finalMetadata)}::jsonb,
-            ${vectorStr}::vector,
-            NOW(),
-            NOW()
-          )
-        `;
+          await NeuralIndexer.indexContent({
+            content,
+            title: page.metadata?.title || "Untitled Page",
+            url: page.url || page.metadata?.sourceURL,
+            metadata: page.metadata,
+            chatbotId,
+            dataSourceId,
+            knowledgeSourceId
+          });
+          indexedCount++;
+        }
+        
+        await NeuralIndexer.updateStatus(
+          dataSourceId || knowledgeSourceId!, 
+          dataSourceId ? "data" : "knowledge", 
+          "COMPLETED",
+          { lastCrawledAt: new Date(), pagesCount: indexedCount }
+        );
+        return { success: true, pagesCount: indexedCount };
       }
+    } catch (err) {
+      console.warn(`[Crawler] Firecrawl failed, falling back to internal scraper:`, err);
     }
 
-    // Calculate total size
-    const totalSize = pages.reduce((acc, p) => acc + (p.markdown?.length || 0), 0);
-
-    // Data source'u güncelle
-    if (dataSourceId) {
-      await prisma.dataSource.update({
-        where: { id: dataSourceId },
-        data: {
-          status: "COMPLETED",
-          pagesCount: pages.length,
-          fileSize: totalSize,
-          lastCrawledAt: new Date(),
-        },
+    // 5. Fallback: Internal HTTP+JSDOM Scraper (no Playwright)
+    console.log(`[Crawler] Running internal HTTP fallback for ${normalizedUrl}`);
+    const pages = await internalCrawl(normalizedUrl, maxDepth, limit);
+    
+    let indexedCount = 0;
+    for (const page of pages) {
+      await NeuralIndexer.indexContent({
+        content: page.markdown,
+        title: page.metadata.title,
+        url: page.metadata.sourceURL,
+        metadata: page.metadata,
+        chatbotId,
+        dataSourceId,
+        knowledgeSourceId
       });
+      indexedCount++;
     }
 
-    if (knowledgeSourceId) {
-      await prisma.knowledgeSource.update({
-        where: { id: knowledgeSourceId },
-        data: {
-          status: "COMPLETED",
-          updatedAt: new Date(),
-        },
-      });
-    }
+    await NeuralIndexer.updateStatus(
+      dataSourceId || knowledgeSourceId!, 
+      dataSourceId ? "data" : "knowledge", 
+      "COMPLETED",
+      { lastCrawledAt: new Date(), pagesCount: indexedCount }
+    );
 
-    // Check if all sources for this chatbot are completed
-    await updateChatbotStatus(chatbotId);
-
-    return {
-      success: true,
-      pagesCrawled: pages.length,
-      totalChunks: pages.length * 3, // ortalama tahmin
-    };
+    return { success: true, pagesCount: indexedCount };
+    
   } catch (error) {
-    console.error("Crawl error:", error);
-
-    // Hata durumunu kaydet
-    if (dataSourceId) {
-      await prisma.dataSource.update({
-        where: { id: dataSourceId },
-        data: {
-          status: "ERROR",
-          crawlStatus: error instanceof Error ? error.message : "Unknown error",
-        },
-      });
+    console.error(`[Crawler] Fatal error:`, error);
+    if (dataSourceId || knowledgeSourceId) {
+      await NeuralIndexer.updateStatus(
+        dataSourceId || knowledgeSourceId!, 
+        dataSourceId ? "data" : "knowledge", 
+        "ERROR",
+        { crawlStatus: error instanceof Error ? error.message : "Crawl failed" }
+      );
     }
-
-    if (knowledgeSourceId) {
-      await prisma.knowledgeSource.update({
-        where: { id: knowledgeSourceId },
-        data: {
-          status: "ERROR",
-        },
-      });
-    }
-
     throw error;
   }
 }
 
 /**
- * Perform a high-quality internal scrape using Playwright & Readability
+ * Scrape specific URLs individually using Firecrawl scrapeUrl with HTTP fallback
  */
-export async function internalScrape(url: string) {
-  let browser;
-  try {
-    console.log(`[InternalScraper] Launching browser for: ${url}`);
-    browser = await chromium.launch({ headless: true });
-    const context = await browser.newContext({
-      userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-    });
-    const page = await context.newPage();
-    
-    // Set timeout to 30s
-    page.setDefaultTimeout(60000);
-
-    console.log(`[InternalScraper] Navigating to ${url}...`);
-    await page.goto(url, { waitUntil: "networkidle" });
-
-    // Get the rendered HTML
-    const html = await page.content();
-    const pageTitle = (await page.title()) || "Untitled Page";
-
-    // Use Readability to extract main content
-    const dom = new JSDOM(html, { url });
-    const reader = new Readability(dom.window.document);
-    const article = reader.parse();
-
-    let contentToConvert = "";
-    let extractedTitle = pageTitle;
-    let extractedDescription = "";
-
-    if (article && article.content && article.content.length > 100) {
-      contentToConvert = article.content;
-      extractedTitle = article.title || pageTitle;
-      extractedDescription = article.excerpt || "";
-    } else {
-      // FALLBACK: Readability başarısız olursa veya çok kısa içerik verirse
-      console.log(`[InternalScraper] Readability failed or returned short content for ${url}. Using fallback innerText.`);
-      const bodyText = await page.innerText("body");
-      contentToConvert = `<div>${bodyText.split("\n").map(line => `<p>${line}</p>`).join("")}</div>`;
-    }
-
-    // Convert to Markdown
-    const markdown = turndownService.turndown(contentToConvert);
-
-    if (markdown.length < 50) {
-      throw new Error("Extracted content is too short to be useful.");
-    }
-
-    console.log(`[InternalScraper] Successfully scraped: ${extractedTitle} (${markdown.length} chars)`);
-
-    return {
-      success: true,
-      data: {
-        markdown,
-        html: contentToConvert,
-        metadata: {
-          title: extractedTitle,
-          description: extractedDescription,
-          language: "tr",
-          sourceURL: url,
-        }
-      }
-    };
-  } catch (error) {
-    console.error(`[InternalScraper] Error scraping ${url}:`, error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Unknown scraping error",
-    };
-  } finally {
-    if (browser) {
-      await browser.close();
-    }
-  }
-}
-
-export async function scrapePage(url: string) {
-  // Sadece dahili tarayıcıyı (Open Source Playwright) kullan
-  const internalResult = await internalScrape(url);
-  if (internalResult.success) {
-    return internalResult.data;
-  }
-
-  // Hata durumunda doğrudan fırlat
-  console.error(`[Crawler] Internal scrape failed for: ${url}`, internalResult.error);
-  throw new Error(internalResult.error || "Scrape failed using internal engine");
-}
-
-// Sitemap'den URL'leri çek
-export async function getSitemapUrls(url: string): Promise<string[]> {
-  try {
-    const sitemapUrl = url.endsWith("/sitemap.xml")
-      ? url
-      : `${url.replace(/\/$/, "")}/sitemap.xml`;
-
-    const response = await fetch(sitemapUrl);
-    if (!response.ok) return [];
-
-    const xml = await response.text();
-    const urls: string[] = [];
-
-    // Basit XML parsing
-    const urlMatches = xml.matchAll(/<loc>(.*?)<\/loc>/g);
-    for (const match of urlMatches) {
-      urls.push(match[1]);
-    }
-
-    return urls;
-  } catch {
-    return [];
-  }
-}
-
-// Text chunk'larına böl (Recursive Character Splitting)
-function chunkText(text: string, maxTokens: number, overlap: number): string[] {
-  const maxChars = maxTokens * 4;
-  const overlapChars = overlap * 4;
-  
-  const chunks: string[] = [];
-  const separators = ["\n\n", "\n", ". ", " ", ""];
-  
-  function split(content: string, depth: number): string[] {
-    if (content.length <= maxChars) return [content];
-    
-    const separator = separators[depth] ?? "";
-    const parts = content.split(separator);
-    const result: string[] = [];
-    let currentChunk = "";
-    
-    for (const part of parts) {
-      if ((currentChunk + separator + part).length <= maxChars) {
-        currentChunk += (currentChunk ? separator : "") + part;
-      } else {
-        if (currentChunk) result.push(currentChunk);
-        
-        if (part.length > maxChars) {
-          // If a single part is too long, go deeper or hard split
-          if (depth < separators.length - 1) {
-            result.push(...split(part, depth + 1));
-          } else {
-            result.push(part.slice(0, maxChars));
-          }
-        } else {
-          currentChunk = part;
-        }
-      }
-    }
-    
-    if (currentChunk) result.push(currentChunk);
-    
-    // Process overlaps
-    const overlappedResults: string[] = [];
-    for (let i = 0; i < result.length; i++) {
-        let chunk = result[i];
-        if (i > 0 && overlapChars > 0) {
-            const prev = result[i-1];
-            const overlapPart = prev.slice(-overlapChars);
-            chunk = overlapPart + chunk;
-        }
-        overlappedResults.push(chunk);
-    }
-    
-    return overlappedResults;
-  }
-
-  return split(text, 0);
-}
-
-/**
- * Update Chatbot status based on its data sources
- */
-export async function updateChatbotStatus(chatbotId: string) {
-  const chatbot = await prisma.chatbot.findUnique({
-    where: { id: chatbotId },
-    include: { dataSources: true }
-  });
-
-  if (!chatbot) return;
-
-  const allCompleted = chatbot.dataSources.every(ds => ds.status === "COMPLETED");
-  const anyError = chatbot.dataSources.some(ds => ds.status === "ERROR");
-  
-  // Early Activation: If we have at least 10 documents indexed across all sources, consider it ACTIVE
-  const documentCount = await prisma.document.count({
-    where: { dataSource: { chatbotId } }
-  });
-  const reachedThreshold = documentCount >= 10;
-
-  let newStatus = chatbot.status;
-  if (allCompleted || reachedThreshold) newStatus = "ACTIVE";
-  else if (anyError) newStatus = "ERROR";
-  else if (chatbot.dataSources.length > 0) newStatus = "TRAINING";
-
-  if (newStatus !== chatbot.status) {
-    await prisma.chatbot.update({
-      where: { id: chatbotId },
-      data: { status: newStatus }
-    });
-  }
-}
-
-/**
- * Link discovery helper using Playwright
- */
-async function discoverLinks(url: string, baseUrl: string): Promise<string[]> {
-  let browser;
-  try {
-    browser = await chromium.launch({ headless: true });
-    const page = await browser.newPage();
-    await page.goto(url, { waitUntil: "networkidle", timeout: 15000 });
-
-    const links = await page.evaluate((base) => {
-      return Array.from(document.querySelectorAll("a"))
-        .map((a) => a.href)
-        .filter((href) => {
-          try {
-            const u = new URL(href);
-            return u.origin === base && !href.includes("#") && !href.includes("?");
-          } catch {
-            return false;
-          }
-        });
-    }, baseUrl);
-
-    return Array.from(new Set(links));
-  } catch (error) {
-    console.error(`[LinkDiscovery] Error on ${url}:`, error);
-    return [];
-  } finally {
-    if (browser) await browser.close();
-  }
-}
-
-/**
- * Fallback to original Firecrawl logic
- */
-async function crawlWithFirecrawl({
-  url,
-  maxDepth,
-  limit,
+async function scrapeSpecificUrls({
+  urls,
   chatbotId,
   dataSourceId,
   knowledgeSourceId,
 }: {
-  url: string;
-  maxDepth: number;
-  limit: number;
+  urls: string[];
   chatbotId: string;
   dataSourceId?: string;
   knowledgeSourceId?: string;
 }) {
-  const crawlResponse = await (await getFirecrawl()).crawlUrl(url, {
-    limit,
-    scrapeOptions: {
-      formats: ["markdown", "html"],
-      onlyMainContent: true,
-    },
-    maxDepth,
-  });
+  let indexedCount = 0;
+  let firecrawl: any = null;
 
-  if (!crawlResponse.success) {
-    throw new Error(crawlResponse.error || "Firecrawl fallback failed");
+  try {
+    firecrawl = await getFirecrawl();
+  } catch (err) {
+    console.warn("[Crawler] Firecrawl not available, will use HTTP fallback for all URLs");
   }
 
-  const pages = (crawlResponse as any).data || [];
-  // Rest of processing logic is handled by calling this from main crawl function
-  // Actually we need to return pages to be processed
-  return pages; 
+  for (const url of urls) {
+    try {
+      console.log(`[Crawler] Scraping specific URL: ${url}`);
+      let content = "";
+      let title = "Untitled Page";
+
+      // Try Firecrawl scrapeUrl first
+      if (firecrawl) {
+        try {
+          const result = await firecrawl.scrapeUrl(url, {
+            formats: ["markdown"],
+            onlyMainContent: true,
+          });
+          if (result.success && result.data) {
+            content = result.data.markdown || result.data.content || "";
+            title = result.data.metadata?.title || title;
+          }
+        } catch (scrapeErr) {
+          console.warn(`[Crawler] Firecrawl scrapeUrl failed for ${url}, trying HTTP fallback`);
+        }
+      }
+
+      // HTTP+JSDOM fallback
+      if (!content || content.trim().length < 10) {
+        const scraped = await httpScrape(url);
+        if (scraped) {
+          content = scraped.markdown;
+          title = scraped.title;
+        }
+      }
+
+      if (content && content.trim().length >= 10) {
+        await NeuralIndexer.indexContent({
+          content,
+          title,
+          url,
+          metadata: { sourceURL: url },
+          chatbotId,
+          dataSourceId,
+          knowledgeSourceId,
+        });
+        indexedCount++;
+      } else {
+        console.warn(`[Crawler] No usable content from ${url}`);
+      }
+    } catch (err) {
+      console.error(`[Crawler] Failed to scrape ${url}:`, err);
+      // Continue with next URL — don't fail the entire job
+    }
+  }
+
+  await NeuralIndexer.updateStatus(
+    dataSourceId || knowledgeSourceId!,
+    dataSourceId ? "data" : "knowledge",
+    indexedCount > 0 ? "COMPLETED" : "ERROR",
+    { lastCrawledAt: new Date(), pagesCount: indexedCount }
+  );
+
+  return { success: indexedCount > 0, pagesCount: indexedCount };
 }
 
-// Doküman yükleme (PDF, DOCX, TXT)
+/**
+ * HTTP + JSDOM based page scraper (no Playwright needed — server-safe)
+ */
+async function httpScrape(url: string): Promise<{ markdown: string; title: string } | null> {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+
+    const response = await fetch(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (compatible; JCaesarBot/1.0; +https://jcaesars.com)",
+        "Accept": "text/html,application/xhtml+xml",
+      },
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+
+    if (!response.ok) return null;
+
+    const html = await response.text();
+    const dom = new JSDOM(html, { url });
+    const reader = new Readability(dom.window.document);
+    const article = reader.parse();
+
+    if (!article || !article.content) return null;
+
+    return {
+      markdown: turndownService.turndown(article.content),
+      title: article.title || "Untitled",
+    };
+  } catch (err) {
+    console.warn(`[httpScrape] Failed for ${url}:`, err);
+    return null;
+  }
+}
+
+/**
+ * Intelligent Document Processor (PDF, Text, Markdown)
+ */
 export async function processDocument({
   fileUrl,
   fileType,
@@ -925,141 +319,308 @@ export async function processDocument({
 }) {
   try {
     let content = "";
+    let title = "Document Upload";
 
-    if (fileType === "text/plain" || fileType === "text/markdown") {
-      // Text dosyası
-      const response = await fetch(fileUrl);
-      content = await response.text();
-    } else if (fileType === "application/pdf") {
-      // PDF - Firecrawl ile scrape
-      const scrapeResult = await (await getFirecrawl()).scrapeUrl(fileUrl, {
-        formats: ["markdown"],
-      });
-      content = ((scrapeResult as any).data as any)?.markdown || "";
+    // 1. Detect Local vs Remote
+    const isLocal = fileUrl.startsWith("/uploads/") || fileUrl.includes("localhost") || !fileUrl.startsWith("http");
+    
+    if (isLocal) {
+      console.log(`[Crawler] Processing local file: ${fileUrl}`);
+      const fileName = path.basename(fileUrl);
+      const absolutePath = path.join(process.cwd(), "public", "uploads", fileName);
+      
+      if (!fs.existsSync(absolutePath)) {
+        throw new Error(`File not found at ${absolutePath}`);
+      }
+
+      const buffer = fs.readFileSync(absolutePath);
+      
+      if (fileType === "application/pdf") {
+        const data = await pdf(buffer);
+        content = data.text;
+        title = fileName;
+      } else {
+        content = buffer.toString("utf-8");
+        title = fileName;
+      }
     } else {
-      // Diğer dosyalar - Firecrawl dene
-      const scrapeResult = await (await getFirecrawl()).scrapeUrl(fileUrl, {
-        formats: ["markdown"],
-      });
-      content = ((scrapeResult as any).data as any)?.markdown || "";
+      console.log(`[Crawler] Processing remote file: ${fileUrl}`);
+      if (fileType === "application/pdf") {
+        try {
+          const firecrawl = await getFirecrawl();
+          const result = await firecrawl.scrapeUrl(fileUrl, { formats: ["markdown"] });
+          content = result.data?.markdown || "";
+        } catch {
+          // Fallback: download and parse PDF directly
+          const response = await fetch(fileUrl);
+          const buffer = Buffer.from(await response.arrayBuffer());
+          const data = await pdf(buffer);
+          content = data.text;
+        }
+      } else {
+        const response = await fetch(fileUrl);
+        content = await response.text();
+      }
     }
 
     if (!content.trim()) {
-      throw new Error("Could not extract content from file");
+      throw new Error("No content extracted from document");
     }
 
-    // Chunk'lara böl
-    const chunks = chunkText(content, 512, 50);
+    const indexedChunks = await NeuralIndexer.indexContent({
+      content,
+      title,
+      url: fileUrl,
+      metadata: { fileType, fileUrl },
+      chatbotId,
+      dataSourceId,
+      knowledgeSourceId
+    });
 
-    for (const chunk of chunks) {
-      const embedding = await createEmbedding(chunk);
-      const docId = `doc_${Math.random().toString(36).substring(2, 11)}`;
-      const vectorStr = `[${embedding.join(",")}]`;
+    await NeuralIndexer.updateStatus(
+      dataSourceId || knowledgeSourceId!, 
+      dataSourceId ? "data" : "knowledge", 
+      "COMPLETED",
+      { fileSize: content.length, lastCrawledAt: new Date() }
+    );
 
-      await prisma.$executeRaw`
-        INSERT INTO "Document" ("id", "dataSourceId", "knowledgeSourceId", "content", "title", "metadata", "embedding", "createdAt", "updatedAt")
-        VALUES (
-          ${docId},
-          ${dataSourceId || null},
-          ${knowledgeSourceId || null},
-          ${chunk},
-          "Document Upload",
-          ${JSON.stringify({ fileType, fileUrl })}::jsonb,
-          ${vectorStr}::vector,
-          NOW(),
-          NOW()
-        )
-      `;
-    }
-
-    if (dataSourceId) {
-      await prisma.dataSource.update({
-        where: { id: dataSourceId },
-        data: {
-          status: "COMPLETED",
-          pagesCount: 1,
-          fileSize: content.length,
-          lastCrawledAt: new Date(),
-        },
-      });
-    }
-
-    if (knowledgeSourceId) {
-      await prisma.knowledgeSource.update({
-        where: { id: knowledgeSourceId },
-        data: {
-          status: "COMPLETED",
-          updatedAt: new Date(),
-        },
-      });
-    }
-
-    await updateChatbotStatus(chatbotId);
-
-    return { success: true, chunks: chunks.length };
+    return { success: true, chunks: indexedChunks };
   } catch (error) {
-    console.error("Document processing error:", error);
-
-    if (dataSourceId) {
-      await prisma.dataSource.update({
-        where: { id: dataSourceId },
-        data: {
-          status: "ERROR",
-          crawlStatus: error instanceof Error ? error.message : "Unknown error",
-        },
-      });
+    console.error(`[Crawler] Document processing failed:`, error);
+    if (dataSourceId || knowledgeSourceId) {
+      await NeuralIndexer.updateStatus(
+        dataSourceId || knowledgeSourceId!, 
+        dataSourceId ? "data" : "knowledge", 
+        "ERROR",
+        { crawlStatus: error instanceof Error ? error.message : "Processing failed" }
+      );
     }
-
-    if (knowledgeSourceId) {
-      await prisma.knowledgeSource.update({
-        where: { id: knowledgeSourceId },
-        data: {
-          status: "ERROR",
-        },
-      });
-    }
-
     throw error;
   }
 }
 
-// Semantic search (RAG)
-export async function searchDocuments({
-  query,
-  chatbotId,
-  limit = 5,
-}: {
-  query: string;
-  chatbotId: string;
-  limit?: number;
-}) {
-  // Query embedding oluştur
-  const queryEmbedding = await createEmbedding(query);
+/**
+ * Internal crawling logic using HTTP + JSDOM (server-safe, no Playwright)
+ */
+async function internalCrawl(startUrl: string, maxDepth: number, limit: number) {
+  const pages: { markdown: string; metadata: { title: string; sourceURL: string } }[] = [];
+  const visited = new Set<string>();
+  const queue: { url: string; depth: number }[] = [{ url: startUrl, depth: 0 }];
+  
+  let baseUrl: string;
+  try {
+    baseUrl = new URL(startUrl).origin;
+  } catch {
+    return pages;
+  }
 
-  // pgvector ile cosine similarity search
-  const documents = await prisma.$queryRaw`
-    SELECT 
-      d.id,
-      d.content,
-      d.url,
-      d.title,
-      d.metadata,
-      1 - (d.embedding <=> ${queryEmbedding}::vector) as similarity
-    FROM "Document" d
-    LEFT JOIN "DataSource" ds ON d."dataSourceId" = ds.id
-    LEFT JOIN "KnowledgeSource" ks ON d."knowledgeSourceId" = ks.id
-    WHERE (ds."chatbotId" = ${chatbotId} OR ks."chatbotId" = ${chatbotId})
-      AND d.embedding IS NOT NULL
-    ORDER BY d.embedding <=> ${queryEmbedding}::vector
-    LIMIT ${limit}
-  `;
+  while (queue.length > 0 && pages.length < limit) {
+    const { url, depth } = queue.shift()!;
+    if (visited.has(url)) continue;
+    visited.add(url);
 
-  return documents as Array<{
-    id: string;
-    content: string;
-    url: string | null;
-    title: string | null;
-    metadata: any;
-    similarity: number;
-  }>;
+    console.log(`[InternalCrawl] Scraping ${url} (depth ${depth})`);
+    
+    const scraped = await httpScrape(url);
+    if (scraped) {
+      pages.push({
+        markdown: scraped.markdown,
+        metadata: {
+          title: scraped.title,
+          sourceURL: url,
+        }
+      });
+
+      // Link discovery for deeper crawling
+      if (depth < maxDepth) {
+        try {
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 10000);
+          const response = await fetch(url, {
+            headers: { "User-Agent": "Mozilla/5.0 (compatible; JCaesarBot/1.0)" },
+            signal: controller.signal,
+          });
+          clearTimeout(timeout);
+
+          const html = await response.text();
+          const dom = new JSDOM(html, { url });
+          const links = Array.from(dom.window.document.querySelectorAll("a"))
+            .map(a => {
+              try { return new URL((a as HTMLAnchorElement).href, url).href; }
+              catch { return null; }
+            })
+            .filter((href): href is string => {
+              if (!href) return false;
+              try {
+                const u = new URL(href);
+                return u.origin === baseUrl && !u.pathname.match(/\.(pdf|jpg|jpeg|png|gif|zip|css|js)$/i);
+              } catch { return false; }
+            });
+          
+          for (const link of links) {
+            const cleanLink = link.split("#")[0].split("?")[0];
+            if (!visited.has(cleanLink)) {
+              queue.push({ url: cleanLink, depth: depth + 1 });
+            }
+          }
+        } catch {
+          // Link discovery failed, continue with existing queue
+        }
+      }
+    }
+  }
+
+  return pages;
+}
+
+/**
+ * Exported singular scrape for discovery/analysis
+ */
+export async function scrapePage(url: string) {
+  // Try Firecrawl first
+  try {
+    const firecrawl = await getFirecrawl();
+    const result = await firecrawl.scrapeUrl(url, {
+      formats: ["markdown"],
+      onlyMainContent: true,
+    });
+    if (result.success && result.data) {
+      return {
+        success: true,
+        data: {
+          markdown: result.data.markdown || "",
+          metadata: {
+            title: result.data.metadata?.title || "Untitled",
+            description: result.data.metadata?.description || "",
+            sourceURL: url,
+          }
+        },
+        markdown: result.data.markdown || "",
+        metadata: {
+          title: result.data.metadata?.title || "Untitled",
+          description: result.data.metadata?.description || "",
+          sourceURL: url,
+        }
+      };
+    }
+  } catch (err) {
+    console.warn(`[scrapePage] Firecrawl failed for ${url}, using HTTP fallback`);
+  }
+
+  // HTTP fallback
+  const scraped = await httpScrape(url);
+  if (!scraped) {
+    throw new Error(`Failed to scrape ${url}`);
+  }
+
+  return {
+    success: true,
+    data: {
+      markdown: scraped.markdown,
+      metadata: {
+        title: scraped.title,
+        description: "",
+        sourceURL: url,
+      }
+    },
+    markdown: scraped.markdown,
+    metadata: {
+      title: scraped.title,
+      description: "",
+      sourceURL: url,
+    }
+  };
+}
+
+/**
+ * Discover sitemaps for a given URL
+ */
+export async function discoverSitemaps(url: string): Promise<string[]> {
+  let origin: string;
+  try {
+    origin = new URL(url).origin;
+  } catch {
+    console.error(`[SitemapDiscovery] Invalid URL: ${url}`);
+    return [];
+  }
+  const commonSitemaps = [
+    "/sitemap.xml",
+    "/sitemap_index.xml",
+    "/sitemap-index.xml",
+    "/sitemap/sitemap.xml",
+  ];
+
+  const found: string[] = [];
+
+  // 1. Try robots.txt
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+    const robotsRes = await fetch(`${origin}/robots.txt`, { signal: controller.signal });
+    clearTimeout(timeout);
+
+    if (robotsRes.ok) {
+      const text = await robotsRes.text();
+      const lines = text.split("\n");
+      for (const line of lines) {
+        if (line.toLowerCase().trim().startsWith("sitemap:")) {
+          const sitemapUrl = line.split(/sitemap:/i)[1]?.trim();
+          if (sitemapUrl) found.push(sitemapUrl);
+        }
+      }
+    }
+  } catch (err) {
+    console.warn("[SitemapDiscovery] Robots.txt failed", err);
+  }
+
+  // 2. Try common locations
+  for (const sitemapPath of commonSitemaps) {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 5000);
+      const res = await fetch(`${origin}${sitemapPath}`, { method: "HEAD", signal: controller.signal });
+      clearTimeout(timeout);
+      if (res.ok) {
+        found.push(`${origin}${sitemapPath}`);
+      }
+    } catch { }
+  }
+
+  return [...new Set(found)];
+}
+
+/**
+ * Get all URLs from a sitemap
+ */
+export async function getSitemapUrls(sitemapUrl: string): Promise<string[]> {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+    const res = await fetch(sitemapUrl, { signal: controller.signal });
+    clearTimeout(timeout);
+
+    if (!res.ok) return [];
+
+    const contentType = res.headers.get("content-type") || "";
+    const text = await res.text();
+
+    if (!contentType.includes("xml") && !text.includes("<?xml") && !text.includes("<urlset")) {
+      console.warn(`[SitemapParser] URL is not a valid XML sitemap: ${sitemapUrl}`);
+      return [];
+    }
+
+    // Use regex as a more robust alternative to JSDOM for XML
+    const locRegex = /<loc>(.*?)<\/loc>/g;
+    const matches = text.matchAll(locRegex);
+    const locs: string[] = [];
+    
+    for (const match of matches) {
+      if (match[1]) locs.push(match[1].trim());
+    }
+
+    return [...new Set(locs)];
+  } catch (err) {
+    console.warn("[SitemapParser] Failed to parse sitemap:", err);
+    return [];
+  }
 }

@@ -15,14 +15,39 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    // Verify ownership
-    const chatbot = await prisma.chatbot.findUnique({
-      where: { id: chatbotId },
-      select: { userId: true }
+    // Ensure user exists in our DB (Auto-sync if missing)
+    let user = await prisma.user.findUnique({
+      where: { clerkId: userId }
     });
+    
+    if (!user) {
+      console.log(`[KnowledgeAPI] User ${userId} not found by clerkId, checking by email...`);
+      const { currentUser } = await import("@clerk/nextjs/server");
+      const clerkUser = await currentUser();
+      const email = clerkUser?.emailAddresses[0]?.emailAddress || "";
+      
+      if (email) {
+        user = await prisma.user.findUnique({
+          where: { email }
+        });
+      }
 
-    if (!chatbot || chatbot.userId !== userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      if (user) {
+        console.log(`[KnowledgeAPI] Found user by email ${email}, linking clerkId ${userId}...`);
+        user = await prisma.user.update({
+          where: { id: user.id },
+          data: { clerkId: userId }
+        });
+      } else {
+        console.log(`[KnowledgeAPI] Creating new user for ${userId}...`);
+        user = await prisma.user.create({
+          data: {
+            clerkId: userId,
+            email,
+            name: `${clerkUser?.firstName || ""} ${clerkUser?.lastName || ""}`.trim() || "User",
+          }
+        });
+      }
     }
 
     const source = await prisma.knowledgeSource.create({
@@ -56,11 +81,16 @@ export async function POST(req: NextRequest) {
         userId
       });
     } else if (type === "TEXT" && content) {
-      // For pure text, we can process immediately
-      await prisma.knowledgeSource.update({
-        where: { id: source.id },
-        data: { status: "COMPLETED" }
-      });
+      // Index text immediately via worker
+      await addCrawlJob({
+        type: "process-document",
+        fileUrl: "text-input",
+        fileType: "text/plain",
+        chatbotId,
+        knowledgeSourceId: source.id,
+        userId,
+        content: content as any
+      } as any);
     }
 
     return NextResponse.json(source);

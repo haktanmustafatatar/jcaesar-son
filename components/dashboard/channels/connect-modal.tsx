@@ -1,13 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { 
   Dialog, 
   DialogContent, 
   DialogHeader, 
   DialogTitle, 
   DialogDescription,
-  DialogFooter
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,10 +16,14 @@ import {
   Instagram, 
   Facebook, 
   Key, 
-  Phone, 
   ShieldCheck,
   Loader2,
-  Globe
+  Globe,
+  ShoppingBag,
+  ShoppingCart,
+  Lock,
+  Link2,
+  AlertCircle
 } from "lucide-react";
 
 import { toast } from "sonner";
@@ -41,14 +44,23 @@ export function ConnectModal({
   onSuccess
 }: ConnectModalProps) {
   const [isLoading, setIsLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    accessToken: "",
-    phoneNumberId: "",
-    pageId: "",
-    verifyToken: "jcaesar_" + Math.random().toString(36).substring(7),
-  });
+  const [error, setError] = useState<string | null>(null);
 
-  const titles = {
+  // Shopify fields
+  const [shopDomain, setShopDomain] = useState("");
+  const [shopifyToken, setShopifyToken] = useState("");
+
+  // WooCommerce fields
+  const [wooBaseUrl, setWooBaseUrl] = useState("");
+  const [wooConsumerKey, setWooConsumerKey] = useState("");
+  const [wooConsumerSecret, setWooConsumerSecret] = useState("");
+
+  // Google Calendar fields
+  const [calClientId, setCalClientId] = useState("");
+  const [calClientSecret, setCalClientSecret] = useState("");
+  const [calRefreshToken, setCalRefreshToken] = useState("");
+
+  const titles: Record<string, string> = {
     WHATSAPP: "Connect WhatsApp Business",
     INSTAGRAM: "Connect Instagram DM",
     FACEBOOK: "Connect Facebook Messenger",
@@ -57,74 +69,172 @@ export function ConnectModal({
     GOOGLE_CALENDAR: "Google Calendar Booking"
   };
 
-  const descriptions = {
+  const descriptions: Record<string, string> = {
     WHATSAPP: "Link your WhatsApp Business account using the secure Meta OAuth flow.",
     INSTAGRAM: "Connect your Instagram Professional DM account to your AI agent.",
     FACEBOOK: "Allow your agent to respond to Facebook Page messages automatically.",
-    SHOPIFY: "Integrate your Shopify store to allow the AI to search products and check stock.",
-    WOOCOMMERCE: "Connect your WooCommerce store to sync product catalog and inventory.",
+    SHOPIFY: "Integrate your Shopify store so the AI can search products, check stock, and answer customer questions in real-time.",
+    WOOCOMMERCE: "Connect your WooCommerce store to sync your product catalog and enable intelligent inventory lookups.",
     GOOGLE_CALENDAR: "Allow the AI to book appointments directly to your primary calendar."
   };
 
   const isMetaType = type === "WHATSAPP" || type === "INSTAGRAM" || type === "FACEBOOK";
 
-  const handleSubmit = async () => {
-    if (isMetaType) {
-      window.location.href = `/api/auth/meta/login?chatbotId=${chatbotId}&type=${type}`;
-      return;
-    }
+  const resetForm = () => {
+    setShopDomain("");
+    setShopifyToken("");
+    setWooBaseUrl("");
+    setWooConsumerKey("");
+    setWooConsumerSecret("");
+    setCalClientId("");
+    setCalClientSecret("");
+    setCalRefreshToken("");
+    setError(null);
+  };
 
+  const handleMetaConnect = async () => {
     setIsLoading(true);
+    setError(null);
     try {
-      let payload: any = { type, name: titles[type!] };
-      
-      if (type === "SHOPIFY") {
-        payload.config = { shopDomain: formData.pageId, accessToken: formData.accessToken };
-      } else if (type === "WOOCOMMERCE") {
-        payload.config = { baseUrl: formData.pageId, consumerKey: formData.accessToken, consumerSecret: formData.phoneNumberId };
-      } else if (type === "GOOGLE_CALENDAR") {
-        payload.config = { clientId: formData.pageId, clientSecret: formData.phoneNumberId, refreshToken: formData.accessToken };
-      }
-
-      const res = await fetch(`/api/chatbots/${chatbotId}/channels`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
+      const platform = type?.toLowerCase() || "whatsapp";
+      const res = await fetch(`/api/auth/meta?chatbotId=${chatbotId}&platform=${platform}`);
       if (res.ok) {
-        toast.success(`${type} connected successfully!`);
-        onSuccess();
-        onOpenChange(false);
-      } else {
-        toast.error(`Failed to connect ${type}`);
+        const data = await res.json();
+        if (data.authUrl) {
+          window.location.href = data.authUrl;
+          return;
+        }
       }
-    } catch (error) {
-      toast.error("An unexpected error occurred");
+      setError("Failed to initiate Meta OAuth. Please check that META_APP_ID is configured.");
+    } catch (err) {
+      setError("An unexpected error occurred. Please try again.");
     } finally {
       setIsLoading(false);
     }
   };
 
+  const handleShopifyConnect = async () => {
+    if (!shopDomain || !shopifyToken) {
+      setError("Store domain and access token are required");
+      return;
+    }
+    setIsLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/channels/shopify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chatbotId, shopDomain, accessToken: shopifyToken }),
+      });
+      if (res.ok) {
+        toast.success("Shopify store connected successfully!");
+        onSuccess();
+        onOpenChange(false);
+        resetForm();
+      } else {
+        const data = await res.json();
+        setError(data.error || "Failed to connect Shopify. Please verify your credentials.");
+      }
+    } catch (err) {
+      setError("Connection failed. Please check your network.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleWooConnect = async () => {
+    if (!wooBaseUrl || !wooConsumerKey || !wooConsumerSecret) {
+      setError("All WooCommerce fields are required");
+      return;
+    }
+    setIsLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/channels/woocommerce", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chatbotId, baseUrl: wooBaseUrl, consumerKey: wooConsumerKey, consumerSecret: wooConsumerSecret }),
+      });
+      if (res.ok) {
+        toast.success("WooCommerce store connected successfully!");
+        onSuccess();
+        onOpenChange(false);
+        resetForm();
+      } else {
+        const data = await res.json();
+        setError(data.error || "Failed to connect WooCommerce. Please verify your credentials.");
+      }
+    } catch (err) {
+      setError("Connection failed. Please check your network.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCalendarConnect = async () => {
+    if (!calClientId || !calClientSecret || !calRefreshToken) {
+      setError("All Google Calendar fields are required");
+      return;
+    }
+    setIsLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/chatbots/${chatbotId}/channels`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "GOOGLE_CALENDAR",
+          name: "Google Calendar",
+          config: { clientId: calClientId, clientSecret: calClientSecret, refreshToken: calRefreshToken },
+        }),
+      });
+      if (res.ok) {
+        toast.success("Google Calendar connected!");
+        onSuccess();
+        onOpenChange(false);
+        resetForm();
+      } else {
+        setError("Failed to connect Google Calendar.");
+      }
+    } catch (err) {
+      setError("Connection failed.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSubmit = () => {
+    if (isMetaType) return handleMetaConnect();
+    if (type === "SHOPIFY") return handleShopifyConnect();
+    if (type === "WOOCOMMERCE") return handleWooConnect();
+    if (type === "GOOGLE_CALENDAR") return handleCalendarConnect();
+  };
+
+  const iconMap: Record<string, React.ReactNode> = {
+    WHATSAPP: <MessageSquare className="w-8 h-8 text-white" />,
+    INSTAGRAM: <Instagram className="w-8 h-8 text-white" />,
+    FACEBOOK: <Facebook className="w-8 h-8 text-white" />,
+    SHOPIFY: <ShoppingBag className="w-8 h-8 text-white" />,
+    WOOCOMMERCE: <ShoppingCart className="w-8 h-8 text-white" />,
+    GOOGLE_CALENDAR: <ShieldCheck className="w-8 h-8 text-white" />,
+  };
+
+  const iconBgMap: Record<string, string> = {
+    WHATSAPP: "bg-emerald-500",
+    INSTAGRAM: "bg-gradient-to-br from-pink-500 via-red-500 to-yellow-500",
+    FACEBOOK: "bg-[#1877F2]",
+    SHOPIFY: "bg-[#95bf47]",
+    WOOCOMMERCE: "bg-[#96588a]",
+    GOOGLE_CALENDAR: "bg-[#4285F4]",
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] rounded-[40px] border-none shadow-2xl p-0 overflow-hidden bg-white">
+    <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) resetForm(); }}>
+      <DialogContent className="sm:max-w-[520px] rounded-[40px] border-none shadow-2xl p-0 overflow-hidden bg-white">
         <div className="p-10 space-y-8">
           <DialogHeader className="space-y-4">
-            <div className={`w-16 h-16 rounded-3xl flex items-center justify-center mx-auto shadow-xl ${
-              type === "WHATSAPP" ? "bg-emerald-500" : 
-              type === "INSTAGRAM" ? "bg-pink-500" : 
-              type === "FACEBOOK" ? "bg-blue-600" :
-              type === "SHOPIFY" ? "bg-zinc-950" :
-              type === "WOOCOMMERCE" ? "bg-purple-600" :
-              "bg-red-500"
-            }`}>
-              {type === "WHATSAPP" ? <MessageSquare className="w-8 h-8 text-white" /> : 
-               type === "INSTAGRAM" ? <Instagram className="w-8 h-8 text-white" /> : 
-               type === "FACEBOOK" ? <Facebook className="w-8 h-8 text-white" /> :
-               type === "SHOPIFY" ? <Globe className="w-8 h-8 text-white" /> :
-               <ShieldCheck className="w-8 h-8 text-white" />
-              }
+            <div className={`w-16 h-16 rounded-3xl flex items-center justify-center mx-auto shadow-xl ${iconBgMap[type || "WHATSAPP"]}`}>
+              {type && iconMap[type]}
             </div>
             <div className="text-center space-y-2">
               <DialogTitle className="text-2xl font-black tracking-tight text-zinc-900">{type ? titles[type] : ""}</DialogTitle>
@@ -132,7 +242,16 @@ export function ConnectModal({
             </div>
           </DialogHeader>
 
-          {isMetaType ? (
+          {/* Error Banner */}
+          {error && (
+            <div className="flex items-start gap-3 bg-red-50 border border-red-100 rounded-2xl p-4 animate-in fade-in duration-300">
+              <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+              <p className="text-sm text-red-700 font-medium">{error}</p>
+            </div>
+          )}
+
+          {/* Meta OAuth */}
+          {isMetaType && (
             <div className="space-y-6">
               <div className="bg-zinc-50 rounded-3xl p-6 border border-zinc-100 flex items-start gap-4">
                 <div className="w-10 h-10 rounded-2xl bg-zinc-950 flex items-center justify-center text-white shrink-0">
@@ -147,54 +266,173 @@ export function ConnectModal({
               </div>
               <Button 
                 onClick={handleSubmit}
+                disabled={isLoading}
                 className="w-full h-16 rounded-3xl bg-[#1877F2] hover:bg-[#166fe5] text-white font-black text-lg flex items-center justify-center gap-3 shadow-xl shadow-blue-500/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
               >
-                <Facebook className="w-6 h-6 fill-white" />
-                Login with Facebook
+                {isLoading ? <Loader2 className="w-6 h-6 animate-spin" /> : (
+                  <>
+                    <Facebook className="w-6 h-6 fill-white" />
+                    Login with Facebook
+                  </>
+                )}
               </Button>
             </div>
-          ) : (
-            <div className="space-y-6">
-              <div className="space-y-3">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 pl-1">
-                  {type === "SHOPIFY" ? "Admin API Access Token" : 
-                   type === "WOOCOMMERCE" ? "Consumer Key" : 
-                   type === "GOOGLE_CALENDAR" ? "Refresh Token" : "Access Token"}
-                </Label>
-                <div className="relative">
-                  <Input 
-                    value={formData.accessToken}
-                    onChange={(e) => setFormData({...formData, accessToken: e.target.value})}
-                    className="h-14 rounded-2xl bg-zinc-50 border-zinc-100 pl-12 font-mono text-xs focus:bg-white transition-all shadow-none"
-                    placeholder={type === "SHOPIFY" ? "shpat_..." : "..."} 
-                  />
-                  <Key className="w-4 h-4 text-zinc-400 absolute left-4 top-1/2 -translate-y-1/2" />
-                </div>
-              </div>
+          )}
 
-              <div className="space-y-3">
+          {/* Shopify */}
+          {type === "SHOPIFY" && (
+            <div className="space-y-5">
+              <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 pl-1">
-                  {type === "SHOPIFY" ? "Store URL (myshopify.com)" : 
-                   type === "WOOCOMMERCE" ? "Site URL" : 
-                   type === "GOOGLE_CALENDAR" ? "Client ID" : "Page/Account ID"}
+                  Store Domain
                 </Label>
                 <div className="relative">
                   <Input 
-                    value={formData.pageId}
-                    onChange={(e) => setFormData({...formData, pageId: e.target.value})}
+                    value={shopDomain}
+                    onChange={(e) => setShopDomain(e.target.value)}
                     className="h-14 rounded-2xl bg-zinc-50 border-zinc-100 pl-12 font-medium focus:bg-white transition-all shadow-none"
-                    placeholder={type === "SHOPIFY" ? "mystore.myshopify.com" : "..."} 
+                    placeholder="mystore.myshopify.com" 
                   />
                   <Globe className="w-4 h-4 text-zinc-400 absolute left-4 top-1/2 -translate-y-1/2" />
                 </div>
               </div>
-
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 pl-1">
+                  Admin API Access Token
+                </Label>
+                <div className="relative">
+                  <Input 
+                    value={shopifyToken}
+                    onChange={(e) => setShopifyToken(e.target.value)}
+                    type="password"
+                    className="h-14 rounded-2xl bg-zinc-50 border-zinc-100 pl-12 font-mono text-xs focus:bg-white transition-all shadow-none"
+                    placeholder="shpat_..." 
+                  />
+                  <Key className="w-4 h-4 text-zinc-400 absolute left-4 top-1/2 -translate-y-1/2" />
+                </div>
+              </div>
+              <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4">
+                <p className="text-[11px] text-emerald-800 font-medium leading-relaxed">
+                  <strong>How to get your token:</strong> Go to Shopify Admin → Settings → Apps → Develop apps → Create an app → Configure Admin API scopes (read_products) → Install → Copy the Admin API access token.
+                </p>
+              </div>
               <Button 
                 onClick={handleSubmit} 
-                disabled={isLoading}
+                disabled={isLoading || !shopDomain || !shopifyToken}
                 className="w-full h-16 rounded-3xl bg-zinc-950 hover:bg-zinc-900 text-white font-black text-lg shadow-2xl shadow-black/10 transition-all hover:scale-[1.02] active:scale-[0.98]"
               >
-                {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Connect Integration"}
+                {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : (
+                  <>
+                    <Link2 className="w-5 h-5 mr-2" />
+                    Connect Shopify
+                  </>
+                )}
+              </Button>
+            </div>
+          )}
+
+          {/* WooCommerce */}
+          {type === "WOOCOMMERCE" && (
+            <div className="space-y-5">
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 pl-1">
+                  Site URL
+                </Label>
+                <div className="relative">
+                  <Input 
+                    value={wooBaseUrl}
+                    onChange={(e) => setWooBaseUrl(e.target.value)}
+                    className="h-14 rounded-2xl bg-zinc-50 border-zinc-100 pl-12 font-medium focus:bg-white transition-all shadow-none"
+                    placeholder="https://mystore.com" 
+                  />
+                  <Globe className="w-4 h-4 text-zinc-400 absolute left-4 top-1/2 -translate-y-1/2" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 pl-1">
+                  Consumer Key
+                </Label>
+                <div className="relative">
+                  <Input 
+                    value={wooConsumerKey}
+                    onChange={(e) => setWooConsumerKey(e.target.value)}
+                    type="password"
+                    className="h-14 rounded-2xl bg-zinc-50 border-zinc-100 pl-12 font-mono text-xs focus:bg-white transition-all shadow-none"
+                    placeholder="ck_..." 
+                  />
+                  <Key className="w-4 h-4 text-zinc-400 absolute left-4 top-1/2 -translate-y-1/2" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 pl-1">
+                  Consumer Secret
+                </Label>
+                <div className="relative">
+                  <Input 
+                    value={wooConsumerSecret}
+                    onChange={(e) => setWooConsumerSecret(e.target.value)}
+                    type="password"
+                    className="h-14 rounded-2xl bg-zinc-50 border-zinc-100 pl-12 font-mono text-xs focus:bg-white transition-all shadow-none"
+                    placeholder="cs_..." 
+                  />
+                  <Lock className="w-4 h-4 text-zinc-400 absolute left-4 top-1/2 -translate-y-1/2" />
+                </div>
+              </div>
+              <div className="bg-purple-50 border border-purple-100 rounded-2xl p-4">
+                <p className="text-[11px] text-purple-800 font-medium leading-relaxed">
+                  <strong>How to get your keys:</strong> Go to WooCommerce → Settings → Advanced → REST API → Add Key → Set permissions to Read → Generate. Copy the Consumer Key and Secret.
+                </p>
+              </div>
+              <Button 
+                onClick={handleSubmit} 
+                disabled={isLoading || !wooBaseUrl || !wooConsumerKey || !wooConsumerSecret}
+                className="w-full h-16 rounded-3xl bg-[#96588a] hover:bg-[#7d4874] text-white font-black text-lg shadow-2xl shadow-purple-500/10 transition-all hover:scale-[1.02] active:scale-[0.98]"
+              >
+                {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : (
+                  <>
+                    <Link2 className="w-5 h-5 mr-2" />
+                    Connect WooCommerce
+                  </>
+                )}
+              </Button>
+            </div>
+          )}
+
+          {/* Google Calendar */}
+          {type === "GOOGLE_CALENDAR" && (
+            <div className="space-y-5">
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 pl-1">Client ID</Label>
+                <div className="relative">
+                  <Input value={calClientId} onChange={(e) => setCalClientId(e.target.value)} className="h-14 rounded-2xl bg-zinc-50 border-zinc-100 pl-12 font-mono text-xs focus:bg-white transition-all shadow-none" placeholder="...apps.googleusercontent.com" />
+                  <Globe className="w-4 h-4 text-zinc-400 absolute left-4 top-1/2 -translate-y-1/2" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 pl-1">Client Secret</Label>
+                <div className="relative">
+                  <Input value={calClientSecret} onChange={(e) => setCalClientSecret(e.target.value)} type="password" className="h-14 rounded-2xl bg-zinc-50 border-zinc-100 pl-12 font-mono text-xs focus:bg-white transition-all shadow-none" placeholder="GOCSPX-..." />
+                  <Lock className="w-4 h-4 text-zinc-400 absolute left-4 top-1/2 -translate-y-1/2" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 pl-1">Refresh Token</Label>
+                <div className="relative">
+                  <Input value={calRefreshToken} onChange={(e) => setCalRefreshToken(e.target.value)} type="password" className="h-14 rounded-2xl bg-zinc-50 border-zinc-100 pl-12 font-mono text-xs focus:bg-white transition-all shadow-none" placeholder="1//..." />
+                  <Key className="w-4 h-4 text-zinc-400 absolute left-4 top-1/2 -translate-y-1/2" />
+                </div>
+              </div>
+              <Button 
+                onClick={handleSubmit}
+                disabled={isLoading || !calClientId || !calClientSecret || !calRefreshToken}
+                className="w-full h-16 rounded-3xl bg-[#4285F4] hover:bg-[#3367d6] text-white font-black text-lg shadow-2xl shadow-blue-500/10 transition-all hover:scale-[1.02] active:scale-[0.98]"
+              >
+                {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : (
+                  <>
+                    <Link2 className="w-5 h-5 mr-2" />
+                    Connect Calendar
+                  </>
+                )}
               </Button>
             </div>
           )}

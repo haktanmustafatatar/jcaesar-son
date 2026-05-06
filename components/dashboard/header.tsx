@@ -4,8 +4,7 @@ import { Link, usePathname } from "@/i18n/routing";
 import { Bell, Menu, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { DashboardSidebar } from "./sidebar";
+import { MobileSidebar } from "./mobile-sidebar";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
@@ -34,16 +33,7 @@ export function DashboardHeader() {
         {/* Left */}
         <div className="flex items-center gap-4">
           {/* Mobile Menu */}
-          <Sheet>
-            <SheetTrigger asChild className="lg:hidden">
-              <Button variant="ghost" size="icon">
-                <Menu className="w-5 h-5" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="p-0 w-72">
-              <DashboardSidebar />
-            </SheetContent>
-          </Sheet> 
+          <MobileSidebar />
 
           {/* Breadcrumb */}
           <nav className="hidden sm:flex items-center gap-2 text-sm font-bold">

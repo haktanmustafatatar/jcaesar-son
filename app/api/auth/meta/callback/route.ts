@@ -1,91 +1,164 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+/**
+ * GET /api/auth/meta/callback — Meta OAuth callback
+ * Exchanges authorization code for access token, then lists pages/phone numbers
+ */
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const code = searchParams.get("code");
-    const state = searchParams.get("state");
+    const stateParam = searchParams.get("state");
+    const errorParam = searchParams.get("error");
 
-    if (!code || !state) {
-      return NextResponse.json({ error: "Missing code or state" }, { status: 400 });
+    if (errorParam) {
+      console.error("[MetaCallback] User denied access:", errorParam);
+      return NextResponse.redirect(
+        `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/chatbots?error=meta_denied`
+      );
+    }
+
+    if (!code || !stateParam) {
+      return NextResponse.redirect(
+        `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/chatbots?error=missing_params`
+      );
     }
 
     // Decode state
-    const { chatbotId, type, userId } = JSON.parse(Buffer.from(state, "base64").toString());
-
-    const appId = process.env.META_APP_ID;
-    const appSecret = process.env.META_APP_SECRET;
-    const redirectUri = `${new URL(req.url).origin}/api/auth/meta/callback`;
-
-    // 1. Exchange code for User Access Token
-    const tokenRes = await fetch(
-      `https://graph.facebook.com/v22.0/oauth/access_token?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&client_secret=${appSecret}&code=${code}`
-    );
-    const tokenData = await tokenRes.json();
-
-    if (tokenData.error) {
-      console.error("[MetaCallback] Token exchange error:", tokenData.error);
-      return NextResponse.redirect(`${new URL(req.url).origin}/dashboard/chatbots/${chatbotId}/settings?error=meta_auth_failed`);
+    let state: { chatbotId: string; platform: string; userId: string };
+    try {
+      state = JSON.parse(Buffer.from(stateParam, "base64").toString("utf-8"));
+    } catch {
+      return NextResponse.redirect(
+        `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/chatbots?error=invalid_state`
+      );
     }
 
-    const userAccessToken = tokenData.access_token;
+    const { chatbotId, platform, userId } = state;
 
-    // 2. Exchange for Long-Lived Token
-    const longLivedRes = await fetch(
-      `https://graph.facebook.com/v22.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${appId}&client_secret=${appSecret}&fb_exchange_token=${userAccessToken}`
-    );
-    const longLivedData = await longLivedRes.json();
-    const longLivedToken = longLivedData.access_token || userAccessToken;
+    // Exchange code for access token
+    const appId = process.env.META_APP_ID;
+    const appSecret = process.env.META_APP_SECRET;
+    const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/meta/callback`;
 
-    // 3. Fetch Pages/Accounts
-    // Depending on 'type', we might want different info, but let's get all related info
-    const accountsRes = await fetch(
-      `https://graph.facebook.com/v22.0/me/accounts?access_token=${longLivedToken}&fields=name,id,access_token,instagram_business_account{id,username,name}`
-    );
-    const accountsData = await accountsRes.json();
+    if (!appId || !appSecret) {
+      return NextResponse.redirect(
+        `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/chatbots/${chatbotId}/settings?error=meta_not_configured`
+      );
+    }
 
-    // 4. Fetch WhatsApp Business Accounts if needed
-    const waRes = await fetch(
-      `https://graph.facebook.com/v22.0/me/whatsapp_business_accounts?access_token=${longLivedToken}&fields=id,name,currency,timezone_id,message_template_namespace`
-    );
-    const waData = await waRes.json();
+    const tokenUrl = new URL("https://graph.facebook.com/v22.0/oauth/access_token");
+    tokenUrl.searchParams.set("client_id", appId);
+    tokenUrl.searchParams.set("client_secret", appSecret);
+    tokenUrl.searchParams.set("redirect_uri", redirectUri);
+    tokenUrl.searchParams.set("code", code);
 
-    // 5. Save this "connection session" temporarily in the Channel table or a dedicated field
-    // For now, let's create a DISCONNECTED channel with the metadata in config
-    const channel = await prisma.channel.upsert({
-      where: { 
-        // We'll use a specific way to find the "active" connection attempt
-        id: `meta_temp_${chatbotId}_${type}` 
-      },
-      update: {
-        status: "DISCONNECTED",
-        config: {
-          userToken: longLivedToken,
-          pages: accountsData.data || [],
-          whatsappAccounts: waData.data || [],
-          expiresAt: Date.now() + 3600000 // 1 hour session
-        }
-      },
-      create: {
-        id: `meta_temp_${chatbotId}_${type}`,
-        chatbotId,
-        type: type as any,
-        name: `Meta Connection (${type})`,
-        status: "DISCONNECTED",
-        config: {
-          userToken: longLivedToken,
-          pages: accountsData.data || [],
-          whatsappAccounts: waData.data || [],
-          expiresAt: Date.now() + 3600000
-        }
+    const tokenResponse = await fetch(tokenUrl.toString());
+    if (!tokenResponse.ok) {
+      const err = await tokenResponse.json();
+      console.error("[MetaCallback] Token exchange failed:", err);
+      return NextResponse.redirect(
+        `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/chatbots/${chatbotId}/settings?error=token_exchange_failed`
+      );
+    }
+
+    const tokenData = await tokenResponse.json();
+    const shortLivedToken = tokenData.access_token;
+
+    // Exchange for long-lived token
+    const longLivedUrl = new URL("https://graph.facebook.com/v22.0/oauth/access_token");
+    longLivedUrl.searchParams.set("grant_type", "fb_exchange_token");
+    longLivedUrl.searchParams.set("client_id", appId);
+    longLivedUrl.searchParams.set("client_secret", appSecret);
+    longLivedUrl.searchParams.set("fb_exchange_token", shortLivedToken);
+
+    const longLivedResponse = await fetch(longLivedUrl.toString());
+    const longLivedData = longLivedResponse.ok ? await longLivedResponse.json() : null;
+    const accessToken = longLivedData?.access_token || shortLivedToken;
+
+    // Determine channel type
+    let channelType: string;
+    switch (platform) {
+      case "whatsapp": channelType = "WHATSAPP"; break;
+      case "instagram": channelType = "INSTAGRAM"; break;
+      case "facebook": channelType = "FACEBOOK"; break;
+      default: channelType = "FACEBOOK";
+    }
+
+    if (platform === "whatsapp") {
+      // For WhatsApp: Get WhatsApp Business Accounts and Phone Numbers
+      const wabaResponse = await fetch(
+        `https://graph.facebook.com/v22.0/me/businesses?access_token=${accessToken}`
+      );
+      const wabaData = wabaResponse.ok ? await wabaResponse.json() : { data: [] };
+
+      // Store the token temporarily — user will finalize by selecting phone number
+      const existingChannel = await prisma.channel.findFirst({
+        where: { chatbotId, type: channelType as any },
+      });
+
+      if (existingChannel) {
+        await prisma.channel.update({
+          where: { id: existingChannel.id },
+          data: {
+            config: { accessToken, businesses: wabaData.data || [], platform },
+            status: "PENDING",
+            name: `WhatsApp (Pending Setup)`,
+          },
+        });
+      } else {
+        await prisma.channel.create({
+          data: {
+            chatbotId,
+            type: channelType as any,
+            name: `WhatsApp (Pending Setup)`,
+            config: { accessToken, businesses: wabaData.data || [], platform },
+            status: "PENDING",
+          },
+        });
       }
-    });
+    } else {
+      // For Facebook/Instagram: Get pages
+      const pagesResponse = await fetch(
+        `https://graph.facebook.com/v22.0/me/accounts?access_token=${accessToken}`
+      );
+      const pagesData = pagesResponse.ok ? await pagesResponse.json() : { data: [] };
 
-    // Redirect back to settings with a success flag
-    return NextResponse.redirect(`${new URL(req.url).origin}/dashboard/chatbots/${chatbotId}/settings?tab=channels&meta_session=${channel.id}`);
+      const existingChannel = await prisma.channel.findFirst({
+        where: { chatbotId, type: channelType as any },
+      });
+
+      if (existingChannel) {
+        await prisma.channel.update({
+          where: { id: existingChannel.id },
+          data: {
+            config: { accessToken, pages: pagesData.data || [], platform },
+            status: "PENDING",
+            name: `${platform === "instagram" ? "Instagram" : "Messenger"} (Pending Setup)`,
+          },
+        });
+      } else {
+        await prisma.channel.create({
+          data: {
+            chatbotId,
+            type: channelType as any,
+            name: `${platform === "instagram" ? "Instagram" : "Messenger"} (Pending Setup)`,
+            config: { accessToken, pages: pagesData.data || [], platform },
+            status: "PENDING",
+          },
+        });
+      }
+    }
+
+    // Redirect back to settings page with success
+    return NextResponse.redirect(
+      `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/chatbots/${chatbotId}/settings?tab=channels&meta_connected=true`
+    );
   } catch (error) {
     console.error("[MetaCallback] Error:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.redirect(
+      `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/chatbots?error=callback_failed`
+    );
   }
 }

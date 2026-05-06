@@ -293,6 +293,7 @@ export default function NewChatbotPage() {
       return;
     }
     setIsCrawling(true);
+    setDiscoveredLinks([]); // Clear previous results
     try {
       const token = await getToken();
       const res = await fetch("/api/crawl/fetch-links", {
@@ -1214,7 +1215,7 @@ export default function NewChatbotPage() {
                             </SelectContent>
                           </Select>
                           <Input 
-                            placeholder="vareno.com.tr" 
+                            placeholder="example.com" 
                             className="h-14 rounded-2xl bg-zinc-50 border-zinc-100 focus:bg-white transition-all text-base px-5 font-bold flex-1"
                             value={formData.websiteUrl}
                             onChange={(e) => setFormData({ ...formData, websiteUrl: e.target.value })}
@@ -1259,7 +1260,7 @@ export default function NewChatbotPage() {
                       <Label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest pl-1">Input URL manually</Label>
                       <div className="flex gap-2">
                         <Input 
-                          placeholder="https://vareno.com.tr/about" 
+                          placeholder="https://example.com/about" 
                           className="h-14 rounded-2xl bg-zinc-50 border-zinc-100 focus:bg-white transition-all text-base px-5 font-bold flex-1"
                           onKeyPress={(e) => {
                             if (e.key === 'Enter') {
@@ -1275,7 +1276,7 @@ export default function NewChatbotPage() {
                         <Button 
                           className="h-14 px-8 rounded-2xl bg-zinc-950 text-white font-black"
                           onClick={() => {
-                            const input = document.querySelector('input[placeholder="https://vareno.com.tr/about"]') as HTMLInputElement;
+                            const input = document.querySelector('input[placeholder="https://example.com/about"]') as HTMLInputElement;
                             const url = input.value.trim();
                             if (url.startsWith('http')) {
                               setDiscoveredLinks(prev => [...prev, { url, selected: true }]);
@@ -1299,7 +1300,7 @@ export default function NewChatbotPage() {
                       <Label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest pl-1">Sitemap URL</Label>
                       <div className="flex gap-2">
                         <Input 
-                          placeholder="https://vareno.com.tr/sitemap.xml" 
+                          placeholder="https://example.com/sitemap.xml" 
                           className="h-14 rounded-2xl bg-zinc-50 border-zinc-100 focus:bg-white transition-all text-base px-5 font-bold flex-1"
                         />
                         <Button className="h-14 px-8 rounded-2xl bg-zinc-950 text-white font-black">LOAD</Button>

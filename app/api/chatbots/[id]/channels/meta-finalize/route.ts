@@ -11,73 +11,83 @@ export async function POST(
     if (!clerkId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const { id: chatbotId } = await params;
-    const { sessionId, selectedId, type } = await req.json();
+    const body = await req.json();
+    const { channelId, sessionId, selectedId, type } = body;
 
-    // 1. Verify session
-    const sessionChannel = await prisma.channel.findUnique({
-      where: { id: sessionId }
+    // Support both old (sessionId) and new (channelId) approach
+    const targetId = channelId || sessionId;
+
+    // 1. Find the pending channel
+    const pendingChannel = await prisma.channel.findUnique({
+      where: { id: targetId }
     });
 
-    if (!sessionChannel || (sessionChannel.config as any).expiresAt < Date.now()) {
-      return NextResponse.json({ error: "Session expired or invalid" }, { status: 400 });
+    if (!pendingChannel) {
+      return NextResponse.json({ error: "Pending channel not found" }, { status: 404 });
     }
 
-    const config = sessionChannel.config as any;
+    const config = pendingChannel.config as any;
     let finalConfig: any = {};
     let phoneNumberId = "";
     let channelName = "";
+    const channelType = type || pendingChannel.type;
 
-    if (type === "FACEBOOK" || type === "INSTAGRAM") {
-      const selectedPage = config.pages.find((p: any) => p.id === selectedId || (p.instagram_business_account && p.instagram_business_account.id === selectedId));
-      if (!selectedPage) return NextResponse.json({ error: "Selected account not found" }, { status: 404 });
+    if (channelType === "FACEBOOK" || channelType === "INSTAGRAM") {
+      const pages = config.pages || [];
+      const selectedPage = pages.find((p: any) => 
+        p.id === selectedId || 
+        (p.instagram_business_account && p.instagram_business_account.id === selectedId)
+      );
+      
+      if (!selectedPage) {
+        return NextResponse.json({ error: "Selected account not found" }, { status: 404 });
+      }
 
-      if (type === "INSTAGRAM") {
+      if (channelType === "INSTAGRAM") {
+        const igAccount = selectedPage.instagram_business_account;
         finalConfig = {
-          accessToken: selectedPage.access_token,
+          accessToken: selectedPage.access_token || config.accessToken,
           pageId: selectedPage.id,
-          instagramId: selectedPage.instagram_business_account.id,
-          username: selectedPage.instagram_business_account.username
+          instagramId: igAccount?.id,
+          username: igAccount?.username
         };
-        phoneNumberId = selectedPage.instagram_business_account.id;
-        channelName = `Instagram: ${selectedPage.instagram_business_account.username}`;
+        phoneNumberId = igAccount?.id || selectedPage.id;
+        channelName = `Instagram: ${igAccount?.username || selectedPage.name}`;
       } else {
         finalConfig = {
-          accessToken: selectedPage.access_token,
+          accessToken: selectedPage.access_token || config.accessToken,
           pageId: selectedPage.id
         };
         phoneNumberId = selectedPage.id;
         channelName = `Facebook: ${selectedPage.name}`;
       }
-    } else if (type === "WHATSAPP") {
-      const selectedWa = config.whatsappAccounts.find((w: any) => w.id === selectedId);
-      if (!selectedWa) return NextResponse.json({ error: "Selected WhatsApp account not found" }, { status: 404 });
-
-      // For WhatsApp, we also need to get the phone number ID.
-      // Usually users pick the WABA, then we list phone numbers, but for simplicity let's assume we take the first phone number or the WABA ID for now.
-      // Better: Meta Cloud API usually requires the Phone Number ID for messaging.
+    } else if (channelType === "WHATSAPP") {
+      const businesses = config.businesses || config.whatsappAccounts || [];
+      const selectedBiz = businesses.find((b: any) => b.id === selectedId);
       
+      if (!selectedBiz) {
+        return NextResponse.json({ error: "Selected WhatsApp account not found" }, { status: 404 });
+      }
+
       finalConfig = {
-        accessToken: config.userToken,
-        wabaId: selectedWa.id
+        accessToken: config.accessToken || config.userToken,
+        wabaId: selectedBiz.id
       };
-      phoneNumberId = selectedWa.id;
-      channelName = `WhatsApp: ${selectedWa.name}`;
+      phoneNumberId = selectedBiz.id;
+      channelName = `WhatsApp: ${selectedBiz.name || "Business Account"}`;
     }
 
-    // 2. Create the real channel
-    const channel = await prisma.channel.create({
+    // 2. Update the pending channel to CONNECTED with final config
+    const channel = await prisma.channel.update({
+      where: { id: targetId },
       data: {
-        chatbotId,
-        type,
+        type: channelType,
         name: channelName,
         status: "CONNECTED",
         phoneNumberId,
         config: finalConfig
       }
     });
-
-    // 3. Delete the temporary session channel
-    await prisma.channel.delete({ where: { id: sessionId } });
 
     return NextResponse.json(channel);
   } catch (error) {

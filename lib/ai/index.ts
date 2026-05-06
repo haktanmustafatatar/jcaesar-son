@@ -3,6 +3,7 @@ import { anthropic } from "@ai-sdk/anthropic";
 import { streamText, generateText, embed, ToolSet } from "ai";
 import { getChatbotTools } from "./tools";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 
 // LLM Model yapılandırması
 export const LLM_MODELS = {
@@ -296,10 +297,24 @@ export async function performRAGSearch({
   const dataSourceIds = chatbot.dataSources.map((ds) => ds.id);
   const knowledgeSourceIds = chatbot.knowledgeSources.map((ks) => ks.id);
 
+  const whereConditions = [];
+  if (dataSourceIds.length > 0) {
+    whereConditions.push(Prisma.sql`d."dataSourceId" IN (${Prisma.join(dataSourceIds)})`);
+  }
+  if (knowledgeSourceIds.length > 0) {
+    whereConditions.push(Prisma.sql`d."knowledgeSourceId" IN (${Prisma.join(knowledgeSourceIds)})`);
+  }
+
+  if (whereConditions.length === 0) {
+    return { context: "", sources: [] };
+  }
+
+  const whereClause = Prisma.join(whereConditions, ' OR ');
+
   const documents: any[] = await prisma.$queryRaw`
-    SELECT content, title, url, 1 - (embedding <=> ${vectorString}::vector) as similarity
-    FROM "Document"
-    WHERE ("dataSourceId" = ANY(${dataSourceIds}) OR "knowledgeSourceId" = ANY(${knowledgeSourceIds}))
+    SELECT d."content", d."title", d."url", 1 - (d."embedding" <=> ${vectorString}::vector) as similarity
+    FROM "Document" d
+    WHERE ${whereClause}
     ORDER BY similarity DESC
     LIMIT ${limit}
   `;

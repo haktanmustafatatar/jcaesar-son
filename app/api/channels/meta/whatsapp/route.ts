@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { parseWhatsAppMessage, sendWhatsAppMessage, verifyMetaWebhook } from "@/lib/channels/meta";
-import { createEmbedding, generateRAGResponse, logTokenUsage, LLMModel } from "@/lib/ai";
+import { performRAGSearch, generateRAGResponse, logTokenUsage, LLMModel } from "@/lib/ai";
 
 // Meta Webhook Verification (Handshake)
 export async function GET(req: NextRequest) {
@@ -10,10 +10,7 @@ export async function GET(req: NextRequest) {
   const token = searchParams.get("hub.verify_token");
   const challenge = searchParams.get("hub.challenge");
 
-  // We'll use a generic verify token or one stored in AdminSettings
-  // For now, let's try to find if any channel is waiting for this or use a default
   const verifyToken = process.env.META_VERIFY_TOKEN || "jcaesar_verify_token";
-
   const result = verifyMetaWebhook(mode, token, challenge, verifyToken);
 
   if (result) {
@@ -44,13 +41,7 @@ export async function POST(req: NextRequest) {
         status: "CONNECTED",
       },
       include: {
-        chatbot: {
-          include: {
-            dataSources: {
-              where: { status: "COMPLETED" },
-            },
-          },
-        },
+        chatbot: true,
       },
     });
 
@@ -92,33 +83,18 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // 5. RAG: Generate AI Response
-    const embedding = await createEmbedding(text);
-    const vectorString = `[${embedding.join(",")}]`;
+    // 5. RAG Search — unified approach using performRAGSearch
+    const { context, sources } = await performRAGSearch({
+      chatbotId,
+      query: text,
+      limit: 5,
+    });
 
-    const dataSourceIds = chatbot.dataSources.map((ds) => ds.id);
-    let context = "";
-    
-    if (dataSourceIds.length > 0) {
-      const documents: any[] = await prisma.$queryRaw`
-        SELECT content, title, url, 1 - (embedding <=> ${vectorString}::vector) as similarity
-        FROM "Document"
-        WHERE "dataSourceId" = ANY(${dataSourceIds})
-        ORDER BY similarity DESC
-        LIMIT 5
-      `;
-
-      context = documents
-        .filter((doc) => doc.similarity > 0.5)
-        .map((doc) => `Source: ${doc.title || doc.url}\nContent: ${doc.content}`)
-        .join("\n\n");
-    }
-
-    // Get message history (last 5)
+    // 6. Get message history (last 5)
     const history = await prisma.message.findMany({
       where: { conversationId: conversation.id },
       orderBy: { createdAt: "desc" },
-      take: 6, // 1 is the one we just created
+      take: 6,
     });
 
     const formattedHistory = history
@@ -128,17 +104,19 @@ export async function POST(req: NextRequest) {
         content: m.content,
       }));
 
+    // 7. Generate AI Response
     const aiResponse = await generateRAGResponse({
       messages: formattedHistory,
       model: (chatbot.model as LLMModel) || "gpt-4o",
       systemPrompt: chatbot.systemPrompt,
       context: context || "No specific context found.",
-      chatbotId: chatbotId, // Pass ID to enable tools
+      chatbotId,
+      conversationId: conversation.id,
     });
 
     const replyText = aiResponse.text;
 
-    // 6. Send Reply via WhatsApp API
+    // 8. Send Reply via WhatsApp API
     const config = channel.config as any;
     const accessToken = config.accessToken;
 
@@ -146,7 +124,7 @@ export async function POST(req: NextRequest) {
       await sendWhatsAppMessage(from, replyText, phoneNumberId, accessToken);
     }
 
-    // 7. Save Assistant Message & Log Usage
+    // 9. Save Assistant Message & Log Usage
     await prisma.message.create({
       data: {
         conversationId: conversation.id,
@@ -156,10 +134,11 @@ export async function POST(req: NextRequest) {
         promptTokens: aiResponse.usage.promptTokens,
         completionTokens: aiResponse.usage.completionTokens,
         model: chatbot.model,
+        sources: sources.map(s => ({ title: s.title, url: s.url, similarity: s.similarity })),
       },
     });
 
-    // Log usage if we have a user
+    // Log usage
     if (chatbot.userId) {
       await logTokenUsage({
         userId: chatbot.userId,

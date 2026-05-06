@@ -17,7 +17,8 @@ import {
   Facebook, 
   Instagram, 
   Phone,
-  AlertCircle
+  AlertCircle,
+  MessageSquare
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -38,26 +39,31 @@ export function MetaSelector({
 }: MetaSelectorProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [sessionData, setSessionData] = useState<any>(null);
+  const [channels, setChannels] = useState<any[]>([]);
+  const [pendingChannel, setPendingChannel] = useState<any>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (open && sessionId) {
-      fetchSessionData();
+    if (open) {
+      fetchPendingChannels();
     }
-  }, [open, sessionId]);
+  }, [open]);
 
-  const fetchSessionData = async () => {
+  const fetchPendingChannels = async () => {
     setIsLoading(true);
     try {
-      // We'll reuse the channels GET API to find our temp session or create a specific one
       const res = await fetch(`/api/chatbots/${chatbotId}/channels`);
       if (res.ok) {
-        const channels = await res.json();
-        const session = channels.find((c: any) => c.id === sessionId);
-        if (session) {
-          setSessionData(session);
+        const allChannels = await res.json();
+        // Find pending Meta channels (from OAuth callback)
+        const pending = allChannels.find((c: any) => 
+          c.status === "PENDING" && 
+          ["WHATSAPP", "INSTAGRAM", "FACEBOOK"].includes(c.type)
+        );
+        if (pending) {
+          setPendingChannel(pending);
         }
+        setChannels(allChannels);
       }
     } catch (error) {
       toast.error("Failed to load connection data");
@@ -67,16 +73,19 @@ export function MetaSelector({
   };
 
   const handleFinalize = async () => {
-    if (!selectedId) return;
+    if (!selectedId || !pendingChannel) return;
     setIsSubmitting(true);
     try {
+      const config = pendingChannel.config as any;
+      
+      // Update the channel with the selected page/phone number
       const res = await fetch(`/api/chatbots/${chatbotId}/channels/meta-finalize`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          sessionId,
+          channelId: pendingChannel.id,
           selectedId,
-          type: sessionData.type
+          type: pendingChannel.type,
         }),
       });
 
@@ -95,36 +104,58 @@ export function MetaSelector({
     }
   };
 
-  const getAccountsList = () => {
-    if (!sessionData) return [];
-    if (sessionData.type === "WHATSAPP") return sessionData.config.whatsappAccounts || [];
-    if (sessionData.type === "INSTAGRAM") {
-       return (sessionData.config.pages || [])
+  const getAccountsList = (): { id: string; name: string; username?: string; pageName?: string }[] => {
+    if (!pendingChannel) return [];
+    const config = pendingChannel.config as any;
+
+    if (pendingChannel.type === "WHATSAPP") {
+      // WhatsApp: show businesses from the OAuth callback
+      const businesses = config.businesses || [];
+      return businesses.map((b: any) => ({
+        id: b.id,
+        name: b.name || "WhatsApp Business Account",
+      }));
+    }
+
+    if (pendingChannel.type === "INSTAGRAM") {
+      // Instagram: filter pages that have IG business accounts
+      const pages = config.pages || [];
+      return pages
         .filter((p: any) => p.instagram_business_account)
         .map((p: any) => ({
-          id: p.instagram_business_account.id,
-          name: p.instagram_business_account.name || p.instagram_business_account.username,
-          username: p.instagram_business_account.username,
+          id: p.instagram_business_account?.id || p.id,
+          name: p.instagram_business_account?.name || p.instagram_business_account?.username || p.name,
+          username: p.instagram_business_account?.username,
           pageName: p.name
         }));
     }
-    return sessionData.config.pages || [];
+
+    // Facebook Messenger: show pages
+    const pages = config.pages || [];
+    return pages.map((p: any) => ({
+      id: p.id,
+      name: p.name,
+    }));
   };
 
   const accounts = getAccountsList();
 
+  const typeIcons: Record<string, React.ReactNode> = {
+    INSTAGRAM: <Instagram className="w-6 h-6 text-pink-500" />,
+    FACEBOOK: <Facebook className="w-6 h-6 text-blue-600" />,
+    WHATSAPP: <MessageSquare className="w-6 h-6 text-emerald-500" />,
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md rounded-[32px]">
+      <DialogContent className="max-w-md rounded-[32px] border-2 border-zinc-100 shadow-2xl">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold flex items-center gap-2">
-            {sessionData?.type === "INSTAGRAM" && <Instagram className="w-6 h-6 text-pink-500" />}
-            {sessionData?.type === "FACEBOOK" && <Facebook className="w-6 h-6 text-blue-600" />}
-            {sessionData?.type === "WHATSAPP" && <Phone className="w-6 h-6 text-emerald-500" />}
+          <DialogTitle className="text-2xl font-bold flex items-center gap-3">
+            {pendingChannel && typeIcons[pendingChannel.type]}
             Select Account
           </DialogTitle>
-          <DialogDescription className="font-medium">
-            Choose which {sessionData?.type.toLowerCase()} account to connect to this chatbot.
+          <DialogDescription className="font-medium text-zinc-500">
+            Choose which {pendingChannel?.type?.toLowerCase() || "social"} account to connect to this chatbot.
           </DialogDescription>
         </DialogHeader>
 
@@ -134,17 +165,31 @@ export function MetaSelector({
               <Loader2 className="w-8 h-8 text-primary animate-spin" />
               <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Retrieving Assets...</p>
             </div>
+          ) : !pendingChannel ? (
+            <div className="bg-zinc-50 border border-zinc-100 p-6 rounded-2xl flex items-start gap-4">
+              <AlertCircle className="w-6 h-6 text-zinc-400 shrink-0 mt-1" />
+              <div>
+                <p className="text-sm font-bold text-zinc-700">No pending connections found</p>
+                <p className="text-xs text-zinc-500 mt-1">Please initiate a Meta OAuth connection first from the Channels tab.</p>
+              </div>
+            </div>
           ) : accounts.length === 0 ? (
             <div className="bg-amber-50 border border-amber-100 p-6 rounded-2xl flex items-start gap-4">
               <AlertCircle className="w-6 h-6 text-amber-500 shrink-0 mt-1" />
               <div>
                 <p className="text-sm font-bold text-amber-900">No matching accounts found</p>
-                <p className="text-xs text-amber-700 mt-1">Make sure you have a Professional Instagram account linked to a Facebook Page.</p>
+                <p className="text-xs text-amber-700 mt-1">
+                  {pendingChannel?.type === "INSTAGRAM" 
+                    ? "Make sure you have a Professional Instagram account linked to a Facebook Page."
+                    : pendingChannel?.type === "WHATSAPP"
+                    ? "Make sure you have a WhatsApp Business Account linked to your Facebook Business."
+                    : "Make sure you have at least one Facebook Page with messaging enabled."}
+                </p>
               </div>
             </div>
           ) : (
             <div className="max-h-[300px] overflow-y-auto space-y-2 pr-2">
-              {accounts.map((acc: any) => (
+              {accounts.map((acc) => (
                 <button
                   key={acc.id}
                   onClick={() => setSelectedId(acc.id)}

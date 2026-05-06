@@ -18,12 +18,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "URL is required" }, { status: 400 });
     }
 
-    const { internalScrape } = await import("@/lib/crawler");
+    const { scrapePage } = await import("@/lib/crawler");
     // Firecrawl Scrape for metadata & brand assets
-    const scrapeResponse = await internalScrape(url);
-
-    if (!scrapeResponse.success) {
-      return NextResponse.json({ error: scrapeResponse.error || "Scraping failed" }, { status: 500 });
+    let scrapeResponse;
+    try {
+      scrapeResponse = await scrapePage(url);
+    } catch (err) {
+      return NextResponse.json({ error: "Scraping failed" }, { status: 500 });
     }
 
     const metadata = (scrapeResponse as any).data?.metadata || {};

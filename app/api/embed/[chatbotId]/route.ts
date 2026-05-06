@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { searchDocuments } from "@/lib/crawler";
 import { streamRAGResponse, LLMModel, performRAGSearch } from "@/lib/ai";
 import { addTokenUsageJob } from "@/lib/queue";
 

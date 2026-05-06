@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
-import { createEmbedding, streamRAGResponse, logTokenUsage, LLMModel } from "@/lib/ai";
+import { performRAGSearch, streamRAGResponse, logTokenUsage, LLMModel } from "@/lib/ai";
 
 export async function POST(
   req: NextRequest,
@@ -39,39 +39,23 @@ export async function POST(
       return NextResponse.json({ error: "Chatbot not found" }, { status: 404 });
     }
 
-    // 2. Generate Embedding for User Message
-    const embedding = await createEmbedding(message);
-    const vectorString = `[${embedding.join(",")}]`;
+    // 2. Perform RAG Search
+    const { context } = await performRAGSearch({
+      chatbotId,
+      query: message,
+      limit: 5,
+      minSimilarity: 0.4,
+    });
 
-    // 3. Similarity Search using pgvector
-    // We search across all completed data sources for this chatbot
-    const dataSourceIds = chatbot.dataSources.map((ds) => ds.id);
-    
-    let context = "";
-    if (dataSourceIds.length > 0) {
-      // Use a more robust raw query format for PostgreSQL
-      const documents: any[] = await prisma.$queryRawUnsafe(`
-        SELECT content, title, url, 1 - (embedding <=> $1::vector) as similarity
-        FROM "Document"
-        WHERE "dataSourceId" IN (${dataSourceIds.map((_, i) => `$${i + 2}`).join(',')})
-        ORDER BY similarity DESC
-        LIMIT 5
-      `, vectorString, ...dataSourceIds);
-
-      context = documents
-        .filter((doc) => doc.similarity > 0.4) // Lowered threshold slightly for better recall
-        .map((doc) => `Source: ${doc.title || doc.url}\nContent: ${doc.content}`)
-        .join("\n\n");
-    }
-
-    // 4. Stream Response & Log Usage
+    // 3. Stream Response & Log Usage
     const response = await streamRAGResponse({
       messages: messages,
       model: (chatbot.model as LLMModel) || "gpt-4o",
       systemPrompt: chatbot.systemPrompt,
       context: context || "No specific context found.",
+      chatbotId,
       onFinish: async ({ text, usage }) => {
-        // Log Token Usage for Billing/Analytics
+        // Log Token Usage
         await logTokenUsage({
           userId: chatbot.userId,
           chatbotId: chatbot.id,

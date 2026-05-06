@@ -85,6 +85,7 @@ function SettingsPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState<any>({});
   const [dataSources, setDataSources] = useState<any[]>([]);
+  const [knowledgeSources, setKnowledgeSources] = useState<any[]>([]);
   const [isSyncing, setIsSyncing] = useState(false);
   const [sourceDialogOpen, setSourceDialogOpen] = useState(false);
   const [sourceDialogType, setSourceDialogType] = useState<"WEBSITE" | "TEXT" | null>(null);
@@ -101,15 +102,23 @@ function SettingsPage() {
   const [isUpdatingSchedule, setIsUpdatingSchedule] = useState(false);
   const [metaSelectorOpen, setMetaSelectorOpen] = useState(false);
   const [metaSessionId, setMetaSessionId] = useState<string | null>(null);
+  const [isDeletingKS, setIsDeletingKS] = useState<string | null>(null);
 
 
   useEffect(() => {
     const session = searchParams.get("meta_session");
+    const metaConnected = searchParams.get("meta_connected");
+    const activeTab = searchParams.get("tab");
     if (session) {
       setMetaSessionId(session);
       setMetaSelectorOpen(true);
-      // Clean up URL
-      const newUrl = window.location.pathname + (window.location.search.replace(/[\?&]meta_session=[^&]+/, '').replace(/^&/, '?'));
+      const newUrl = window.location.pathname + (window.location.search.replace(/[\?\&]meta_session=[^\&]+/, '').replace(/^\&/, '?'));
+      window.history.replaceState({}, '', newUrl);
+    }
+    if (metaConnected === "true") {
+      // OAuth callback returned — open selector to finalize
+      setMetaSelectorOpen(true);
+      const newUrl = window.location.pathname;
       window.history.replaceState({}, '', newUrl);
     }
   }, [searchParams]);
@@ -173,6 +182,34 @@ function SettingsPage() {
       }
     } catch (error) {
       console.error("Error fetching data sources:", error);
+    }
+    // Also fetch knowledge sources
+    try {
+      const res = await fetch(`/api/knowledge?chatbotId=${id}`);
+      if (res.ok) {
+        const data = await res.json();
+        setKnowledgeSources(Array.isArray(data) ? data : data.sources || []);
+      }
+    } catch (error) {
+      console.error("Error fetching knowledge sources:", error);
+    }
+  };
+
+  const handleDeleteKnowledgeSource = async (ksId: string) => {
+    if (!confirm('Delete this knowledge source and all its trained data?')) return;
+    setIsDeletingKS(ksId);
+    try {
+      const res = await fetch(`/api/knowledge/${ksId}`, { method: 'DELETE' });
+      if (res.ok) {
+        toast.success('Knowledge source deleted');
+        fetchDataSources();
+      } else {
+        toast.error('Failed to delete knowledge source');
+      }
+    } catch (err) {
+      toast.error('Error deleting knowledge source');
+    } finally {
+      setIsDeletingKS(null);
     }
   };
 
@@ -776,6 +813,79 @@ function SettingsPage() {
                       </table>
                     </div>
                   </div>
+
+                  {/* Knowledge Sources Section */}
+                  {knowledgeSources.length > 0 && (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between px-2">
+                        <Label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest pl-1 flex items-center gap-2">
+                          <Database className="w-3 h-3" />
+                          Knowledge Sources
+                        </Label>
+                        <Badge variant="outline" className="text-[9px] font-black px-2 py-0 border-zinc-200 text-zinc-400">
+                          {knowledgeSources.length} sources
+                        </Badge>
+                      </div>
+
+                      <div className="border border-zinc-100 rounded-[32px] overflow-hidden bg-zinc-50/30">
+                        <table className="w-full text-left">
+                          <thead className="bg-zinc-100/50 border-b border-zinc-100">
+                            <tr>
+                              <th className="px-6 py-4 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Source</th>
+                              <th className="px-6 py-4 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Status</th>
+                              <th className="px-6 py-4 text-[10px] font-bold text-zinc-400 uppercase tracking-widest text-right">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-zinc-100">
+                            {knowledgeSources.map((ks: any) => (
+                              <tr key={ks.id} className="group hover:bg-white transition-colors">
+                                <td className="px-6 py-4">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-xl bg-zinc-100 flex items-center justify-center">
+                                      {ks.type === 'WEBSITE' ? <Globe className="w-4 h-4 text-zinc-400" /> : <FileText className="w-4 h-4 text-zinc-400" />}
+                                    </div>
+                                    <div className="flex flex-col">
+                                      <span className="text-sm font-bold text-zinc-900 truncate max-w-[240px]">{ks.name}</span>
+                                      <span className="text-[10px] text-zinc-400 font-medium truncate max-w-[200px]">{ks.url || ks.type}</span>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="px-6 py-4">
+                                  <div className="flex flex-col gap-1">
+                                    <Badge className={`rounded-full px-3 py-0.5 text-[9px] font-black tracking-tighter uppercase w-fit ${
+                                      ks.status === 'COMPLETED' ? 'bg-green-50 text-green-600 border-green-200' : 
+                                      ks.status === 'PENDING' || ks.status === 'CRAWLING' ? 'bg-blue-50 text-blue-600 border-blue-200 animate-pulse' :
+                                      'bg-red-50 text-red-600 border-red-200'
+                                    }`}>
+                                      {ks.status}
+                                    </Badge>
+                                    {ks.updatedAt && (
+                                      <span className="text-[9px] text-zinc-400 font-medium">
+                                        Updated {new Date(ks.updatedAt).toLocaleDateString('tr-TR')}
+                                      </span>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="px-6 py-4 text-right">
+                                  <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <Button 
+                                      variant="ghost" 
+                                      size="icon" 
+                                      className="h-9 w-9 rounded-xl hover:bg-red-50 hover:text-red-500 text-zinc-400"
+                                      disabled={isDeletingKS === ks.id}
+                                      onClick={() => handleDeleteKnowledgeSource(ks.id)}
+                                    >
+                                      {isDeletingKS === ks.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                                    </Button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
