@@ -59,7 +59,7 @@ export async function POST(
         await logTokenUsage({
           userId: chatbot.userId,
           chatbotId: chatbot.id,
-          conversationId: `preview_${chatbot.id}`,
+          // Do not pass a fake conversationId, it causes FK constraint violation
           model: (chatbot.model as LLMModel) || "gpt-4o",
           promptTokens: usage.promptTokens,
           completionTokens: usage.completionTokens,

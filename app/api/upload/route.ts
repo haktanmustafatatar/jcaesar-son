@@ -6,8 +6,8 @@ import { addCrawlJob } from "@/lib/queue";
 // POST /api/upload - Dosya yükle
 export async function POST(req: NextRequest) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
+    const { userId: clerkId } = await auth();
+    if (!clerkId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -47,9 +47,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Resolve internal user ID from Clerk ID
+    const user = await prisma.user.findUnique({ where: { clerkId } });
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
     // Chatbot'u kontrol et
     const chatbot = await prisma.chatbot.findFirst({
-      where: { id: chatbotId, userId },
+      where: { id: chatbotId, userId: user.id },
     });
 
     if (!chatbot) {
@@ -92,7 +98,7 @@ export async function POST(req: NextRequest) {
       fileType: file.type,
       chatbotId,
       dataSourceId: dataSource.id,
-      userId,
+      userId: user.id,
     });
 
     return NextResponse.json({

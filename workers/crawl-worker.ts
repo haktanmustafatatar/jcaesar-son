@@ -29,12 +29,6 @@ export const crawlWorker = new Worker(
         });
       }
 
-      // Mark chatbot as ACTIVE early to allow interaction during crawl
-      await prisma.chatbot.update({
-        where: { id: chatbotId },
-        data: { status: "ACTIVE" },
-      });
-
       let result;
       const { content, fileUrl } = job.data;
 
@@ -86,6 +80,22 @@ export const crawlWorker = new Worker(
       }
 
       console.log(`[CrawlWorker] Job ${job.id} completed successfully`);
+      
+      // Check if all data sources are done, then mark chatbot as ACTIVE
+      const pendingSources = await prisma.dataSource.count({
+        where: {
+          chatbotId,
+          status: { in: ["PENDING", "CRAWLING", "PROCESSING"] }
+        }
+      });
+      
+      if (pendingSources === 0) {
+        await prisma.chatbot.update({
+          where: { id: chatbotId },
+          data: { status: "ACTIVE" },
+        });
+      }
+
       return result;
     } catch (error) {
       console.error(`[CrawlWorker] Job ${job.id} failed:`, error);
@@ -105,6 +115,22 @@ export const crawlWorker = new Worker(
         }
       }
       
+      // Check if all other data sources are done even if this one failed
+      try {
+        const pendingSources = await prisma.dataSource.count({
+          where: {
+            chatbotId,
+            status: { in: ["PENDING", "CRAWLING", "PROCESSING"] }
+          }
+        });
+        if (pendingSources === 0) {
+          await prisma.chatbot.update({
+            where: { id: chatbotId },
+            data: { status: "ACTIVE" },
+          });
+        }
+      } catch (e) {}
+
       throw error;
     }
   },

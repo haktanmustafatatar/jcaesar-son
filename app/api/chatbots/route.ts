@@ -103,6 +103,9 @@ export async function POST(req: NextRequest) {
       qnaList,
       suggestedMessages,
       links,
+      crawlSchedule,
+      maxDepth,
+      crawlLimit,
     } = body;
 
     if (!name) {
@@ -134,6 +137,8 @@ export async function POST(req: NextRequest) {
               name: "Website Source",
               url: websiteUrl,
               status: "PENDING" as any,
+              crawlDepth: maxDepth || 3,
+              crawlSchedule: crawlSchedule || "never",
               urls: {
                 create: (links || []).map((link: string) => ({
                   url: link,
@@ -180,6 +185,8 @@ export async function POST(req: NextRequest) {
             chatbotId: chatbot.id,
             dataSourceId: ds.id,
             userId,
+            maxDepth: maxDepth || 3,
+            limit: crawlLimit || 100,
           });
         } else if (ds.type === "TEXT" && rawText) {
           await addCrawlJob({

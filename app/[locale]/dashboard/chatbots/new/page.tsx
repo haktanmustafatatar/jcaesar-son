@@ -104,7 +104,12 @@ export default function NewChatbotPage() {
     suggestedMessages: ["What is this website about?", "How can I contact you?"],
     appearance: "light" as "light" | "dark",
     usePrimaryColorForHeader: false,
+    crawlSchedule: "never",
   });
+
+  const [sitemapUrl, setSitemapUrl] = useState("");
+  const [maxDepth, setMaxDepth] = useState(3);
+  const [crawlLimit, setCrawlLimit] = useState(100);
 
   const [activeSourceTab, setActiveSourceTab] = useState("website");
   const [websiteSubTab, setWebsiteSubTab] = useState("crawl");
@@ -324,6 +329,38 @@ export default function NewChatbotPage() {
     }
   };
 
+  const handleSitemapLoad = async () => {
+    if (!sitemapUrl) {
+      toast.error("Please enter a sitemap URL");
+      return;
+    }
+    setIsCrawling(true);
+    setDiscoveredLinks([]);
+    try {
+      const token = await getToken();
+      const res = await fetch("/api/crawl/fetch-links", {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({ url: sitemapUrl }),
+      });
+      
+      if (!res.ok) throw new Error(`Sitemap fetch failed with status ${res.status}`);
+      
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      
+      setDiscoveredLinks(data.links);
+      toast.success(`${data.links.length} links discovered from sitemap!`);
+    } catch (error: any) {
+      toast.error(error.message || "Could not fetch sitemap links");
+    } finally {
+      setIsCrawling(false);
+    }
+  };
+
   const toggleLinkSelection = (index: number) => {
     const updated = [...discoveredLinks];
     updated[index].selected = !updated[index].selected;
@@ -377,18 +414,37 @@ export default function NewChatbotPage() {
         body: JSON.stringify({
           ...formData,
           links: discoveredLinks.filter(l => l.selected).map(l => l.url),
+          maxDepth,
+          crawlLimit,
         }),
       });
 
       if (!res.ok) throw new Error(`Chatbot creation failed with status ${res.status}`);
 
-      const contentType = res.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        throw new Error("Creation API returned non-JSON response");
+      const chatbot = await res.json();
+      const chatbotId = chatbot.id;
+      
+      // Upload files if any
+      if (selectedDocuments.length > 0) {
+        toast.info(`Uploading ${selectedDocuments.length} files...`);
+        for (const file of selectedDocuments) {
+          try {
+            const uploadData = new FormData();
+            uploadData.append("file", file);
+            uploadData.append("chatbotId", chatbotId);
+            
+            await fetch("/api/upload", {
+              method: "POST",
+              headers: { "Authorization": `Bearer ${token}` },
+              body: uploadData,
+            });
+          } catch (uploadErr) {
+            console.error(`Failed to upload ${file.name}:`, uploadErr);
+          }
+        }
       }
 
-      const chatbot = await res.json();
-      setCreatedChatbotId(chatbot.id);
+      setCreatedChatbotId(chatbotId);
       setCurrentStep("deploy");
       toast.success("Chatbot created! Training started...");
     } catch (error) {
@@ -1250,6 +1306,61 @@ export default function NewChatbotPage() {
                       <ChevronRight className={`w-4 h-4 mr-2 transition-transform ${showAdvancedData ? 'rotate-90' : ''}`} />
                       {t("modal.advancedOptions")}
                     </Button>
+
+                    {showAdvancedData && (
+                      <motion.div 
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        className="pt-6 space-y-6 border-t border-dashed mt-4"
+                      >
+                         <div className="grid grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                               <Label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest pl-1">Max Crawl Depth</Label>
+                               <Select value={maxDepth.toString()} onValueChange={(v) => setMaxDepth(parseInt(v))}>
+                                  <SelectTrigger className="h-12 rounded-xl bg-white border-zinc-100 font-bold">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="1">1 (Only root)</SelectItem>
+                                    <SelectItem value="2">2 (Direct links)</SelectItem>
+                                    <SelectItem value="3">3 (Deep scan)</SelectItem>
+                                    <SelectItem value="5">5 (Aggressive scan)</SelectItem>
+                                  </SelectContent>
+                               </Select>
+                            </div>
+                            <div className="space-y-2">
+                               <Label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest pl-1">Page Limit</Label>
+                               <Input 
+                                 type="number"
+                                 value={crawlLimit}
+                                 onChange={(e) => setCrawlLimit(parseInt(e.target.value))}
+                                 className="h-12 rounded-xl bg-white border-zinc-100 font-bold"
+                               />
+                            </div>
+                         </div>
+
+                         <div className="space-y-2">
+                            <Label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest pl-1">Auto-Crawl Schedule (Istanbul Time)</Label>
+                            <div className="grid grid-cols-4 gap-2">
+                               {[
+                                 { id: 'never', label: 'Manual' },
+                                 { id: 'daily', label: 'Daily' },
+                                 { id: 'weekly', label: 'Weekly' },
+                                 { id: 'monthly', label: 'Monthly' }
+                               ].map((s) => (
+                                 <button
+                                   key={s.id}
+                                   type="button"
+                                   onClick={() => setFormData({ ...formData, crawlSchedule: s.id })}
+                                   className={`h-12 rounded-xl border text-[10px] font-black uppercase tracking-widest transition-all ${formData.crawlSchedule === s.id ? 'bg-zinc-950 text-white border-zinc-950' : 'bg-white text-zinc-400 border-zinc-100 hover:border-zinc-300'}`}
+                                 >
+                                   {s.label}
+                                 </button>
+                               ))}
+                            </div>
+                         </div>
+                      </motion.div>
+                    )}
                   </div>
                 </div>
               )}
@@ -1302,8 +1413,16 @@ export default function NewChatbotPage() {
                         <Input 
                           placeholder="https://example.com/sitemap.xml" 
                           className="h-14 rounded-2xl bg-zinc-50 border-zinc-100 focus:bg-white transition-all text-base px-5 font-bold flex-1"
+                          value={sitemapUrl}
+                          onChange={(e) => setSitemapUrl(e.target.value)}
                         />
-                        <Button className="h-14 px-8 rounded-2xl bg-zinc-950 text-white font-black">LOAD</Button>
+                        <Button 
+                          className="h-14 px-8 rounded-2xl bg-zinc-950 text-white font-black"
+                          onClick={handleSitemapLoad}
+                          disabled={isCrawling || !sitemapUrl}
+                        >
+                          {isCrawling ? <Loader2 className="w-5 h-5 animate-spin" /> : "LOAD"}
+                        </Button>
                       </div>
                    </div>
                 </div>

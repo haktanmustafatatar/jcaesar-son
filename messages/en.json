@@ -158,7 +158,12 @@
             "urlLabel": "Target Website URL",
             "fetching": "FETCHING...",
             "fetchLinks": "FETCH LINKS",
-            "advancedOptions": "Advanced options"
+            "advancedOptions": "Advanced options",
+            "maxDepth": "Crawl Depth",
+            "pageLimit": "Page Limit",
+            "crawlSchedule": "Auto-Crawl Schedule",
+            "istanbulTime": "Istanbul Time",
+            "load": "LOAD"
           }
         }
       }

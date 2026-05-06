@@ -289,11 +289,32 @@ async function httpScrape(url: string): Promise<{ markdown: string; title: strin
     const reader = new Readability(dom.window.document);
     const article = reader.parse();
 
-    if (!article || !article.content) return null;
+    let content = "";
+    let title = "Untitled";
+
+    if (article && article.content) {
+      content = turndownService.turndown(article.content);
+      title = article.title || "Untitled";
+    } else {
+      // Fallback for non-article pages (e-commerce, product pages)
+      const document = dom.window.document;
+      title = document.title || "Untitled";
+      
+      // Remove scripts, styles, nav, footer to clean up
+      const elementsToRemove = document.querySelectorAll('script, style, nav, footer, header, noscript, iframe, svg');
+      elementsToRemove.forEach(el => el.remove());
+      
+      // Get remaining body content
+      if (document.body) {
+         content = turndownService.turndown(document.body.innerHTML);
+      }
+    }
+
+    if (!content || content.trim().length < 10) return null;
 
     return {
-      markdown: turndownService.turndown(article.content),
-      title: article.title || "Untitled",
+      markdown: content,
+      title: title,
     };
   } catch (err) {
     console.warn(`[httpScrape] Failed for ${url}:`, err);
@@ -590,35 +611,57 @@ export async function discoverSitemaps(url: string): Promise<string[]> {
 }
 
 /**
- * Get all URLs from a sitemap
+ * Get all URLs from a sitemap (recursively handles sitemap indices)
  */
-export async function getSitemapUrls(sitemapUrl: string): Promise<string[]> {
+export async function getSitemapUrls(sitemapUrl: string, depth = 0): Promise<string[]> {
+  if (depth > 3) return []; // Prevent infinite recursion
+
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10000);
-    const res = await fetch(sitemapUrl, { signal: controller.signal });
+    const res = await fetch(sitemapUrl, {
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; JCaesarBot/1.0)" },
+      signal: controller.signal
+    });
     clearTimeout(timeout);
 
     if (!res.ok) return [];
 
-    const contentType = res.headers.get("content-type") || "";
     const text = await res.text();
-
-    if (!contentType.includes("xml") && !text.includes("<?xml") && !text.includes("<urlset")) {
+    
+    // Basic validation
+    if (!text.includes("<urlset") && !text.includes("<sitemapindex")) {
       console.warn(`[SitemapParser] URL is not a valid XML sitemap: ${sitemapUrl}`);
       return [];
     }
 
-    // Use regex as a more robust alternative to JSDOM for XML
     const locRegex = /<loc>(.*?)<\/loc>/g;
-    const matches = text.matchAll(locRegex);
-    const locs: string[] = [];
+    const matches = Array.from(text.matchAll(locRegex));
+    const locs = matches.map(m => m[1]?.trim()).filter(Boolean) as string[];
     
-    for (const match of matches) {
-      if (match[1]) locs.push(match[1].trim());
+    const pageUrls: string[] = [];
+    const nestedSitemaps: string[] = [];
+
+    for (const loc of locs) {
+      if (loc.toLowerCase().endsWith(".xml") || loc.includes("sitemap")) {
+        nestedSitemaps.push(loc);
+      } else {
+        pageUrls.push(loc);
+      }
     }
 
-    return [...new Set(locs)];
+    // Recursively fetch nested sitemaps
+    if (nestedSitemaps.length > 0) {
+      console.log(`[SitemapParser] Found ${nestedSitemaps.length} nested sitemaps in ${sitemapUrl}`);
+      const results = await Promise.all(
+        nestedSitemaps.map(url => getSitemapUrls(url, depth + 1))
+      );
+      for (const result of results) {
+        pageUrls.push(...result);
+      }
+    }
+
+    return [...new Set(pageUrls)];
   } catch (err) {
     console.warn("[SitemapParser] Failed to parse sitemap:", err);
     return [];

@@ -158,7 +158,12 @@
             "urlLabel": "Hedef Web Sitesi URL'si",
             "fetching": "GETİRİLİYOR...",
             "fetchLinks": "BAĞLANTILARI GETİR",
-            "advancedOptions": "Gelişmiş seçenekler"
+            "advancedOptions": "Gelişmiş seçenekler",
+            "maxDepth": "Tarama Derinliği",
+            "pageLimit": "Sayfa Limiti",
+            "crawlSchedule": "Otomatik Tarama Sıklığı",
+            "istanbulTime": "İstanbul Saati",
+            "load": "YÜKLE"
           }
         }
       }
