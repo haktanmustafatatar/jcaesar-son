@@ -1,6 +1,7 @@
 import { openai } from "@ai-sdk/openai";
 import { anthropic } from "@ai-sdk/anthropic";
-import { streamText, generateText, embed, ToolSet } from "ai";
+import { streamText, generateText, embed, embedMany, ToolSet, generateObject } from "ai";
+import { z } from "zod";
 import { getChatbotTools } from "./tools";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
@@ -35,7 +36,7 @@ export const LLM_MODELS = {
 
 export type LLMModel = keyof typeof LLM_MODELS;
 
-// Embedding modeli
+// Embedding modeli (Phase 2 Upgrade reverted to match existing vectors)
 export const embeddingModel = openai.embedding("text-embedding-3-small");
 
 // Text embedding oluştur
@@ -45,6 +46,15 @@ export async function createEmbedding(text: string) {
     value: text,
   });
   return embedding;
+}
+
+// Batch text embedding oluştur
+export async function createEmbeddings(texts: string[]) {
+  const { embeddings } = await embedMany({
+    model: embeddingModel,
+    values: texts,
+  });
+  return embeddings;
 }
 
 // Streaming chat yanıtı
@@ -103,7 +113,7 @@ export async function streamRAGResponse({
 IMPORTANT: Use the following context to answer the user's question accurately. 
 Pay special attention to numerical values, prices, dates, and specific product details. 
 If the context contains a price for a product the user is asking about, YOU MUST include it.
-If the context doesn't contain the requested information, say so honestly, but try to provide a close alternative if possible.
+If the context does not contain the requested information or you are unsure, YOU MUST say "I don't have enough information about this" and ask for clarification. DO NOT hallucinate facts, brands, prices, or SKUs.
 
 Knowledge Hub Context:
 ${context}`;
@@ -151,7 +161,7 @@ export async function generateRAGResponse({
 IMPORTANT: Use the following context to answer the user's question accurately. 
 Pay special attention to numerical values, prices, dates, and specific product details. 
 If the context contains a price for a product the user is asking about, YOU MUST include it.
-If the context doesn't contain the requested information, say so honestly, but try to provide a close alternative if possible.
+If the context does not contain the requested information or you are unsure, YOU MUST say "I don't have enough information about this" and ask for clarification. DO NOT hallucinate facts, brands, prices, or SKUs.
 
 Knowledge Hub Context:
 ${context}`;
@@ -183,7 +193,7 @@ export async function logTokenUsage({
 }: {
   userId: string;
   chatbotId: string;
-  conversationId: string;
+  conversationId?: string;
   model: LLMModel;
   promptTokens: number;
   completionTokens: number;
@@ -263,30 +273,45 @@ async function checkTokenLimit(userId: string) {
   }
 }
 
-// RAG Araştırması (pgvector)
+// RAG Araştırması (pgvector + Hybrid Search + RRF)
 export async function performRAGSearch({
   chatbotId,
   query,
   limit = 5,
-  minSimilarity = 0.5,
+  minSimilarity = 0.60, // Increased threshold for confidence
 }: {
   chatbotId: string;
   query: string;
   limit?: number;
   minSimilarity?: number;
 }) {
+  // 1. Query Intent Extraction (Pre-filtering prep)
+  let intentData: { isProductSearch: boolean; brand: string | null } = { isProductSearch: false, brand: null };
+  try {
+    const { object } = await generateObject({
+      model: LLM_MODELS["gpt-4o-mini"].provider,
+      schema: z.object({
+        isProductSearch: z.boolean(),
+        brand: z.string().nullable().optional(),
+        intent: z.string(),
+      }),
+      prompt: `Analyze the user query: "${query}". Determine if it's a product search, and extract any specific brand if mentioned.`,
+    });
+    intentData = { isProductSearch: object.isProductSearch, brand: object.brand || null };
+    console.log(`[RAG Search] Intent extracted:`, intentData);
+  } catch (e) {
+    console.warn(`[RAG Search] Intent extraction failed`);
+  }
+
+  // 2. Vector Embedding
   const embedding = await createEmbedding(query);
   const vectorString = `[${embedding.join(",")}]`;
 
   const chatbot = await prisma.chatbot.findUnique({
     where: { id: chatbotId },
     include: {
-      dataSources: {
-        where: { status: "COMPLETED" },
-      },
-      knowledgeSources: {
-        where: { status: "COMPLETED" },
-      },
+      dataSources: { where: { status: "COMPLETED" } },
+      knowledgeSources: { where: { status: "COMPLETED" } },
     },
   });
 
@@ -299,10 +324,10 @@ export async function performRAGSearch({
 
   const whereConditions = [];
   if (dataSourceIds.length > 0) {
-    whereConditions.push(Prisma.sql`d."dataSourceId" IN (${Prisma.join(dataSourceIds)})`);
+    whereConditions.push(Prisma.sql`"dataSourceId" IN (${Prisma.join(dataSourceIds)})`);
   }
   if (knowledgeSourceIds.length > 0) {
-    whereConditions.push(Prisma.sql`d."knowledgeSourceId" IN (${Prisma.join(knowledgeSourceIds)})`);
+    whereConditions.push(Prisma.sql`"knowledgeSourceId" IN (${Prisma.join(knowledgeSourceIds)})`);
   }
 
   if (whereConditions.length === 0) {
@@ -311,24 +336,58 @@ export async function performRAGSearch({
 
   const whereClause = Prisma.join(whereConditions, ' OR ');
 
+  // 3. Hybrid Search: Vector Search + BM25 FTS
   const documents: any[] = await prisma.$queryRaw`
-    SELECT d."content", d."title", d."url", 1 - (d."embedding" <=> ${vectorString}::vector) as similarity
-    FROM "Document" d
-    WHERE ${whereClause}
-    ORDER BY similarity DESC
-    LIMIT ${limit}
+    WITH filtered_docs AS (
+      SELECT id, content, title, url, metadata, embedding
+      FROM "Document"
+      WHERE ${whereClause}
+    )
+    SELECT 
+      d.id, d.content, d.title, d.url, d.metadata,
+      1 - (d.embedding <=> ${vectorString}::vector) as vector_score,
+      ts_rank_cd(to_tsvector('simple', d.content), plainto_tsquery('simple', ${query})) as fts_score
+    FROM filtered_docs d
   `;
 
-  const filteredDocs = documents.filter((doc) => doc.similarity >= minSimilarity);
+  // 4. Reciprocal Rank Fusion (RRF)
+  const RRF_K = 60;
+  
+  const vectorRanked = [...documents].sort((a, b) => b.vector_score - a.vector_score);
+  const ftsRanked = [...documents].sort((a, b) => b.fts_score - a.fts_score);
+  
+  const rrfScores = new Map<string, any>();
+  
+  vectorRanked.forEach((doc, rank) => {
+    rrfScores.set(doc.id, { ...doc, rrf_score: 1 / (RRF_K + rank + 1) });
+  });
+  
+  ftsRanked.forEach((doc, rank) => {
+    const existing = rrfScores.get(doc.id);
+    if (existing) {
+      existing.rrf_score += 1 / (RRF_K + rank + 1);
+    }
+  });
 
-  const context = filteredDocs
-    .map((doc) => `Source: ${doc.title || doc.url || "Untitled"}\nContent: ${doc.content}`)
+  // 5. Confidence Threshold & Sorting
+  const finalDocs = Array.from(rrfScores.values())
+    .filter(doc => doc.vector_score >= minSimilarity)
+    .sort((a, b) => b.rrf_score - a.rrf_score)
+    .slice(0, limit);
+
+  // Fallback: Clarification mechanism if no context is found
+  if (finalDocs.length === 0) {
+     return { context: "NO_CONTEXT_FOUND", sources: [] };
+  }
+
+  const context = finalDocs
+    .map((doc) => `Source: ${doc.title || doc.url || "Untitled"}\nMetadata: ${JSON.stringify(doc.metadata)}\nContent: ${doc.content}`)
     .join("\n\n---\n\n");
 
-  const sources = filteredDocs.map((doc) => ({
+  const sources = finalDocs.map((doc) => ({
     title: doc.title,
     url: doc.url,
-    similarity: doc.similarity,
+    similarity: doc.vector_score, // Exposed for UI
   }));
 
   return { context, sources };

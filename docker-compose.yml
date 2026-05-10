@@ -9,12 +9,13 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - DATABASE_URL=postgresql://jcaesar_user:jcaesar_password@db:5432/jcaesar_db
+      # Route via PgBouncer
+      - DATABASE_URL=postgresql://jcaesar_user:jcaesar_password@pgbouncer:6432/jcaesar_db?pgbouncer=true&connection_limit=5
       - REDIS_URL=redis://redis:6379
     env_file:
       - .env
     depends_on:
-      - db
+      - pgbouncer
       - redis
 
   # Background Worker (Crawl & Social Channels)
@@ -22,14 +23,14 @@ services:
     build: .
     container_name: jcaesar-worker
     restart: always
-    command: npm run start:worker # Ensure this command is defined in package.json
+    command: npm run start:worker
     environment:
-      - DATABASE_URL=postgresql://jcaesar_user:jcaesar_password@db:5432/jcaesar_db
+      - DATABASE_URL=postgresql://jcaesar_user:jcaesar_password@pgbouncer:6432/jcaesar_db?pgbouncer=true&connection_limit=10
       - REDIS_URL=redis://redis:6379
     env_file:
       - .env
     depends_on:
-      - db
+      - pgbouncer
       - redis
 
   # Database: PostgreSQL + pgvector
@@ -46,15 +47,53 @@ services:
     volumes:
       - jcaesar_db_data:/var/lib/postgresql/data
 
-  # Redis for Queues
+  # PgBouncer Connection Pooler
+  pgbouncer:
+    image: edoburu/pgbouncer:latest
+    container_name: jcaesar-pgbouncer
+    environment:
+      - DATABASE_URL=postgres://jcaesar_user:jcaesar_password@db:5432/jcaesar_db
+      - POOL_MODE=transaction
+      - MAX_CLIENT_CONN=1000
+      - DEFAULT_POOL_SIZE=50
+      - MIN_POOL_SIZE=10
+    ports:
+      - "127.0.0.1:6432:6432"
+    depends_on:
+      - db
+
+  # Redis for Queues (Persistence Enabled)
   redis:
     image: redis:7-alpine
     container_name: jcaesar-redis
     restart: always
+    command: redis-server --appendonly yes
     ports:
       - "127.0.0.1:6379:6379"
     volumes:
       - jcaesar_redis_data:/data
+
+  # Prometheus for Metrics
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: jcaesar-prometheus
+    restart: always
+    ports:
+      - "127.0.0.1:9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+
+  # Grafana Dashboard
+  grafana:
+    image: grafana/grafana:latest
+    container_name: jcaesar-grafana
+    restart: always
+    ports:
+      - "127.0.0.1:3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    depends_on:
+      - prometheus
 
 volumes:
   jcaesar_db_data:

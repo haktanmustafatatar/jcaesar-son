@@ -2,6 +2,8 @@ import { Worker } from "bullmq";
 import IORedis from "ioredis";
 import { crawlWebsite, processDocument, NeuralIndexer } from "@/lib/crawler";
 import { prisma } from "@/lib/prisma";
+import os from "os";
+import { logger } from "@/lib/logger";
 
 const redisConnection = new IORedis(process.env.REDIS_URL || "redis://localhost:6379", {
   maxRetriesPerRequest: null,
@@ -9,7 +11,7 @@ const redisConnection = new IORedis(process.env.REDIS_URL || "redis://localhost:
 });
 
 redisConnection.on("error", (err) => {
-  console.warn("[Redis/CrawlWorker] Connection error (expected during build):", err.message);
+  logger.warn({ err }, "[Redis/CrawlWorker] Connection error (expected during build)");
 });
 
 // Crawl Worker
@@ -18,7 +20,14 @@ export const crawlWorker = new Worker(
   async (job) => {
     const { type, chatbotId, dataSourceId, userId } = job.data;
 
-    console.log(`[CrawlWorker] Processing job ${job.id} - ${type}`);
+    logger.info({ jobId: job.id, type, chatbotId }, "[CrawlWorker] Processing job");
+
+    // Worker Memory Protection
+    const freeMemGB = os.freemem() / (1024 * 1024 * 1024);
+    if (freeMemGB < 0.5) { // less than 500MB free
+      logger.warn({ freeMemGB }, "[CrawlWorker] Low memory detected. Throwing to retry later.");
+      throw new Error("Worker OOM protection: Low memory, retrying later.");
+    }
 
     try {
       // Update data source to processing state
@@ -79,7 +88,7 @@ export const crawlWorker = new Worker(
           throw new Error(`Unknown crawl type: ${type}`);
       }
 
-      console.log(`[CrawlWorker] Job ${job.id} completed successfully`);
+      logger.info({ jobId: job.id }, "[CrawlWorker] Job completed successfully");
       
       // Check if all data sources are done, then mark chatbot as ACTIVE
       const pendingSources = await prisma.dataSource.count({
@@ -98,7 +107,7 @@ export const crawlWorker = new Worker(
 
       return result;
     } catch (error) {
-      console.error(`[CrawlWorker] Job ${job.id} failed:`, error);
+      logger.error({ jobId: job.id, err: error }, "[CrawlWorker] Job failed");
       
       // Mark data source as ERROR so UI shows the failure
       if (dataSourceId) {
@@ -111,7 +120,7 @@ export const crawlWorker = new Worker(
             },
           });
         } catch (updateErr) {
-          console.error("[CrawlWorker] Failed to update error status:", updateErr);
+          logger.error({ err: updateErr }, "[CrawlWorker] Failed to update error status");
         }
       }
       
@@ -143,15 +152,15 @@ export const crawlWorker = new Worker(
 
 // Event listeners
 crawlWorker.on("completed", (job) => {
-  console.log(`[CrawlWorker] Job ${job.id} completed`);
+  logger.info({ jobId: job.id }, "[CrawlWorker] Job completed");
 });
 
 crawlWorker.on("failed", (job, err) => {
-  console.error(`[CrawlWorker] Job ${job?.id} failed:`, err.message);
+  logger.error({ jobId: job?.id, err }, "[CrawlWorker] Job failed");
 });
 
 crawlWorker.on("progress", (job, progress) => {
-  console.log(`[CrawlWorker] Job ${job.id} progress: ${progress}%`);
+  logger.debug({ jobId: job.id, progress }, "[CrawlWorker] Job progress");
 });
 
-console.log("[CrawlWorker] Started");
+logger.info("[CrawlWorker] Started");

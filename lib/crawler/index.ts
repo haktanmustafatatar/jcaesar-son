@@ -204,55 +204,60 @@ async function scrapeSpecificUrls({
     console.warn("[Crawler] Firecrawl not available, will use HTTP fallback for all URLs");
   }
 
-  for (const url of urls) {
-    try {
-      console.log(`[Crawler] Scraping specific URL: ${url}`);
-      let content = "";
-      let title = "Untitled Page";
+  const BATCH_SIZE = 5;
+  for (let i = 0; i < urls.length; i += BATCH_SIZE) {
+    const batchUrls = urls.slice(i, i + BATCH_SIZE);
 
-      // Try Firecrawl scrapeUrl first
-      if (firecrawl) {
-        try {
-          const result = await firecrawl.scrapeUrl(url, {
-            formats: ["markdown"],
-            onlyMainContent: true,
-          });
-          if (result.success && result.data) {
-            content = result.data.markdown || result.data.content || "";
-            title = result.data.metadata?.title || title;
+    await Promise.all(batchUrls.map(async (url) => {
+      try {
+        console.log(`[Crawler] Scraping specific URL: ${url}`);
+        let content = "";
+        let title = "Untitled Page";
+
+        // Try Firecrawl scrapeUrl first
+        if (firecrawl) {
+          try {
+            const result = await firecrawl.scrapeUrl(url, {
+              formats: ["markdown"],
+              onlyMainContent: true,
+            });
+            if (result.success && result.data) {
+              content = result.data.markdown || result.data.content || "";
+              title = result.data.metadata?.title || title;
+            }
+          } catch (scrapeErr) {
+            console.warn(`[Crawler] Firecrawl scrapeUrl failed for ${url}, trying HTTP fallback`);
           }
-        } catch (scrapeErr) {
-          console.warn(`[Crawler] Firecrawl scrapeUrl failed for ${url}, trying HTTP fallback`);
         }
-      }
 
-      // HTTP+JSDOM fallback
-      if (!content || content.trim().length < 10) {
-        const scraped = await httpScrape(url);
-        if (scraped) {
-          content = scraped.markdown;
-          title = scraped.title;
+        // HTTP+JSDOM fallback
+        if (!content || content.trim().length < 100) {
+          const scraped = await httpScrape(url);
+          if (scraped) {
+            content = scraped.markdown;
+            title = scraped.title;
+          }
         }
-      }
 
-      if (content && content.trim().length >= 10) {
-        await NeuralIndexer.indexContent({
-          content,
-          title,
-          url,
-          metadata: { sourceURL: url },
-          chatbotId,
-          dataSourceId,
-          knowledgeSourceId,
-        });
-        indexedCount++;
-      } else {
-        console.warn(`[Crawler] No usable content from ${url}`);
+        if (content && content.trim().length >= 100) {
+          await NeuralIndexer.indexContent({
+            content,
+            title,
+            url,
+            metadata: { sourceURL: url },
+            chatbotId,
+            dataSourceId,
+            knowledgeSourceId,
+          });
+          indexedCount++;
+        } else {
+          console.warn(`[Crawler] No usable content from ${url}`);
+        }
+      } catch (err) {
+        console.error(`[Crawler] Failed to scrape ${url}:`, err);
+        // Continue with next URL — don't fail the entire job
       }
-    } catch (err) {
-      console.error(`[Crawler] Failed to scrape ${url}:`, err);
-      // Continue with next URL — don't fail the entire job
-    }
+    }));
   }
 
   await NeuralIndexer.updateStatus(
@@ -268,58 +273,68 @@ async function scrapeSpecificUrls({
 /**
  * HTTP + JSDOM based page scraper (no Playwright needed — server-safe)
  */
-async function httpScrape(url: string): Promise<{ markdown: string; title: string } | null> {
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000);
+async function httpScrape(url: string, retries = 2): Promise<{ markdown: string; title: string } | null> {
+  for (let i = 0; i <= retries; i++) {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 25000); // Timeout optimization
 
-    const response = await fetch(url, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (compatible; JCaesarBot/1.0; +https://jcaesars.com)",
-        "Accept": "text/html,application/xhtml+xml",
-      },
-      signal: controller.signal,
-    });
-    clearTimeout(timeout);
+      const response = await fetch(url, {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (compatible; JCaesarBot/1.0; +https://jcaesars.com)",
+          "Accept": "text/html,application/xhtml+xml",
+        },
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
 
-    if (!response.ok) return null;
-
-    const html = await response.text();
-    const dom = new JSDOM(html, { url });
-    const reader = new Readability(dom.window.document);
-    const article = reader.parse();
-
-    let content = "";
-    let title = "Untitled";
-
-    if (article && article.content) {
-      content = turndownService.turndown(article.content);
-      title = article.title || "Untitled";
-    } else {
-      // Fallback for non-article pages (e-commerce, product pages)
-      const document = dom.window.document;
-      title = document.title || "Untitled";
-      
-      // Remove scripts, styles, nav, footer to clean up
-      const elementsToRemove = document.querySelectorAll('script, style, nav, footer, header, noscript, iframe, svg');
-      elementsToRemove.forEach(el => el.remove());
-      
-      // Get remaining body content
-      if (document.body) {
-         content = turndownService.turndown(document.body.innerHTML);
+      if (!response.ok) {
+         if (response.status === 429 && i < retries) {
+             await new Promise(r => setTimeout(r, 2000 * (i + 1)));
+             continue;
+         }
+         return null;
       }
+
+      const html = await response.text();
+      const dom = new JSDOM(html, { url });
+      const reader = new Readability(dom.window.document);
+      const article = reader.parse();
+
+      let content = "";
+      let title = "Untitled";
+
+      if (article && article.content) {
+        content = turndownService.turndown(article.content);
+        title = article.title || "Untitled";
+      } else {
+        const document = dom.window.document;
+        title = document.title || "Untitled";
+        
+        const elementsToRemove = document.querySelectorAll('script, style, nav, footer, header, noscript, iframe, svg');
+        elementsToRemove.forEach(el => el.remove());
+        
+        if (document.body) {
+           content = turndownService.turndown(document.body.innerHTML);
+        }
+      }
+
+      // Thin content filtering
+      if (!content || content.trim().length < 100) return null;
+
+      return {
+        markdown: content,
+        title: title,
+      };
+    } catch (err) {
+      if (i === retries) {
+        console.warn(`[httpScrape] Failed for ${url} after ${retries} retries:`, err);
+        return null;
+      }
+      await new Promise(r => setTimeout(r, 1000 * (i + 1))); // Exponential backoff retry
     }
-
-    if (!content || content.trim().length < 10) return null;
-
-    return {
-      markdown: content,
-      title: title,
-    };
-  } catch (err) {
-    console.warn(`[httpScrape] Failed for ${url}:`, err);
-    return null;
   }
+  return null;
 }
 
 /**
@@ -402,7 +417,7 @@ export async function processDocument({
       dataSourceId || knowledgeSourceId!, 
       dataSourceId ? "data" : "knowledge", 
       "COMPLETED",
-      { fileSize: content.length, lastCrawledAt: new Date() }
+      { fileSize: Buffer.byteLength(content, 'utf8'), lastCrawledAt: new Date() }
     );
 
     return { success: true, chunks: indexedChunks };
@@ -435,60 +450,66 @@ async function internalCrawl(startUrl: string, maxDepth: number, limit: number) 
     return pages;
   }
 
+  const CONCURRENCY = 5;
+
   while (queue.length > 0 && pages.length < limit) {
-    const { url, depth } = queue.shift()!;
-    if (visited.has(url)) continue;
-    visited.add(url);
+    const batchSize = Math.min(CONCURRENCY, limit - pages.length, queue.length);
+    const currentBatch = queue.splice(0, batchSize);
 
-    console.log(`[InternalCrawl] Scraping ${url} (depth ${depth})`);
-    
-    const scraped = await httpScrape(url);
-    if (scraped) {
-      pages.push({
-        markdown: scraped.markdown,
-        metadata: {
-          title: scraped.title,
-          sourceURL: url,
-        }
-      });
+    await Promise.all(currentBatch.map(async ({ url, depth }) => {
+      if (visited.has(url)) return;
+      visited.add(url);
 
-      // Link discovery for deeper crawling
-      if (depth < maxDepth) {
-        try {
-          const controller = new AbortController();
-          const timeout = setTimeout(() => controller.abort(), 10000);
-          const response = await fetch(url, {
-            headers: { "User-Agent": "Mozilla/5.0 (compatible; JCaesarBot/1.0)" },
-            signal: controller.signal,
-          });
-          clearTimeout(timeout);
-
-          const html = await response.text();
-          const dom = new JSDOM(html, { url });
-          const links = Array.from(dom.window.document.querySelectorAll("a"))
-            .map(a => {
-              try { return new URL((a as HTMLAnchorElement).href, url).href; }
-              catch { return null; }
-            })
-            .filter((href): href is string => {
-              if (!href) return false;
-              try {
-                const u = new URL(href);
-                return u.origin === baseUrl && !u.pathname.match(/\.(pdf|jpg|jpeg|png|gif|zip|css|js)$/i);
-              } catch { return false; }
-            });
-          
-          for (const link of links) {
-            const cleanLink = link.split("#")[0].split("?")[0];
-            if (!visited.has(cleanLink)) {
-              queue.push({ url: cleanLink, depth: depth + 1 });
-            }
+      console.log(`[InternalCrawl] Scraping ${url} (depth ${depth})`);
+      
+      const scraped = await httpScrape(url);
+      if (scraped) {
+        pages.push({
+          markdown: scraped.markdown,
+          metadata: {
+            title: scraped.title,
+            sourceURL: url,
           }
-        } catch {
-          // Link discovery failed, continue with existing queue
+        });
+
+        // Link discovery for deeper crawling
+        if (depth < maxDepth) {
+          try {
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 15000);
+            const response = await fetch(url, {
+              headers: { "User-Agent": "Mozilla/5.0 (compatible; JCaesarBot/1.0)" },
+              signal: controller.signal,
+            });
+            clearTimeout(timeout);
+
+            const html = await response.text();
+            const dom = new JSDOM(html, { url });
+            const links = Array.from(dom.window.document.querySelectorAll("a"))
+              .map(a => {
+                try { return new URL((a as HTMLAnchorElement).href, url).href; }
+                catch { return null; }
+              })
+              .filter((href): href is string => {
+                if (!href) return false;
+                try {
+                  const u = new URL(href);
+                  return u.origin === baseUrl && !u.pathname.match(/\.(pdf|jpg|jpeg|png|gif|zip|css|js)$/i);
+                } catch { return false; }
+              });
+            
+            for (const link of links) {
+              const cleanLink = link.split("#")[0].split("?")[0];
+              if (!visited.has(cleanLink)) {
+                queue.push({ url: cleanLink, depth: depth + 1 });
+              }
+            }
+          } catch {
+            // Link discovery failed, continue with existing queue
+          }
         }
       }
-    }
+    }));
   }
 
   return pages;
