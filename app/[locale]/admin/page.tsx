@@ -76,9 +76,9 @@ export default function AdminDashboard() {
     );
   }
 
-  const filteredUsers = stats?.topUsers.filter((u: any) => 
-    u.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    u.email.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredUsers = (stats?.topUsers || []).filter((u: any) => 
+    u.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    u.email?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -95,12 +95,12 @@ export default function AdminDashboard() {
             <h1 className="text-4xl font-black tracking-tight text-zinc-900">Platform Control</h1>
             <p className="text-zinc-500 font-medium mt-1">Global usage monitoring and user management</p>
           </div>
-          <div className="flex items-center gap-3">
-             <Button variant="outline" className="rounded-2xl h-12 px-6 font-bold bg-white border-zinc-200 hover:bg-zinc-50">
+          <div className="flex flex-wrap items-center gap-3">
+             <Button variant="outline" className="rounded-2xl h-12 px-6 font-bold bg-white border-zinc-200 hover:bg-zinc-50 flex-1 md:flex-none">
                <Calendar className="w-4 h-4 mr-2" />
                Last 30 Days
              </Button>
-             <Button className="rounded-2xl h-12 px-8 font-black bg-zinc-950 hover:bg-zinc-900 text-white shadow-xl shadow-black/10">
+             <Button className="rounded-2xl h-12 px-8 font-black bg-zinc-950 hover:bg-zinc-900 text-white shadow-xl shadow-black/10 flex-1 md:flex-none">
                Generate Report
              </Button>
           </div>
@@ -158,8 +158,8 @@ export default function AdminDashboard() {
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="p-0">
-              <Table>
+            <CardContent className="p-0 overflow-x-auto">
+              <Table className="min-w-[800px] lg:min-w-full">
                 <TableHeader className="bg-zinc-50/50">
                   <TableRow className="border-none hover:bg-transparent">
                     <TableHead className="py-5 px-8 text-[10px] font-black uppercase tracking-widest text-zinc-400">User</TableHead>

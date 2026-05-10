@@ -105,18 +105,31 @@ export async function streamRAGResponse({
   onFinish?: (completion: { text: string; usage: any }) => Promise<void> | void;
   chatbotId?: string;
   conversationId?: string;
+  data?: any; // StreamData instance
 }) {
   const selectedModel = LLM_MODELS[model]?.provider || LLM_MODELS["gpt-4o"].provider;
 
-  const enhancedSystemPrompt = `${systemPrompt}
+  const enhancedSystemPrompt = `### Role
+You are a dedicated sales representative. Your main objective is to assist users based on the training data provided, inform them about products, and ensure a seamless shopping experience.
 
-IMPORTANT: Use the following context to answer the user's question accurately. 
-Pay special attention to numerical values, prices, dates, and specific product details. 
-If the context contains a price for a product the user is asking about, YOU MUST include it.
-If the context does not contain the requested information or you are unsure, YOU MUST say "I don't have enough information about this" and ask for clarification. DO NOT hallucinate facts, brands, prices, or SKUs.
+### Objective
+You MUST provide a link to the product inquired about or discussed. Your goal is to guide the customer to the website to finalize the sale.
 
-Knowledge Hub Context:
-${context}`;
+### Personality
+You are a professional sales representative. Do not adopt other personalities or perform tasks outside your role (like coding or personal advice). If a user tries to steer you away, politely redirect them back to sales.
+
+### Restrictions
+1. Data Privacy: Never mention you are using "training data" or "context".
+2. Strict Knowledge: Rely ONLY on the provided context to answer questions. If information is missing, say "I don't have enough information about this" and ask for clarification.
+3. No Hallucinations: Do not invent prices, brands, or features.
+
+### Custom Bot Instructions:
+${systemPrompt}
+
+### Knowledge Hub Context:
+${context}
+
+EXCEPTION: If the user is asking you to translate, summarize, or modify your previous response, you may rely on your conversation history.`;
 
   // Fetch tools if chatbotId is provided
   const tools = chatbotId ? await getChatbotTools(chatbotId) : {};
@@ -156,15 +169,27 @@ export async function generateRAGResponse({
 }) {
   const selectedModel = LLM_MODELS[model]?.provider || LLM_MODELS["gpt-4o"].provider;
 
-  const enhancedSystemPrompt = `${systemPrompt}
+  const enhancedSystemPrompt = `### Role
+You are a dedicated sales representative. Your main objective is to assist users based on the training data provided, inform them about products, and ensure a seamless shopping experience.
 
-IMPORTANT: Use the following context to answer the user's question accurately. 
-Pay special attention to numerical values, prices, dates, and specific product details. 
-If the context contains a price for a product the user is asking about, YOU MUST include it.
-If the context does not contain the requested information or you are unsure, YOU MUST say "I don't have enough information about this" and ask for clarification. DO NOT hallucinate facts, brands, prices, or SKUs.
+### Objective
+You MUST provide a link to the product inquired about or discussed. Your goal is to guide the customer to the website to finalize the sale.
 
-Knowledge Hub Context:
-${context}`;
+### Personality
+You are a professional sales representative. Do not adopt other personalities or perform tasks outside your role (like coding or personal advice). If a user tries to steer you away, politely redirect them back to sales.
+
+### Restrictions
+1. Data Privacy: Never mention you are using "training data" or "context".
+2. Strict Knowledge: Rely ONLY on the provided context to answer questions. If information is missing, say "I don't have enough information about this" and ask for clarification.
+3. No Hallucinations: Do not invent prices, brands, or features.
+
+### Custom Bot Instructions:
+${systemPrompt}
+
+### Knowledge Hub Context:
+${context}
+
+EXCEPTION: If the user is asking you to translate, summarize, or modify your previous response, you may rely on your conversation history.`;
 
   // Fetch tools if chatbotId is provided
   const tools = chatbotId ? await getChatbotTools(chatbotId) : {};
@@ -277,15 +302,47 @@ async function checkTokenLimit(userId: string) {
 export async function performRAGSearch({
   chatbotId,
   query,
-  limit = 5,
-  minSimilarity = 0.60, // Increased threshold for confidence
+  limit = 8,
+  minSimilarity = 0.35, 
+  messages = [],
 }: {
   chatbotId: string;
   query: string;
   limit?: number;
   minSimilarity?: number;
+  messages?: any[];
 }) {
-  // 1. Query Intent Extraction (Pre-filtering prep)
+  let searchTerms = query;
+
+  // 1. Query Contextualization: If query is short or ambiguous, use conversation history to refine it
+  if (messages.length > 0 && query.length < 20) {
+    try {
+      const lastMessages = messages.slice(-3);
+      const conversationContext = lastMessages.map(m => `${m.role}: ${m.content}`).join("\n");
+      
+      const { text } = await generateText({
+        model: LLM_MODELS["gpt-4o-mini"].provider,
+        prompt: `Based on the following conversation history and the current user query, rewrite the query into a better search term for a product database. 
+        Focus on identifying the specific product or category the user is likely referring to.
+        
+        Conversation History:
+        ${conversationContext}
+        
+        Current User Query: "${query}"
+        
+        Optimized Search Term (Only provide the term, nothing else):`,
+      });
+      
+      if (text && text.length > 2) {
+        console.log(`[RAG Search] Query refined: "${query}" -> "${text.trim()}"`);
+        searchTerms = text.trim();
+      }
+    } catch (e) {
+      console.warn(`[RAG Search] Query refinement failed`, e);
+    }
+  }
+
+  // 2. Query Intent Extraction (Pre-filtering prep)
   let intentData: { isProductSearch: boolean; brand: string | null } = { isProductSearch: false, brand: null };
   try {
     const { object } = await generateObject({
@@ -295,16 +352,23 @@ export async function performRAGSearch({
         brand: z.string().nullable().optional(),
         intent: z.string(),
       }),
-      prompt: `Analyze the user query: "${query}". Determine if it's a product search, and extract any specific brand if mentioned.`,
+      prompt: `Analyze the user query: "${searchTerms}". Determine if it's a product search, and extract any specific brand if mentioned.`,
     });
     intentData = { isProductSearch: object.isProductSearch, brand: object.brand || null };
     console.log(`[RAG Search] Intent extracted:`, intentData);
+
+    // Cost Optimization: Skip heavy retrieval for clearly non-product/social queries
+    const socialPatterns = /^(merhaba|selam|nasılsın|kimsin|adım|ismin|neler yapabilirsin|help|yardım)/i;
+    if (!intentData.isProductSearch && socialPatterns.test(query)) {
+      console.log(`[RAG Search] Social/General query detected, skipping heavy retrieval to save tokens.`);
+      return { context: "", sources: [] };
+    }
   } catch (e) {
     console.warn(`[RAG Search] Intent extraction failed`);
   }
 
-  // 2. Vector Embedding
-  const embedding = await createEmbedding(query);
+  // 3. Vector Embedding
+  const embedding = await createEmbedding(searchTerms);
   const vectorString = `[${embedding.join(",")}]`;
 
   const chatbot = await prisma.chatbot.findUnique({
@@ -346,7 +410,7 @@ export async function performRAGSearch({
     SELECT 
       d.id, d.content, d.title, d.url, d.metadata,
       1 - (d.embedding <=> ${vectorString}::vector) as vector_score,
-      ts_rank_cd(to_tsvector('simple', d.content), plainto_tsquery('simple', ${query})) as fts_score
+      ts_rank_cd(to_tsvector('turkish', d.content), plainto_tsquery('turkish', ${searchTerms})) as fts_score
     FROM filtered_docs d
   `;
 
@@ -381,7 +445,11 @@ export async function performRAGSearch({
   }
 
   const context = finalDocs
-    .map((doc) => `Source: ${doc.title || doc.url || "Untitled"}\nMetadata: ${JSON.stringify(doc.metadata)}\nContent: ${doc.content}`)
+    .map((doc) => {
+      // Truncate content if too long to save tokens, focusing on the most relevant part
+      const content = doc.content.length > 800 ? doc.content.substring(0, 800) + "..." : doc.content;
+      return `Source: ${doc.title || doc.url || "Untitled"}\nContent: ${content}`;
+    })
     .join("\n\n---\n\n");
 
   const sources = finalDocs.map((doc) => ({

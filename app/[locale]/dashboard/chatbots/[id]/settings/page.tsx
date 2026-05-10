@@ -30,7 +30,8 @@ import {
   Send,
   AlertTriangle,
   Database,
-  FileText
+  FileText,
+  Pencil
 } from "lucide-react";
 import { 
   Dialog, 
@@ -103,6 +104,7 @@ function SettingsPage() {
   const [metaSelectorOpen, setMetaSelectorOpen] = useState(false);
   const [metaSessionId, setMetaSessionId] = useState<string | null>(null);
   const [isDeletingKS, setIsDeletingKS] = useState<string | null>(null);
+  const [editMode, setEditMode] = useState(false);
 
 
   useEffect(() => {
@@ -722,40 +724,57 @@ function SettingsPage() {
                                 </td>
                                 <td className="px-6 py-4 text-right">
                                   <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <Button 
-                                      variant="ghost" 
-                                      size="icon" 
-                                      className="h-9 w-9 rounded-xl hover:bg-zinc-100 text-zinc-400"
-                                      title="View Pages"
-                                      onClick={async () => {
-                                        if (!id || !source.id) return;
-                                        setSelectedSource(source);
-                                        setUrlListDialogOpen(true);
-                                        setIsLoadingUrls(true);
-                                        try {
-                                          const controller = new AbortController();
-                                          const timeoutId = setTimeout(() => controller.abort(), 10000);
-                                          const res = await fetch(`/api/chatbots/${id}/data-sources/${source.id}/urls`, {
-                                            signal: controller.signal
-                                          });
-                                          clearTimeout(timeoutId);
-                                          if (res.ok) {
-                                            const data = await res.json();
-                                            setSourceUrls(data);
-                                          } else {
-                                            toast.error("Could not fetch page manifest");
+                                    {(source.type === 'TEXT' || source.type === 'QA' || source.type === 'QNA') ? (
+                                      <Button 
+                                        variant="ghost" 
+                                        size="icon" 
+                                        className="h-9 w-9 rounded-xl hover:bg-zinc-100 text-zinc-400"
+                                        title="Edit Content"
+                                        onClick={() => {
+                                          setSelectedSource(source);
+                                          setSourceDialogType(source.type === 'QNA' ? 'QA' : source.type);
+                                          setEditMode(true);
+                                          setSourceDialogOpen(true);
+                                        }}
+                                      >
+                                        <Pencil className="w-4 h-4" />
+                                      </Button>
+                                    ) : (
+                                      <Button 
+                                        variant="ghost" 
+                                        size="icon" 
+                                        className="h-9 w-9 rounded-xl hover:bg-zinc-100 text-zinc-400"
+                                        title="View Pages"
+                                        onClick={async () => {
+                                          if (!id || !source.id) return;
+                                          setSelectedSource(source);
+                                          setUrlListDialogOpen(true);
+                                          setIsLoadingUrls(true);
+                                          try {
+                                            const controller = new AbortController();
+                                            const timeoutId = setTimeout(() => controller.abort(), 10000);
+                                            const res = await fetch(`/api/chatbots/${id}/data-sources/${source.id}/urls`, {
+                                              signal: controller.signal
+                                            });
+                                            clearTimeout(timeoutId);
+                                            if (res.ok) {
+                                              const data = await res.json();
+                                              setSourceUrls(data);
+                                            } else {
+                                              toast.error("Could not fetch page manifest");
+                                              setSourceUrls([]);
+                                            }
+                                          } catch (err) {
+                                            console.error("Fetch error:", err);
                                             setSourceUrls([]);
+                                          } finally {
+                                            setIsLoadingUrls(false);
                                           }
-                                        } catch (err) {
-                                          console.error("Fetch error:", err);
-                                          setSourceUrls([]);
-                                        } finally {
-                                          setIsLoadingUrls(false);
-                                        }
-                                      }}
-                                    >
-                                      <List className="w-4 h-4" />
-                                    </Button>
+                                        }}
+                                      >
+                                        <List className="w-4 h-4" />
+                                      </Button>
+                                    )}
                                     <Button 
                                       variant="ghost" 
                                       size="icon" 
@@ -893,6 +912,7 @@ function SettingsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <Card className="rounded-[40px] border-2 border-zinc-100 shadow-xl shadow-black/5 hover:border-zinc-900 transition-all cursor-pointer group bg-white" onClick={() => {
                   setSourceDialogType("WEBSITE");
+                  setEditMode(false);
                   setSourceDialogOpen(true);
                 }}>
                   <CardContent className="p-10 flex flex-col items-center text-center gap-4">
@@ -908,6 +928,7 @@ function SettingsPage() {
 
                 <Card className="rounded-[40px] border-2 border-zinc-100 shadow-xl shadow-black/5 hover:border-zinc-950 transition-all cursor-pointer group bg-white" onClick={() => {
                    setSourceDialogType("FILE" as any);
+                   setEditMode(false);
                    setSourceDialogOpen(true);
                 }}>
                   <CardContent className="p-10 flex flex-col items-center text-center gap-4">
@@ -923,6 +944,7 @@ function SettingsPage() {
 
                 <Card className="rounded-[40px] border-2 border-zinc-100 shadow-xl shadow-black/5 hover:border-zinc-900 transition-all cursor-pointer group bg-white" onClick={() => {
                   setSourceDialogType("TEXT");
+                  setEditMode(false);
                   setSourceDialogOpen(true);
                 }}>
                   <CardContent className="p-10 flex flex-col items-center text-center gap-4">
@@ -938,6 +960,7 @@ function SettingsPage() {
 
                 <Card className="rounded-[40px] border-2 border-zinc-100 shadow-xl shadow-black/5 hover:border-zinc-950 transition-all cursor-pointer group bg-white" onClick={() => {
                    setSourceDialogType("QA" as any);
+                   setEditMode(false);
                    setSourceDialogOpen(true);
                 }}>
                   <CardContent className="p-10 flex flex-col items-center text-center gap-4">
@@ -958,6 +981,8 @@ function SettingsPage() {
                 type={sourceDialogType}
                 chatbotId={id}
                 onSuccess={() => fetchDataSources()}
+                editMode={editMode}
+                initialData={selectedSource}
               />
 
               <MetaSelector 

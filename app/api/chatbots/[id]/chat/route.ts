@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { StreamData } from "ai";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { performRAGSearch, streamRAGResponse, logTokenUsage, LLMModel } from "@/lib/ai";
@@ -15,12 +16,14 @@ export async function POST(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { messages } = await req.json();
+    const { messages: rawMessages } = await req.json();
     
-    if (!messages || !Array.isArray(messages) || messages.length === 0) {
+    if (!rawMessages || !Array.isArray(rawMessages) || rawMessages.length === 0) {
       return NextResponse.json({ error: "Messages are required" }, { status: 400 });
     }
 
+    // Cost Optimization: Only send last 6 messages for context
+    const messages = rawMessages.slice(-6);
     const lastMessage = messages[messages.length - 1];
     const message = lastMessage.content;
 
@@ -43,11 +46,14 @@ export async function POST(
     const { context } = await performRAGSearch({
       chatbotId,
       query: message,
-      limit: 5,
-      minSimilarity: 0.4,
+      messages: messages, // Pass conversation history for better context
+      limit: 8,
+      minSimilarity: 0.35,
     });
 
     // 3. Stream Response & Log Usage
+    const data = new StreamData();
+    
     const response = await streamRAGResponse({
       messages: messages,
       model: (chatbot.model as LLMModel) || "gpt-4o",
@@ -55,11 +61,17 @@ export async function POST(
       context: context || "No specific context found.",
       chatbotId,
       onFinish: async ({ text, usage }) => {
-        // Log Token Usage
+        // Log Token Usage for display
+        data.appendMessageAnnotation({
+          promptTokens: usage.promptTokens,
+          completionTokens: usage.completionTokens,
+        });
+        await data.close();
+
+        // Log Token Usage in DB
         await logTokenUsage({
           userId: chatbot.userId,
           chatbotId: chatbot.id,
-          // Do not pass a fake conversationId, it causes FK constraint violation
           model: (chatbot.model as LLMModel) || "gpt-4o",
           promptTokens: usage.promptTokens,
           completionTokens: usage.completionTokens,
@@ -67,7 +79,7 @@ export async function POST(
       }
     });
 
-    return response.toDataStreamResponse();
+    return response.toDataStreamResponse({ data });
   } catch (error) {
     console.error("Chat Error:", error);
     return NextResponse.json(

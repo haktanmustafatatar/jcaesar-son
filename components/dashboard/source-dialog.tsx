@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { 
   Dialog, 
   DialogContent, 
@@ -15,13 +15,14 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Globe, MessageSquare, Loader2, FileText, Type, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-
 interface SourceDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   type: "WEBSITE" | "TEXT" | "FILE" | "QA" | null;
   chatbotId: string;
   onSuccess: () => void;
+  editMode?: boolean;
+  initialData?: any;
 }
 
 export function SourceDialog({ 
@@ -29,7 +30,9 @@ export function SourceDialog({
   onOpenChange, 
   type, 
   chatbotId,
-  onSuccess 
+  onSuccess,
+  editMode,
+  initialData
 }: SourceDialogProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [url, setUrl] = useState("");
@@ -37,6 +40,22 @@ export function SourceDialog({
   const [name, setName] = useState("");
   const [qnaList, setQnaList] = useState([{ question: "", answer: "" }]);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+
+  useEffect(() => {
+    if (open && editMode && initialData) {
+      setName(initialData.name || "");
+      setUrl(initialData.url || "");
+      if (initialData.settings) {
+        setContent(initialData.settings.content || "");
+        setQnaList(initialData.settings.qnaList || [{ question: "", answer: "" }]);
+      }
+    } else if (open && !editMode) {
+      setName("");
+      setUrl("");
+      setContent("");
+      setQnaList([{ question: "", answer: "" }]);
+    }
+  }, [open, editMode, initialData]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,52 +71,57 @@ export function SourceDialog({
       } else if (type === "QA") {
         payload = { type, name: name || "Q&A Knowledge", qnaList: qnaList.filter(q => q.question.trim()) };
       } else if (type === "FILE") {
-        if (selectedFiles.length === 0) {
-          toast.error("Please select a file first");
+        if (!editMode) {
+          if (selectedFiles.length === 0) {
+            toast.error("Please select a file first");
+            setIsLoading(false);
+            return;
+          }
+
+          const formData = new FormData();
+          formData.append("file", selectedFiles[0]);
+          formData.append("chatbotId", chatbotId);
+
+          const res = await fetch("/api/upload", {
+            method: "POST",
+            body: formData,
+          });
+
+          if (res.ok) {
+            toast.success("File uploaded successfully");
+            onSuccess();
+            onOpenChange(false);
+            setSelectedFiles([]);
+          } else {
+            const error = await res.json();
+            toast.error(error.error || "Failed to upload file");
+          }
           setIsLoading(false);
           return;
-        }
-
-        const formData = new FormData();
-        formData.append("file", selectedFiles[0]);
-        formData.append("chatbotId", chatbotId);
-
-        const res = await fetch("/api/upload", {
-          method: "POST",
-          body: formData,
-        });
-
-        if (res.ok) {
-          toast.success("File uploaded successfully");
-          onSuccess();
-          onOpenChange(false);
-          setSelectedFiles([]);
         } else {
-          const error = await res.json();
-          toast.error(error.error || "Failed to upload file");
+           // For file sources in edit mode, maybe just update name?
+           payload = { type, name: name || initialData.name };
         }
-        setIsLoading(false);
-        return;
       }
 
-      const res = await fetch(`/api/chatbots/${chatbotId}/data-sources`, {
-        method: "POST",
+      const method = editMode ? "PATCH" : "POST";
+      const endpoint = editMode 
+        ? `/api/chatbots/${chatbotId}/data-sources/${initialData.id}` 
+        : `/api/chatbots/${chatbotId}/data-sources`;
+
+      const res = await fetch(endpoint, {
+        method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
       if (res.ok) {
-        toast.success(`${type} source added successfully`);
+        toast.success(`${type} source ${editMode ? 'updated' : 'added'} successfully`);
         onSuccess();
         onOpenChange(false);
-        // Reset
-        setUrl("");
-        setContent("");
-        setName("");
-        setQnaList([{ question: "", answer: "" }]);
       } else {
         const error = await res.json();
-        toast.error(error.error || "Failed to add source");
+        toast.error(error.error || `Failed to ${editMode ? 'update' : 'add'} source`);
       }
     } catch (error) {
       toast.error("An unexpected error occurred");
@@ -107,12 +131,13 @@ export function SourceDialog({
   };
 
   const getTitle = () => {
+    const prefix = editMode ? "Edit" : "Add";
     switch (type) {
-      case "WEBSITE": return "Add Website Source";
-      case "TEXT": return "Add Text Source";
-      case "FILE": return "Upload Documents";
-      case "QA": return "Add Q&A Knowledge";
-      default: return "Add Knowledge Source";
+      case "WEBSITE": return `${prefix} Website Source`;
+      case "TEXT": return `${prefix} Text Source`;
+      case "FILE": return `${prefix} Documents`;
+      case "QA": return `${prefix} Q&A Knowledge`;
+      default: return `${prefix} Knowledge Source`;
     }
   };
 
@@ -284,7 +309,7 @@ export function SourceDialog({
               className="bg-zinc-950 hover:bg-zinc-900 text-white rounded-2xl h-14 px-10 font-bold shadow-xl shadow-black/10 transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
             >
               {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Save Intelligence Source
+              {editMode ? "Update Knowledge Source" : "Save Intelligence Source"}
             </Button>
           </DialogFooter>
         </form>

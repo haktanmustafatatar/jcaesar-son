@@ -186,6 +186,11 @@ export default function ChatbotDetailPage() {
                       }`}>
                         {message.content}
                       </div>
+                      {message.annotations && message.annotations.length > 0 && (
+                         <div className={`text-[10px] font-bold text-zinc-400 uppercase tracking-widest ${message.role === "user" ? "text-right" : "text-left"}`}>
+                           Prompt: {message.annotations[0].promptTokens || 0} | Cevap: {message.annotations[0].completionTokens || 0}
+                         </div>
+                      )}
                       <span className={`text-[10px] font-bold text-zinc-300 uppercase tracking-widest block ${message.role === "user" ? "text-right" : ""}`}>
                         {message.createdAt ? new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ""}
                       </span>

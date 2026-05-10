@@ -93,6 +93,7 @@ export async function POST(
         fileType: fileType || null,
         fileSize: fileSize || null,
         status: "PENDING",
+        settings: type === "TEXT" ? { content } : type === "QA" ? { qnaList } : null,
       },
     });
 

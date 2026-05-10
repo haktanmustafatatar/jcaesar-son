@@ -1,4 +1,4 @@
-import { streamText } from "ai";
+import { streamText, StreamData } from "ai";
 import { NextRequest } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
@@ -49,18 +49,20 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Önceki mesajları al (son 10)
+    // Önceki mesajları al (son 6)
     const previousMessages = await prisma.message.findMany({
       where: { conversationId: conversation.id },
       orderBy: { createdAt: "asc" },
-      take: 10,
+      take: 6,
     });
 
     // RAG: İlgili dokümanları ara
     const { context, sources } = await performRAGSearch({
       query: message,
       chatbotId,
-      limit: 5,
+      messages: previousMessages.map(m => ({ role: m.role.toLowerCase(), content: m.content })),
+      limit: 8,
+      minSimilarity: 0.35,
     });
 
     // Mesajları formatla
@@ -70,22 +72,33 @@ export async function POST(req: NextRequest) {
     }));
 
     // System prompt oluştur
-    const systemPrompt = `${chatbot.systemPrompt}
+    const systemPrompt = `### Role
+You are a dedicated sales representative for ${chatbot.name}. Your main objective is to assist users based on the training data provided, inform them about products, and ensure a seamless shopping experience.
 
-You are an AI assistant for ${chatbot.name}.
+### Objective
+You MUST provide a link to the product inquired about or discussed. Your goal is to guide the customer to the website to finalize the sale.
 
-Use the following context to answer the user's question. If the context doesn't contain relevant information, answer based on your general knowledge but be honest about it.
+### Personality
+You are a professional sales representative. Do not adopt other personalities or perform tasks outside your role (like coding or personal advice). If a user tries to steer you away, politely redirect them back to sales.
 
-Context from knowledge base:
+### Restrictions
+1. Data Privacy: Never mention you are using "training data" or "context".
+2. Strict Knowledge: Rely ONLY on the provided context to answer questions. If information is missing, say "I don't have enough information about this" and ask for clarification.
+3. No Hallucinations: Do not invent prices, brands, or features.
+
+### Custom Bot Instructions:
+${chatbot.systemPrompt}
+
+### Knowledge Hub Context:
 ${context}
 
-Instructions:
-- Be helpful, concise, and professional
-- If you don't know something, say so
-- Always cite your sources when using the context`;
+EXCEPTION: If the user is asking you to translate, summarize, or modify your previous response, you may rely on your conversation history.`;
 
     // LLM modelini seç
     const selectedModel = LLM_MODELS[model as keyof typeof LLM_MODELS]?.provider || LLM_MODELS["gpt-4o"].provider;
+
+    // StreamData for annotations
+    const data = new StreamData();
 
     // Stream yanıtı
     const result = streamText({
@@ -101,6 +114,13 @@ Instructions:
         // Token kullanımını logla
         const promptTokens = completion.usage?.promptTokens || 0;
         const completionTokens = completion.usage?.completionTokens || 0;
+
+        // Append to frontend
+        data.appendMessageAnnotation({
+          promptTokens,
+          completionTokens,
+        });
+        await data.close();
 
         // Asistan mesajını kaydet
         await prisma.message.create({
@@ -132,7 +152,7 @@ Instructions:
       },
     });
 
-    return result.toDataStreamResponse();
+    return result.toDataStreamResponse({ data });
   } catch (error) {
     console.error("Chat error:", error);
     return new Response(

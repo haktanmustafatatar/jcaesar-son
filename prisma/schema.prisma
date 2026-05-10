@@ -148,6 +148,7 @@ model DataSource {
   pagesCount    Int              @default(0)
   crawlSchedule String?
   lastCrawledAt DateTime?
+  settings      Json?
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt
   chatbot       Chatbot          @relation(fields: [chatbotId], references: [id], onDelete: Cascade)
