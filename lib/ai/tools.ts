@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { tool } from "ai";
-import { searchShopifyProducts, ShopifyConfig } from "../integrations/shopify";
+import { searchShopifyProducts, getShopifyOrdersByEmail, ShopifyConfig } from "../integrations/shopify";
 import { searchWooProducts, WooCommerceConfig } from "../integrations/woocommerce";
 import { createCalendarEvent, GoogleCalendarConfig } from "../integrations/google-calendar";
 
@@ -30,6 +30,17 @@ export async function getChatbotTools(chatbotId: string, conversationId?: string
       execute: async ({ query }) => {
         const products = await searchShopifyProducts(config, query);
         return { success: true, count: products.length, products };
+      },
+    });
+    
+    tools.get_shopify_order_status = tool({
+      description: "Get the latest orders and their status for a customer using their email address. Useful for 'Where is my order?' questions.",
+      parameters: z.object({
+        email: z.string().describe("The customer's email address"),
+      }),
+      execute: async ({ email }) => {
+        const orders = await getShopifyOrdersByEmail(config, email);
+        return { success: true, count: orders.length, orders };
       },
     });
   }

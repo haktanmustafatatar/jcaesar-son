@@ -2,7 +2,7 @@ import { streamText, StreamData } from "ai";
 import { NextRequest } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
-import { LLM_MODELS, performRAGSearch } from "@/lib/ai";
+import { LLM_MODELS, performRAGSearch, streamRAGResponse } from "@/lib/ai";
 import { addTokenUsageJob } from "@/lib/queue";
 
 export async function POST(req: NextRequest) {
@@ -71,45 +71,20 @@ export async function POST(req: NextRequest) {
       content: m.content,
     }));
 
-    // System prompt oluştur
-    const systemPrompt = `### Role
-You are a dedicated sales representative for ${chatbot.name}. Your main objective is to assist users based on the training data provided, inform them about products, and ensure a seamless shopping experience.
-
-### Objective
-You MUST provide a link to the product inquired about or discussed. Your goal is to guide the customer to the website to finalize the sale.
-
-### Personality
-You are a professional sales representative. Do not adopt other personalities or perform tasks outside your role (like coding or personal advice). If a user tries to steer you away, politely redirect them back to sales.
-
-### Restrictions
-1. Data Privacy: Never mention you are using "training data" or "context".
-2. Strict Knowledge: Rely ONLY on the provided context to answer questions. If information is missing, say "I don't have enough information about this" and ask for clarification.
-3. No Hallucinations: Do not invent prices, brands, or features.
-
-### Custom Bot Instructions:
-${chatbot.systemPrompt}
-
-### Knowledge Hub Context:
-${context}
-
-EXCEPTION: If the user is asking you to translate, summarize, or modify your previous response, you may rely on your conversation history.`;
-
-    // LLM modelini seç
-    const selectedModel = LLM_MODELS[model as keyof typeof LLM_MODELS]?.provider || LLM_MODELS["gpt-4o"].provider;
-
     // StreamData for annotations
     const data = new StreamData();
 
     // Stream yanıtı
-    const result = streamText({
-      model: selectedModel,
-      messages: [
-        { role: "system", content: systemPrompt },
-        ...messages,
-        { role: "user", content: message },
-      ],
+    const result = await streamRAGResponse({
+      messages: messages,
+      model: model as any,
+      systemPrompt: chatbot.systemPrompt,
+      context: context || "No specific context found.",
+      chatbotId,
+      conversationId: conversation.id,
       temperature: chatbot.temperature,
       maxTokens: chatbot.maxTokens,
+      data,
       onFinish: async (completion) => {
         // Token kullanımını logla
         const promptTokens = completion.usage?.promptTokens || 0;

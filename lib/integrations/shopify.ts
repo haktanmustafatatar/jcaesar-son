@@ -69,3 +69,35 @@ export async function getShopifyInventory(config: ShopifyConfig, variantId: stri
     return null;
   }
 }
+export async function getShopifyOrdersByEmail(config: ShopifyConfig, email: string) {
+  try {
+    const { shopDomain, accessToken } = config;
+    const url = `https://${shopDomain}/admin/api/2024-04/orders.json?email=${encodeURIComponent(email)}&status=any&limit=5`;
+    
+    const response = await fetch(url, {
+      headers: {
+        "X-Shopify-Access-Token": accessToken,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Shopify API error: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data.orders.map((o: any) => ({
+      id: o.id,
+      order_number: o.name,
+      created_at: o.created_at,
+      financial_status: o.financial_status,
+      fulfillment_status: o.fulfillment_status || "unfulfilled",
+      total_price: o.total_price,
+      order_status_url: o.order_status_url,
+      customer_name: o.customer ? `${o.customer.first_name} ${o.customer.last_name}` : "N/A"
+    }));
+  } catch (error) {
+    console.error("[ShopifyIntegration] Order fetch failed:", error);
+    return [];
+  }
+}

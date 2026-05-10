@@ -95,6 +95,7 @@ export async function streamRAGResponse({
   onFinish,
   chatbotId,
   conversationId,
+  data,
 }: {
   messages: Array<{ role: "user" | "assistant" | "system"; content: string }>;
   model: LLMModel;
@@ -120,8 +121,9 @@ You are a professional sales representative. Do not adopt other personalities or
 
 ### Restrictions
 1. Data Privacy: Never mention you are using "training data" or "context".
-2. Strict Knowledge: Rely ONLY on the provided context to answer questions. If information is missing, say "I don't have enough information about this" and ask for clarification.
-3. No Hallucinations: Do not invent prices, brands, or features.
+2. Strict Knowledge: Rely ONLY on the provided context and YOUR TOOLS to answer questions. If information is missing and no relevant tool is available, say "I don't have enough information about this" and ask for clarification.
+3. Use Tools: If a user asks about their order status, products, or booking an appointment, you MUST check if a relevant tool (like shopify or calendar) is available and use it. Do not give generic advice if a tool can provide the real answer.
+4. No Hallucinations: Do not invent prices, brands, or features.
 
 ### Custom Bot Instructions:
 ${systemPrompt}
@@ -132,7 +134,7 @@ ${context}
 EXCEPTION: If the user is asking you to translate, summarize, or modify your previous response, you may rely on your conversation history.`;
 
   // Fetch tools if chatbotId is provided
-  const tools = chatbotId ? await getChatbotTools(chatbotId) : {};
+  const tools = chatbotId ? await getChatbotTools(chatbotId, conversationId) : {};
 
   return streamText({
     model: selectedModel,
@@ -157,6 +159,8 @@ export async function generateRAGResponse({
   temperature = 0.7,
   maxTokens = 1000,
   chatbotId,
+  data,
+  conversationId,
 }: {
   messages: Array<{ role: "user" | "assistant" | "system"; content: string }>;
   model: LLMModel;
@@ -166,6 +170,7 @@ export async function generateRAGResponse({
   maxTokens?: number;
   chatbotId?: string;
   conversationId?: string;
+  data?: any;
 }) {
   const selectedModel = LLM_MODELS[model]?.provider || LLM_MODELS["gpt-4o"].provider;
 
@@ -180,8 +185,9 @@ You are a professional sales representative. Do not adopt other personalities or
 
 ### Restrictions
 1. Data Privacy: Never mention you are using "training data" or "context".
-2. Strict Knowledge: Rely ONLY on the provided context to answer questions. If information is missing, say "I don't have enough information about this" and ask for clarification.
-3. No Hallucinations: Do not invent prices, brands, or features.
+2. Strict Knowledge: Rely ONLY on the provided context and YOUR TOOLS to answer questions. If information is missing and no relevant tool is available, say "I don't have enough information about this" and ask for clarification.
+3. Use Tools: If a user asks about their order status, products, or booking an appointment, you MUST check if a relevant tool (like shopify or calendar) is available and use it. Do not give generic advice if a tool can provide the real answer.
+4. No Hallucinations: Do not invent prices, brands, or features.
 
 ### Custom Bot Instructions:
 ${systemPrompt}
@@ -192,7 +198,7 @@ ${context}
 EXCEPTION: If the user is asking you to translate, summarize, or modify your previous response, you may rely on your conversation history.`;
 
   // Fetch tools if chatbotId is provided
-  const tools = chatbotId ? await getChatbotTools(chatbotId) : {};
+  const tools = chatbotId ? await getChatbotTools(chatbotId, conversationId) : {};
 
   return generateText({
     model: selectedModel,
