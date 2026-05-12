@@ -93,7 +93,7 @@ export async function POST(
         fileType: fileType || null,
         fileSize: fileSize || null,
         status: "PENDING",
-        settings: type === "TEXT" ? { content } : type === "QA" ? { qnaList } : null,
+        settings: (type === "TEXT" ? { content } : type === "QNA" ? { qnaList } : null) as any,
       },
     });
 
@@ -129,7 +129,7 @@ export async function POST(
         userId: user.id,
         content,
       } as any);
-    } else if (type === "QA" && qnaList && qnaList.length > 0) {
+    } else if (type === "QNA" && qnaList && qnaList.length > 0) {
       // Convert Q&A pairs to structured text for embedding
       const qaContent = qnaList
         .filter((qa: any) => qa.question?.trim())

@@ -46,7 +46,7 @@ export async function PATCH(
       data: {
         name: name || dataSource.name,
         status: "PENDING",
-        settings: dataSource.type === "TEXT" ? { content } : dataSource.type === "QA" ? { qnaList } : dataSource.settings,
+        settings: (dataSource.type === "TEXT" ? { content } : dataSource.type === "QNA" ? { qnaList } : dataSource.settings) as any,
       },
     });
 
@@ -69,7 +69,7 @@ export async function PATCH(
         userId: user.id,
         content,
       } as any);
-    } else if (dataSource.type === "QA" && qnaList) {
+    } else if (dataSource.type === "QNA" && qnaList) {
       const qaContent = qnaList
         .filter((qa: any) => qa.question?.trim())
         .map((qa: any) => `Question: ${qa.question.trim()}\nAnswer: ${qa.answer?.trim() || 'No answer provided.'}`)
