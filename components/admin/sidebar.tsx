@@ -20,7 +20,9 @@ import {
   Cpu,
   Zap,
   Globe,
-  Lock
+  Lock,
+  History,
+  MessageSquare
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
@@ -40,14 +42,16 @@ export function AdminSidebar() {
     
     { href: "/admin/plans", label: t("plans"), icon: Package, category: t("categories.commerce") },
     { href: "/admin/tokens", label: t("tokens"), icon: Coins, category: t("categories.commerce") },
+    { href: "/admin/leads", label: "Talepler", icon: MessageSquare, category: t("categories.commerce") },
     
     { href: "/admin/api-keys", label: t("apiKeys"), icon: Key, category: t("categories.system") },
     { href: "/admin/system", label: t("system"), icon: Database, category: t("categories.system") },
+    { href: "/admin/audit", label: t("auditLogs"), icon: History, category: t("categories.system") },
     { href: "/admin/settings", label: t("settings"), icon: Settings, category: t("categories.system") },
   ];
 
   useEffect(() => {
-    fetch("/api/admin/system/health")
+    fetch("/api/admin/health")
       .then(res => res.json())
       .then(data => setHealth(data))
       .catch(() => setHealth({ status: "error" }));

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
+import { createAuditLog } from "@/lib/audit";
 
 // GET /api/chatbots/[id] - Get chatbot details
 export async function GET(
@@ -19,6 +20,9 @@ export async function GET(
       where: { id },
       include: {
         dataSources: true,
+        organization: {
+          include: { plan: true }
+        },
         _count: {
           select: { conversations: true },
         },
@@ -69,6 +73,15 @@ export async function DELETE(
       where: { id },
     });
 
+    await createAuditLog({
+      userId: user?.id,
+      userEmail: user?.email,
+      action: "DELETE_CHATBOT",
+      entityType: "CHATBOT",
+      entityId: id,
+      metadata: { id }
+    });
+
     return NextResponse.json({ message: "Chatbot deleted successfully" });
   } catch (error) {
     console.error("Error deleting chatbot:", error);
@@ -109,7 +122,8 @@ export async function PATCH(
     const updatableFields = [
       "name", "description", "systemPrompt", "welcomeMessage", "avatar", 
       "primaryColor", "model", "temperature", "maxTokens", "isPublic", "showBranding",
-      "widgetMode", "position"
+      "widgetMode", "position", "fontFamily", "fontSize", "borderRadius", "widgetShadow",
+      "userMessageColor", "assistantMessageColor"
     ];
     
     const data: any = {};
@@ -127,6 +141,15 @@ export async function PATCH(
     const chatbot = await prisma.chatbot.update({
       where: { id },
       data,
+    });
+
+    await createAuditLog({
+      userId: user?.id,
+      userEmail: user?.email,
+      action: "UPDATE_CHATBOT",
+      entityType: "CHATBOT",
+      entityId: id,
+      metadata: { changedFields: Object.keys(data) }
     });
 
     return NextResponse.json(chatbot);

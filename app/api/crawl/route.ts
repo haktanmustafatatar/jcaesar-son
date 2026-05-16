@@ -51,6 +51,29 @@ export async function POST(req: NextRequest) {
       userId: user.id,
     });
 
+    // Local Development Bypass: Process immediately if on local
+    if (process.env.NODE_ENV === "development") {
+      const { crawlWebsite } = require("@/lib/crawler");
+      console.log(`[CrawlBypass] Local environment detected. Auto-crawling: ${url}`);
+      
+      // Run in background
+      (async () => {
+        try {
+          await crawlWebsite({
+            url,
+            maxDepth,
+            limit,
+            chatbotId,
+            dataSourceId: dataSource.id,
+            userId: user.id,
+          });
+          console.log(`[CrawlBypass] Successfully crawled: ${url}`);
+        } catch (err) {
+          console.error(`[CrawlBypass] Failed to crawl ${url}:`, err);
+        }
+      })();
+    }
+
     return NextResponse.json({
       success: true,
       dataSourceId: dataSource.id,

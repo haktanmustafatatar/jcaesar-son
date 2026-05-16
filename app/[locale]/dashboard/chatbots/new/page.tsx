@@ -36,6 +36,7 @@ import {
   Rocket,
   ArrowLeft,
   X,
+  Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -104,8 +105,16 @@ export default function NewChatbotPage() {
     suggestedMessages: ["What is this website about?", "How can I contact you?"],
     appearance: "light" as "light" | "dark",
     usePrimaryColorForHeader: false,
+    fontFamily: "Inter, sans-serif",
+    fontSize: "14px",
+    borderRadius: "24px",
+    widgetShadow: "0 20px 40px -8px rgba(0,0,0,0.15)",
+    userMessageColor: "#000000",
+    assistantMessageColor: "#f4f4f5",
     crawlSchedule: "never",
   });
+
+  const [extractedText, setExtractedText] = useState("");
 
   const [sitemapUrl, setSitemapUrl] = useState("");
   const [maxDepth, setMaxDepth] = useState(3);
@@ -241,10 +250,9 @@ export default function NewChatbotPage() {
     }
     
     setIsAnalyzing(true);
-    setAnalysisStatus([]);
+    setAnalysisStatus(["Scanning website...", "Extracting brand assets..."]);
     
     try {
-      setAnalysisStatus(prev => [...prev, "Fetching brand assets..."]);
       const token = await getToken();
       const res = await fetch("/api/chatbots/analyze", {
         method: "POST",
@@ -258,35 +266,83 @@ export default function NewChatbotPage() {
         }),
       });
       
+      if (!res.ok) throw new Error("Analysis failed");
       const data = await res.json();
-      if (data.error) throw new Error(data.error);
-
-      setAnalysisStatus(prev => [...prev, "Reading website content..."]);
-      await new Promise(r => setTimeout(r, 800)); // Smooth UX
-      
-      setAnalysisStatus(prev => [...prev, "Optimizing system instructions..."]);
-      await new Promise(r => setTimeout(r, 600));
 
       setFormData(prev => ({
         ...prev,
-        name: data.name,
-        description: data.description,
-        avatar: data.logo,
-        primaryColor: data.primaryColor,
-        systemPrompt: data.systemPrompt,
-        businessContext: data.businessContext, // Store the rich analysis here
-        baseAnalysis: data.businessContext, 
+        name: data.name || prev.name,
+        description: data.description || prev.description,
+        avatar: data.logo || prev.avatar,
+        primaryColor: data.primaryColor || prev.primaryColor,
+        systemPrompt: data.systemPrompt || prev.systemPrompt,
+        businessContext: data.businessContext || prev.businessContext,
         language: data.language || prev.language,
       }));
 
-      setAnalysisStatus(prev => [...prev, "Ready to launch!"]);
+      setAnalysisStatus(prev => [...prev, "Intelligence synchronized!"]);
       toast.success("Intelligence analysis complete!");
       
-      // Auto-crawl for links
       handleCrawl();
       setCurrentStep("sources");
     } catch (error: any) {
       toast.error(error.message || "Analysis failed");
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const handleManualAnalysis = async () => {
+    let contentToAnalyze = formData.rawText + "\n\n" + extractedText;
+    
+    if (formData.qnaList.some(q => q.question.trim())) {
+      contentToAnalyze += "\n\n" + formData.qnaList
+        .filter((qa: any) => qa.question?.trim())
+        .map((qa: any) => `Q: ${qa.question}\nA: ${qa.answer}`)
+        .join("\n");
+    }
+
+    if (contentToAnalyze.trim().length < 20) {
+      toast.error("Please add some content (PDF or text) to analyze");
+      return;
+    }
+    
+    setIsAnalyzing(true);
+    setAnalysisStatus(["Reading knowledge base...", "Extracting business core..."]);
+    
+    try {
+      const token = await getToken();
+      const res = await fetch("/api/chatbots/analyze", {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({ 
+          content: contentToAnalyze,
+          type: "manual",
+          useCase: formData.useCase 
+        }),
+      });
+      
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+
+      setFormData(prev => ({
+        ...prev,
+        name: data.name || prev.name,
+        description: data.description || prev.description,
+        systemPrompt: data.systemPrompt || prev.systemPrompt,
+        businessContext: data.businessContext || prev.businessContext,
+        language: data.language || prev.language,
+      }));
+
+      setAnalysisStatus(prev => [...prev, "Intelligence synchronized!"]);
+      toast.success(`AI has successfully analyzed and configured ${data.name || "your agent"}!`);
+      
+      setTimeout(() => setCurrentStep("ui"), 1000);
+    } catch (error: any) {
+      toast.error(error.message || "Manual analysis failed");
     } finally {
       setIsAnalyzing(false);
     }
@@ -419,7 +475,10 @@ export default function NewChatbotPage() {
         }),
       });
 
-      if (!res.ok) throw new Error(`Chatbot creation failed with status ${res.status}`);
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || `Chatbot creation failed with status ${res.status}`);
+      }
 
       const chatbot = await res.json();
       const chatbotId = chatbot.id;
@@ -756,6 +815,44 @@ export default function NewChatbotPage() {
                 </div>
               </div>
 
+              {/* AI Analysis Trigger for Manual Sources */}
+              {(formData.rawText.length > 50 || formData.qnaList.some(q => q.question.trim()) || selectedDocuments.length > 0) && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="p-8 rounded-[40px] bg-zinc-950 text-white space-y-6 shadow-2xl shadow-black/20 relative overflow-hidden group"
+                >
+                  <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-110 transition-transform duration-700">
+                    <Sparkles className="w-24 h-24" />
+                  </div>
+                  <div className="flex items-center gap-4 relative z-10">
+                    <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center backdrop-blur-xl border border-white/10">
+                      <Zap className="w-6 h-6 text-primary animate-pulse" />
+                    </div>
+                    <div>
+                      <h4 className="text-lg font-bold">Neural Engine Ready</h4>
+                      <p className="text-zinc-400 text-xs font-medium">AI can automatically write your agent's personality from these files.</p>
+                    </div>
+                  </div>
+                  <Button 
+                    onClick={handleManualAnalysis}
+                    disabled={isAnalyzing}
+                    className="w-full h-14 bg-primary hover:bg-primary/90 text-white rounded-2xl font-black text-sm shadow-xl shadow-primary/20 transition-all relative z-10"
+                  >
+                    {isAnalyzing ? (
+                      <div className="flex items-center gap-3">
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        Analyzing Knowledge...
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        Magic Setup with AI <Sparkles className="w-4 h-4" />
+                      </div>
+                    )}
+                  </Button>
+                </motion.div>
+              )}
+
               <div className="flex flex-col gap-4 pt-8">
                 <Button
                   onClick={handleNext}
@@ -928,13 +1025,80 @@ export default function NewChatbotPage() {
                       </Button>
                     </div>
                   </div>
-                  <div className="flex items-center justify-between py-2">
+                  <div className="flex items-center justify-between py-2 border-b border-zinc-50 pb-4">
                     <Label className="text-sm font-bold text-zinc-600">{t("ui.headerColorLabel")}</Label>
                     <div 
                       onClick={() => setFormData({ ...formData, usePrimaryColorForHeader: !formData.usePrimaryColorForHeader })}
                       className={`w-12 h-6 rounded-full p-1 cursor-pointer transition-all ${formData.usePrimaryColorForHeader ? "bg-emerald-500" : "bg-zinc-200"}`}
                     >
                       <div className={`w-4 h-4 bg-white rounded-full transition-all ${formData.usePrimaryColorForHeader ? "ml-6" : "ml-0"}`} />
+                    </div>
+                  </div>
+
+                  {/* Advanced Styling Section */}
+                  <div className="space-y-6 pt-4">
+                    <div className="flex items-center gap-2">
+                       <Sparkles className="w-4 h-4 text-primary" />
+                       <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Advanced Styling</h4>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <Label className="text-xs font-bold text-zinc-500">Typography</Label>
+                        <Select 
+                          value={formData.fontFamily} 
+                          onValueChange={(val) => setFormData({ ...formData, fontFamily: val })}
+                        >
+                          <SelectTrigger className="h-10 rounded-xl border-zinc-100 bg-zinc-50/30">
+                            <SelectValue placeholder="Select Font" />
+                          </SelectTrigger>
+                          <SelectContent className="rounded-xl border-zinc-100">
+                            <SelectItem value="Inter, sans-serif">Inter (Modern)</SelectItem>
+                            <SelectItem value="'Outfit', sans-serif">Outfit (Premium)</SelectItem>
+                            <SelectItem value="'Poppins', sans-serif">Poppins (Friendly)</SelectItem>
+                            <SelectItem value="'Roboto', sans-serif">Roboto (Clean)</SelectItem>
+                            <SelectItem value="monospace">Mono (Technical)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-xs font-bold text-zinc-500">Visual Depth</Label>
+                        <Select 
+                          value={formData.widgetShadow} 
+                          onValueChange={(val) => setFormData({ ...formData, widgetShadow: val })}
+                        >
+                          <SelectTrigger className="h-10 rounded-xl border-zinc-100 bg-zinc-50/30">
+                            <SelectValue placeholder="Select Shadow" />
+                          </SelectTrigger>
+                          <SelectContent className="rounded-xl border-zinc-100">
+                            <SelectItem value="none">Flat (Minimal)</SelectItem>
+                            <SelectItem value="0 4px 12px rgba(0,0,0,0.05)">Subtle</SelectItem>
+                            <SelectItem value="0 20px 40px -8px rgba(0,0,0,0.15)">Deep (Premium)</SelectItem>
+                            <SelectItem value="0 30px 60px -12px rgba(0,0,0,0.25)">Floating</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-center">
+                        <Label className="text-xs font-bold text-zinc-500">Border Radius</Label>
+                        <span className="text-[10px] font-black text-zinc-400 bg-zinc-100 px-2 py-0.5 rounded-full">{formData.borderRadius}</span>
+                      </div>
+                      <input 
+                        type="range"
+                        min="0"
+                        max="48"
+                        step="4"
+                        className="w-full h-1.5 bg-zinc-100 rounded-lg appearance-none cursor-pointer accent-zinc-950"
+                        value={parseInt(formData.borderRadius)}
+                        onChange={(e) => setFormData({ ...formData, borderRadius: `${e.target.value}px` })}
+                      />
+                      <div className="flex justify-between px-1">
+                        <span className="text-[9px] font-bold text-zinc-300">Sharp</span>
+                        <span className="text-[9px] font-bold text-zinc-300">Rounded</span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -963,7 +1127,14 @@ export default function NewChatbotPage() {
                   }} 
                 />
                 
-                <div className="bg-white rounded-3xl shadow-2xl flex-1 flex flex-col overflow-hidden border border-zinc-100 relative">
+                <div 
+                  className="bg-white flex-1 flex flex-col overflow-hidden border border-zinc-100 relative transition-all duration-300"
+                  style={{ 
+                    fontFamily: formData.fontFamily,
+                    borderRadius: formData.borderRadius,
+                    boxShadow: formData.widgetShadow
+                  }}
+                >
                   {/* Mac Chrome Header */}
                   <div className="h-10 bg-zinc-50 border-b border-zinc-100 flex items-center px-4 gap-1.5 shrink-0">
                     <div className="w-2.5 h-2.5 rounded-full bg-[#FF5F56]" />
@@ -981,15 +1152,28 @@ export default function NewChatbotPage() {
                     <span className="font-bold text-sm truncate">{formData.name || "AI agent"}</span>
                   </div>
                   <div className={`flex-1 p-4 flex flex-col justify-end gap-3 ${formData.appearance === "dark" ? "bg-zinc-900" : "bg-zinc-50/50"}`}>
-                     <div className={`p-4 rounded-2xl rounded-bl-none shadow-sm border max-w-[85%] animate-in fade-in slide-in-from-bottom-2 ${formData.appearance === "dark" ? "bg-zinc-800 border-zinc-700 text-white" : "bg-white border-zinc-100 text-zinc-700"}`}>
-                        <p className="text-xs leading-relaxed font-medium">{formData.welcomeMessage}</p>
+                     <div 
+                       className={`p-4 shadow-sm border max-w-[85%] animate-in fade-in slide-in-from-bottom-2 ${formData.appearance === "dark" ? "bg-zinc-800 border-zinc-700 text-white" : "bg-white border-zinc-100 text-zinc-700"}`}
+                       style={{ borderRadius: `calc(${formData.borderRadius} / 1.5)` }}
+                     >
+                        <p className="leading-relaxed font-medium" style={{ fontSize: formData.fontSize }}>{formData.welcomeMessage}</p>
+                     </div>
+                     <div 
+                       className="p-4 shadow-sm self-end max-w-[85%] animate-in fade-in slide-in-from-right-2 text-white"
+                       style={{ 
+                         backgroundColor: formData.primaryColor,
+                         borderRadius: `calc(${formData.borderRadius} / 1.5)`,
+                         color: "#ffffff"
+                       }}
+                     >
+                        <p className="leading-relaxed font-medium" style={{ fontSize: formData.fontSize }}>I have a question about your services.</p>
                      </div>
                   </div>
                   <div className={`p-4 border-t flex gap-2 ${formData.appearance === "dark" ? "bg-zinc-900 border-zinc-800" : "bg-white"}`}>
-                     <div className={`flex-1 h-10 rounded-full border px-4 flex items-center ${formData.appearance === "dark" ? "bg-zinc-800 border-zinc-700" : "bg-zinc-50 border-zinc-100"}`}>
+                     <div className={`flex-1 h-10 border px-4 flex items-center ${formData.appearance === "dark" ? "bg-zinc-800 border-zinc-700" : "bg-zinc-50 border-zinc-100"}`} style={{ borderRadius: `calc(${formData.borderRadius} / 2)` }}>
                         <span className="text-xs text-zinc-400">{t("ui.typeMessage")}</span>
                      </div>
-                     <div className="w-10 h-10 rounded-full flex items-center justify-center text-white shadow-lg shrink-0" style={{ backgroundColor: formData.primaryColor }}>
+                     <div className="w-10 h-10 rounded-full flex items-center justify-center text-white shadow-lg shrink-0 transition-transform hover:scale-110" style={{ backgroundColor: formData.primaryColor }}>
                         <Send className="w-4 h-4" />
                      </div>
                   </div>
@@ -1186,20 +1370,18 @@ export default function NewChatbotPage() {
               <div className="flex gap-2">
                 <Button 
                    variant="outline" 
-                   size="sm" 
-                   className="rounded-full font-black text-[10px] uppercase border-zinc-100 px-4"
+                   className="rounded-full font-black text-xs uppercase border-zinc-200 px-8 h-11 hover:bg-zinc-50 transition-all"
                    onClick={() => router.push(`/dashboard/chatbots`)}
                    disabled={!isTrainingComplete && !createdChatbotId}
                 >
                   {t("deploy.dashboardBtn")}
                 </Button>
                 <Button 
-                  size="sm" 
-                  className="rounded-full font-black text-[10px] uppercase bg-zinc-950 text-white px-4 disabled:opacity-50"
-                  onClick={() => router.push(`/dashboard/chatbots/${createdChatbotId}/settings?tab=training`)}
+                  className="rounded-full font-black text-xs uppercase bg-zinc-950 text-white px-8 h-11 shadow-lg shadow-black/10 hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
+                  onClick={() => router.push(`/dashboard/chatbots/${createdChatbotId}/embed`)}
                   disabled={!isTrainingComplete}
                 >
-                  {t("deploy.embedBtn")}
+                  Entegrasyonlar
                 </Button>
               </div>
             </div>
@@ -1682,10 +1864,34 @@ export default function NewChatbotPage() {
                     type="file" 
                     multiple 
                     className="hidden" 
-                    onChange={(e) => {
+                    onChange={async (e) => {
                       if (e.target.files) {
-                        setSelectedDocuments(Array.from(e.target.files));
-                        toast.success(`${e.target.files.length} files selected!`);
+                        const files = Array.from(e.target.files);
+                        setSelectedDocuments(files);
+                        
+                        // Extract text in background
+                        let allText = "";
+                        toast.info(`Extracting knowledge from ${files.length} files...`);
+                        
+                        for (const file of files) {
+                          try {
+                            const formData = new FormData();
+                            formData.append("file", file);
+                            const res = await fetch("/api/upload/extract", {
+                              method: "POST",
+                              body: formData
+                            });
+                            if (res.ok) {
+                              const data = await res.json();
+                              allText += "\n\n" + data.text;
+                            }
+                          } catch (err) {
+                            console.error("Extraction error:", err);
+                          }
+                        }
+                        
+                        setExtractedText(allText);
+                        toast.success("Intelligence extraction complete! AI is ready to analyze.");
                       }
                     }}
                   />

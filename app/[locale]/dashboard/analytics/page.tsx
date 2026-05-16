@@ -74,14 +74,22 @@ export default function AnalyticsPage() {
     return <div className="flex items-center justify-center h-[60vh] font-bold text-muted-foreground animate-pulse">Intelligence is loading...</div>;
   }
 
-  const { totalConversions, resolutionRate, totalCost, sourceData, trendData, botPerformance } = data || {
+  const { totalConversions, resolutionRate, totalCost, sourceData, sentimentData, trendData, botPerformance } = data || {
     totalConversions: 0,
     resolutionRate: 0,
     totalCost: 0,
     sourceData: [],
+    sentimentData: [],
     trendData: [],
     botPerformance: []
   };
+
+  const satisfactionScore = useMemo(() => {
+    if (!sentimentData || sentimentData.length === 0) return 0;
+    const positive = sentimentData.find((s: any) => s.name === 'POSITIVE')?.value || 0;
+    const total = sentimentData.reduce((acc: number, curr: any) => acc + curr.value, 0);
+    return total > 0 ? Math.round((positive / total) * 100) : 0;
+  }, [sentimentData]);
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -139,7 +147,7 @@ export default function AnalyticsPage() {
         {[
           { title: "Total Conversions", value: totalConversions.toLocaleString(), change: "+12.5%", icon: MessageSquare, color: "text-blue-500", chartColor: "#3b82f6" },
           { title: "Resolution Rate", value: `${resolutionRate}%`, change: "+4.3%", icon: Target, color: "text-emerald-500", chartColor: "#10b981" },
-          { title: "Satisfaction Score", value: "94/100", change: "+2.1%", icon: Users, color: "text-pink-500", chartColor: "#ec4899" },
+          { title: "Satisfaction Score", value: `${satisfactionScore}/100`, change: "+2.1%", icon: Users, color: "text-pink-500", chartColor: "#ec4899" },
           { title: "AI Savings (USD)", value: `$${(totalConversions * 2.5).toLocaleString()}`, change: "+18%", icon: Zap, color: "text-amber-500", chartColor: "#f59e0b" },
         ].map((stat, i) => (
           <motion.div
@@ -284,6 +292,49 @@ export default function AnalyticsPage() {
                          <span className="text-[10px] font-bold text-muted-foreground uppercase">{entry.name}</span>
                       </div>
                       <span className="text-sm font-black">{entry.value}%</span>
+                   </div>
+                ))}
+             </div>
+          </CardContent>
+        </Card>
+
+        {/* Sentiment Analysis Distribution */}
+        <Card className="bg-white rounded-[40px] border-black/5 shadow-2xl shadow-black/[0.03] flex flex-col">
+          <CardHeader className="p-8">
+             <CardTitle className="text-xl font-black tracking-tight text-center">User Sentiment</CardTitle>
+             <CardDescription className="text-center font-medium">Emotional distribution of all dialogues.</CardDescription>
+          </CardHeader>
+          <CardContent className="flex-1 flex flex-col items-center justify-center p-8 pt-0">
+             <div className="h-[250px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                   <PieChart>
+                      <Pie
+                        data={sentimentData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={90}
+                        paddingAngle={8}
+                        dataKey="value"
+                        animationDuration={1500}
+                      >
+                        {sentimentData.map((entry: any, index: number) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} stroke="none" />
+                        ))}
+                      </Pie>
+                      <Tooltip content={<CustomTooltip />} />
+                   </PieChart>
+                </ResponsiveContainer>
+             </div>
+             
+             <div className="grid grid-cols-2 gap-4 w-full mt-6">
+                {sentimentData.map((entry: any) => (
+                   <div key={entry.name} className="p-3 rounded-2xl bg-muted/30 flex flex-col items-center gap-1">
+                      <div className="flex items-center gap-2">
+                         <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: entry.color }} />
+                         <span className="text-[10px] font-bold text-muted-foreground uppercase">{entry.name}</span>
+                      </div>
+                      <span className="text-sm font-black">{entry.value}</span>
                    </div>
                 ))}
              </div>

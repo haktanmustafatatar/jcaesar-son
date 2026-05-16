@@ -1,4 +1,4 @@
-import { Queue, Worker, Job } from "bullmq";
+import { Queue } from "bullmq";
 import IORedis from "ioredis";
 
 // Redis connection
@@ -42,6 +42,7 @@ export type CrawlJob = {
   knowledgeSourceId?: string;
   userId: string;
   urls?: string[];
+  content?: string; // For manual text/qna bypass
 };
 
 export type EmbeddingJob = {

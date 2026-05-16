@@ -18,6 +18,12 @@ export async function GET(
         showBranding: true,
         status: true,
         isPublic: true,
+        fontFamily: true,
+        fontSize: true,
+        borderRadius: true,
+        widgetShadow: true,
+        userMessageColor: true,
+        assistantMessageColor: true,
       },
     });
 

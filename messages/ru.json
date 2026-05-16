@@ -49,7 +49,10 @@
       "chatbots": "Чатботы",
       "conversations": "Беседы",
       "analytics": "Аналитика",
-      "settings": "Настройки"
+      "settings": "Настройки",
+      "overview": "Обзор",
+      "integrations": "Интеграции",
+      "embed": "Встроить"
     },
     "header": {
       "freePlan": "Бесплатный тариф",
@@ -59,6 +62,8 @@
     "chatbots": {
       "new": {
         "title": "Создать новый чатбот",
+        "description": "Добро пожаловать! Вот что происходит с вашими чат-ботами.",
+        "createButton": "Создать чат-бот",
         "steps": {
           "intro": "Интро",
           "sources": "Источники",
@@ -67,6 +72,27 @@
           "deploy": "Развертывание"
         },
         "wizard": {
+          "intro": {
+            "title": "Создайте своего агента",
+            "description": "Давайте проанализируем ваш сайт и создадим индивидуальный опыт ИИ за считанные секунды.",
+            "urlLabel": "Ваш веб-сайт",
+            "useCaseLabel": "Вариант использования",
+            "useCases": {
+              "general": "Общий помощник",
+              "sales": "Агент по продажам",
+              "support": "Поддержка клиентов"
+            },
+            "analyzing": "Анализ...",
+            "continue": "Продолжить",
+            "or": "ИЛИ",
+            "manual": "Добавить вручную",
+            "analysis": {
+              "logo": "Загрузка логотипа",
+              "color": "Загрузка цвета бренда",
+              "links": "Загрузка ссылок",
+              "prompt": "Настройка промпта"
+            }
+          },
           "ui": {
             "title": "Интерфейс агента",
             "subtitle": "Настройте внешний вид и поведение вашего ИИ-агента на веб-сайте.",
@@ -100,6 +126,7 @@
           "deploy": {
             "trainingComplete": "Ваш агент достиг полного интеллекта!",
             "training": "Разум вашего агента оттачивается...",
+            "trainingShort": "Обучение...",
             "trainingCompleteDesc": "Обучение завершено. Ваш агент готов давать мгновенные ответы.",
             "trainingDesc": "Мы обрабатываем ваши источники и создаём умные вложения.",
             "progress": "Прогресс",
@@ -110,6 +137,21 @@
             "embedBtn": "Код вставки",
             "timeNote": "Этот процесс обычно занимает 2-5 минут в зависимости от размера сайта."
           },
+          "sources": {
+            "title": "Источники знаний",
+            "description": "Выберите источники знаний, которые вы хотите использовать для обучения своего ИИ-агента.",
+            "types": {
+              "file": "Файлы",
+              "text": "Текст",
+              "website": "Веб-сайт",
+              "qa": "Вопросы и ответы"
+            },
+            "next": "Обучить и продолжить",
+            "back": "Назад",
+            "summary": "Сводка источников",
+            "totalSize": "Общий размер",
+            "noSources": "Источники еще не добавлены"
+          },
           "modal": {
             "websiteTitle": "Источники сайта",
             "websiteSubtitle": "Подключите знания вашего сайта",
@@ -119,42 +161,161 @@
             "urlLabel": "URL целевого сайта",
             "fetching": "ЗАГРУЗКА...",
             "fetchLinks": "ПОЛУЧИТЬ ССЫЛКИ",
-            "advancedOptions": "Расширенные параметры"
+            "advancedOptions": "Расширенные параметры",
+            "maxDepth": "Глубина обхода",
+            "pageLimit": "Лимит страниц",
+            "crawlSchedule": "График автообхода",
+            "istanbulTime": "Стамбульское время",
+            "load": "ЗАГРУЗИТЬ"
           }
         }
       }
     },
+    "overview": {
+      "title": "Панель",
+      "welcome": "Добро пожаловать! Вот что происходит с вашими чат-ботами.",
+      "createChatbot": "Создать чат-бот",
+      "stats": {
+        "totalChatbots": "Всего чат-ботов",
+        "conversations": "Диалоги",
+        "messages": "Сообщения",
+        "activeUsers": "Активные пользователи",
+        "fromLastMonth": "с прошлого месяца"
+      },
+      "recentChatbots": {
+        "title": "Последние чат-боты",
+        "viewAll": "Посмотреть все",
+        "conversationsLabel": "диалоги",
+        "status": {
+          "active": "Активен",
+          "draft": "Черновик"
+        },
+        "subtitle": "Status of your neural agents",
+        "noData": "No active agents found"
+      },
+      "recentConversations": {
+        "title": "Последние диалоги",
+        "viewAll": "Посмотреть все",
+        "subtitle": "Latest user interactions",
+        "noData": "No recent conversations"
+      },
+      "subtitle": "Overview of your neural agents and performance metrics.",
+      "loading": "Syncing Intelligence...",
+      "noData": "No active agents found. Create your first one to get started."
+    },
     "channels": {
-      "title": "Omnichannel Sync",
-      "subtitle": "Connect your neural agent to social message streams",
-      "connect": "Connect",
-      "disconnect": "Disconnect",
-      "configure": "Configure",
+      "title": "Омниканальная синхронизация",
+      "subtitle": "Подключите вашего нейронного агента к потокам сообщений в соцсетях",
+      "tabLabel": "Каналы",
+      "connect": "Подключить",
+      "disconnect": "Отключить",
+      "configure": "Настроить",
+      "status": {
+        "connected": "Подключено",
+        "disconnected": "Отключено",
+        "error": "Ошибка",
+        "pending": "В ожидании"
+      },
+      "setup": {
+        "title": "Настройка вебхука",
+        "description": "Для получения сообщений настройте следующий URL вебхука в портале разработчиков Meta:",
+        "urlLabel": "Целевой URL вебхука",
+        "note": "Замените [type] на whatsapp, instagram или messenger."
+      },
+      "modal": {
+        "whatsappTitle": "Подключить WhatsApp Business",
+        "instagramTitle": "Подключить Instagram DM",
+        "messengerTitle": "Подключить Facebook Messenger",
+        "whatsappDesc": "Свяжите номер телефона WhatsApp Business, используя токены Meta Cloud API.",
+        "instagramDesc": "Подключите сообщения вашего аккаунта Instagram Business к вашему ИИ-агенту.",
+        "messengerDesc": "Разрешите вашему агенту отвечать на сообщения страницы Facebook.",
+        "tokenLabel": "Токен доступа Meta",
+        "phoneLabel": "ID номера телефона",
+        "pageLabel": "ID страницы",
+        "verifyTokenTitle": "Токен подтверждения",
+        "verifyTokenDesc": "Используйте этот токен в настройках вебхука портала разработчиков Meta:",
+        "submit": "Подтвердить и подключить канал"
+      }
+    },
+    "chatbotDetail": {
+      "status": {
+        "active": "Оперативно",
+        "training": "Синхронизация"
+      },
+      "defaultDescription": "Автономный блок ИИ-интеллекта",
+      "settings": "Настройки",
+      "embedCode": "Код вставки",
+      "liveStatus": "Нейросеть активна",
+      "resetForge": "Сбросить кузницу",
+      "placeholder": "Введите сообщение, чтобы протестировать {name} ИИ...",
+      "poweredBy": "Работает на автономном движке RAG JCaesar",
+      "configTitle": "Нейронная конфигурация",
+      "memoryLabel": "Память",
+      "activeRAG": "активно (RAG)",
+      "statsTitle": "Статистика базы знаний",
+      "sourcesLabel": "Источники",
+      "chatsLabel": "Чаты",
+      "viewAnalytics": "Просмотреть детальную аналитику",
+      "needAPI": "Нужен доступ к API?",
+      "apiDesc": "Подключите своего агента к сторонним приложениям через нашу производительную инфраструктуру API.",
+      "checkDocs": "Проверить доки",
+      "prompt": "Prompt",
+      "response": "Response"
+    },
+    "integrations": {
+      "title": "Integrations Hub",
+      "neuralConnect": "Neural Connect",
+      "refreshStatus": "Refresh Status",
+      "searchPlaceholder": "Search modules...",
+      "categories": {
+        "all": "All",
+        "ecommerce": "E-Commerce",
+        "social": "Social",
+        "productivity": "Productivity"
+      },
       "status": {
         "connected": "Connected",
         "disconnected": "Disconnected",
-        "error": "Error",
-        "pending": "Pending"
+        "configurable": "Configurable",
+        "ready": "Ready"
       },
-      "setup": {
-        "title": "Webhook Setup",
-        "description": "To receive messages, configure the following Webhook URL in your Meta Developer Portal:",
-        "urlLabel": "Target Webhook URL",
-        "note": "Replace [type] with whatsapp, instagram, or messenger."
-      },
-      "modal": {
-        "whatsappTitle": "Connect WhatsApp Business",
-        "instagramTitle": "Connect Instagram DM",
-        "messengerTitle": "Connect Facebook Messenger",
-        "whatsappDesc": "Link your WhatsApp Business phone number using Meta Cloud API tokens.",
-        "instagramDesc": "Connect your Instagram Business account DMs to your AI agent.",
-        "messengerDesc": "Allow your agent to respond to Facebook Page messages.",
-        "tokenLabel": "Meta Access Token",
-        "phoneLabel": "Phone Number ID",
-        "pageLabel": "Page ID",
-        "verifyTokenTitle": "Verify Token",
-        "verifyTokenDesc": "Use this token in your Meta Developer Portal webhook settings:",
-        "submit": "Verify & Connect Channel"
+      "expertAssistance": {
+        "title": "Global Connectivity",
+        "subtitle": "Without Compromise.",
+        "description": "Our neural agents are designed to flow through every platform. From Shopify checkout to WhatsApp DM, maintain one identity.",
+        "integrity": "Network Integrity",
+        "expertsReady": "Neural Experts Ready",
+        "expertsDesc": "Need a custom integration? Let's talk.",
+        "consultBtn": "Consult Agent"
+      }
+    },
+    "embed": {
+      "title": "Go Live",
+      "controlCenter": "Control Center",
+      "workerOnline": "Worker Online",
+      "deploymentHealth": "Deployment Health",
+      "enterpriseVerified": "Enterprise Verified",
+      "nativeWebClient": "Native Web Client",
+      "directScript": "Direct Script",
+      "scriptDescription": "Our neural widget is compatible with every modern framework. Simply inject the code into your global header.",
+      "copyCode": "Copy Production Code",
+      "copySuccess": "Copied Successfully",
+      "cdnAccelerated": "Global CDN Accelerated",
+      "secure": "Secure",
+      "utf8Ready": "UTF-8 Ready",
+      "omnichannelEco": "Omnichannel Ecosystem",
+      "modulesActive": "{count} Modules Active",
+      "liveIntelligence": "Live Intelligence",
+      "knowledgeWeight": "Knowledge Weight",
+      "neuralLatency": "Neural Latency",
+      "systemHealth": "System Health",
+      "memory": "Memory",
+      "ioLoad": "IO Load",
+      "neuralRefresh": "Neural Refresh",
+      "expertSupport": {
+        "title": "Expert Support",
+        "description": "Need help with custom CSS or API integrations?",
+        "chatBtn": "Chat with Specialist"
       }
     }
   },
@@ -195,44 +356,44 @@
     "HowItWorks": {
       "badge": "Простой процесс",
       "title": "Создайте чат-бот за 3 простых шага",
-      "steps": [
-        {
+      "steps": {
+        "0": {
           "title": "Подключите данные",
           "description": "Введите URL вашего сайта или загрузите документы. ИИ автоматически сканирует и индексирует весь ваш контент.",
           "visual": "Сканирование {count} страниц..."
         },
-        {
+        "1": {
           "title": "Обучите бота",
           "description": "Настройте ответы, задайте личность и точно настройте, как ваш бот отвечает на вопросы.",
           "visual": "Обучение модели..."
         },
-        {
+        "2": {
           "title": "Разверните и встройте",
           "description": "Получите код для встраивания и добавьте чат-бот на сайт за секунды. Без программирования.",
           "visual": "Готово к развёртыванию!"
         }
-      ]
+      }
     },
     "Testimonials": {
       "badge": "Истории клиентов",
       "title": "Любимы командами по всему миру",
-      "items": [
-        {
+      "items": {
+        "0": {
           "quote": "Агент J.Caesar преобразил нашу службу поддержки. Время ответа сократилось на 80%, а удовлетворённость клиентов на рекордном уровне.",
           "author": "Sarah Chen",
           "role": "Технический директор TechFlow"
         },
-        {
+        "1": {
           "quote": "Самый простой конструктор чат-ботов, которым я пользовался. Настройка за 10 минут, и он действительно понимает наш продукт.",
           "author": "Marcus Johnson",
           "role": "Основатель StartupXYZ"
         },
-        {
+        "2": {
           "quote": "Мы обучили его на всей нашей документации. Теперь он отвечает на 90% вопросов без участия человека.",
           "author": "Emily Rodriguez",
           "role": "Руководитель поддержки CloudScale"
         }
-      ]
+      }
     },
     "Pricing": {
       "badge": "Тарифы и планы",
@@ -252,65 +413,65 @@
           "name": "Стартовый",
           "description": "Идеально для индивидуальных инноваторов",
           "cta": "Начать бесплатно",
-          "features": [
-            "1 ИИ-агент",
-            "1 000 сообщений/мес",
-            "Базовое сканирование URL",
-            "Стандартная аналитика",
-            "Поддержка сообщества"
-          ]
+          "features": {
+            "0": "1 ИИ-агент",
+            "1": "1 000 сообщений/мес",
+            "2": "Базовое сканирование URL",
+            "3": "Стандартная аналитика",
+            "4": "Поддержка сообщества"
+          }
         },
         "Elite": {
           "name": "Элитный",
           "description": "Для быстро растущего бизнеса",
           "cta": "Перейти на Elite",
-          "features": [
-            "10 ИИ-агентов",
-            "25 000 сообщений/мес",
-            "Приоритетное рекурсивное сканирование",
-            "Расширенная панель аналитики",
-            "Полный доступ к API",
-            "Каналы WhatsApp и виджет",
-            "Приоритетная поддержка 24/7"
-          ]
+          "features": {
+            "0": "10 ИИ-агентов",
+            "1": "25 000 сообщений/мес",
+            "2": "Приоритетное рекурсивное сканирование",
+            "3": "Расширенная панель аналитики",
+            "4": "Полный доступ к API",
+            "5": "Каналы WhatsApp и виджет",
+            "6": "Приоритетная поддержка 24/7"
+          }
         },
         "Enterprise": {
           "name": "Корпоративный",
           "description": "Полный контроль и автономия",
           "cta": "Связаться с нами",
-          "features": [
-            "Неограниченное число ИИ-агентов",
-            "Неограниченное число сообщений",
-            "Собственный RAG-конвейер",
-            "Гарантия SLA",
-            "Виджет под белой маркой",
-            "Выделенный ИИ-архитектор",
-            "Развёртывание на собственном сервере"
-          ]
+          "features": {
+            "0": "Неограниченное число ИИ-агентов",
+            "1": "Неограниченное число сообщений",
+            "2": "Собственный RAG-конвейер",
+            "3": "Гарантия SLA",
+            "4": "Виджет под белой маркой",
+            "5": "Выделенный ИИ-архитектор",
+            "6": "Развёртывание на собственном сервере"
+          }
         }
       }
     },
     "FAQ": {
       "badge": "FAQ",
       "title": "Часто задаваемые вопросы",
-      "items": [
-        {
+      "items": {
+        "0": {
           "question": "Как работает обучение ИИ?",
           "answer": "Просто укажите URL вашего сайта или загрузите документы базы знаний. Наша система использует передовой RAG для индексации контента и создания пользовательской интеллектуальной модели."
         },
-        {
+        "1": {
           "question": "Могу ли я настроить внешний вид чат-бота?",
           "answer": "Да, вы можете полностью настроить аватар, цвета, приветственное сообщение и расположение в соответствии с вашим брендом."
         },
-        {
+        "2": {
           "question": "Поддерживается ли несколько языков?",
           "answer": "Безусловно. J.Caesar поддерживает более 50 языков, включая русский, английский, арабский и другие, с автоматическим определением."
         },
-        {
+        "3": {
           "question": "Как встроить чат-бот на сайт?",
           "answer": "После создания вы получите одну строку кода. Просто скопируйте и вставьте её в заголовок вашего сайта или воспользуйтесь нашими официальными плагинами."
         }
-      ]
+      }
     },
     "CTA": {
       "title": "Готовы автоматизировать",
@@ -337,5 +498,14 @@
         "sla": "Соглашение об обслуживании"
       }
     }
+  },
+  "Widget": {
+    "welcomeDefault": "Hi! How can I help you today?",
+    "assistantTitle": "AI Assistant",
+    "online": "Online",
+    "you": "You",
+    "placeholder": "Type a message...",
+    "poweredBy": "Powered by JCaesar Agent",
+    "aiLabel": "AI"
   }
 }

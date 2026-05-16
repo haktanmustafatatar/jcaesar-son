@@ -49,7 +49,10 @@
       "chatbots": "Chatbots",
       "conversations": "Conversations",
       "analytics": "Analytics",
-      "settings": "Settings"
+      "settings": "Settings",
+      "overview": "Overview",
+      "integrations": "Integrations",
+      "embed": "Embed"
     },
     "header": {
       "freePlan": "Free Plan",
@@ -170,7 +173,10 @@
     },
     "overview": {
       "title": "Dashboard",
-      "welcome": "Welcome back! Here's what's happening with your chatbots.",
+      "welcome": "Welcome! Here is what's happening with your chatbots.",
+      "subtitle": "Overview of your neural agents and performance metrics.",
+      "loading": "Syncing Intelligence...",
+      "noData": "No active agents found. Create your first one to get started.",
       "createChatbot": "Create Chatbot",
       "stats": {
         "totalChatbots": "Total Chatbots",
@@ -181,8 +187,10 @@
       },
       "recentChatbots": {
         "title": "Recent Chatbots",
+        "subtitle": "Status of your neural agents",
         "viewAll": "View All",
         "conversationsLabel": "conversations",
+        "noData": "No active agents found",
         "status": {
           "active": "Active",
           "draft": "Draft"
@@ -190,7 +198,9 @@
       },
       "recentConversations": {
         "title": "Recent Conversations",
-        "viewAll": "View All"
+        "subtitle": "Latest user interactions",
+        "viewAll": "View All",
+        "noData": "No recent conversations"
       }
     },
     "channels": {
@@ -248,7 +258,167 @@
       "viewAnalytics": "View Detailed Analytics",
       "needAPI": "Need API Access?",
       "apiDesc": "Connect your agent to third-party apps via our performant API infrastructure.",
-      "checkDocs": "Check Docs"
+      "checkDocs": "Check Docs",
+      "prompt": "Prompt",
+      "response": "Response"
+    },
+    "chatbots": {
+      "new": {
+        "steps": {
+          "intro": "Discovery",
+          "sources": "Knowledge",
+          "ui": "Persona",
+          "personality": "Neural",
+          "deploy": "Launch"
+        },
+        "wizard": {
+          "intro": {
+            "title": "Neural Discovery",
+            "description": "Enter your website URL or business context to begin the intelligence synthesis.",
+            "urlLabel": "Website Core URL",
+            "useCaseLabel": "Agent Purpose",
+            "useCases": {
+              "general": "General Assistant",
+              "sales": "Sales Accelerator",
+              "support": "Customer Support"
+            },
+            "analyzing": "Analyzing Infrastructure...",
+            "continue": "Initialize Synthesis",
+            "or": "OR",
+            "manual": "Configure Manually",
+            "analysis": {
+              "logo": "Visual Identity",
+              "color": "Brand Palette",
+              "links": "Network Crawl",
+              "prompt": "Behavioral Core"
+            }
+          },
+          "sources": {
+            "title": "Knowledge Vault",
+            "description": "Connect the data sources that will define your agent's intelligence.",
+            "back": "Back",
+            "next": "Next Step",
+            "noSources": "No sources connected yet.",
+            "totalSize": "Total Knowledge Size",
+            "summary": "{count} sources connected",
+            "types": {
+              "file": "Documents",
+              "text": "Raw Text",
+              "website": "Web Crawl",
+              "qa": "Q&A Pairs"
+            }
+          },
+          "ui": {
+            "title": "Visual Identity",
+            "subtitle": "Craft the aesthetic presence of your neural agent.",
+            "back": "Back",
+            "next": "Next Step",
+            "appearanceLabel": "Interface Style",
+            "nameLabel": "Agent Name",
+            "namePlaceholder": "e.g., JCaesar Sales Lead",
+            "welcomeLabel": "Welcome Message",
+            "welcomePlaceholder": "Hi! How can I help you today?",
+            "colorLabel": "Primary Color",
+            "headerColorLabel": "Header Contrast",
+            "typeMessage": "Type a message...",
+            "livePreview": "Neural Live Preview"
+          },
+          "personality": {
+            "title": "Neural Core",
+            "subtitle": "Define the behavioral logic and intelligence model.",
+            "back": "Back",
+            "confirm": "Finalize Agent",
+            "styleLabel": "Personality Style",
+            "modelLabel": "Base Intelligence",
+            "gpt4oDesc": "High Performance Intelligence",
+            "gpt4oMiniDesc": "Efficient Response Engine",
+            "instructionsLabel": "System Instructions",
+            "instructionsPlaceholder": "You are a helpful assistant...",
+            "instructionsHint": "Expert Mode: Define constraints and identity.",
+            "regenerate": "Regenerate Prompt",
+            "launching": "Initializing Agent..."
+          },
+          "deploy": {
+            "active": "Operational",
+            "training": "Synchronizing Intelligence",
+            "trainingDesc": "Our neural engine is indexing your data sources.",
+            "trainingShort": "Indexing...",
+            "progress": "{count} documents processed",
+            "timeNote": "This usually takes 1-2 minutes.",
+            "trainingComplete": "Synthesis Complete",
+            "trainingCompleteDesc": "Your neural agent is now fully synchronized and ready for deployment.",
+            "dashboardBtn": "Go to Dashboard",
+            "initializing": "Preparing Infrastructure..."
+          },
+          "modal": {
+            "websiteTitle": "Website Crawl",
+            "websiteSubtitle": "Extract knowledge from any public URL.",
+            "urlLabel": "Target URL",
+            "tabCrawl": "Auto Crawl",
+            "tabSitemap": "Sitemap",
+            "tabManual": "Manual List",
+            "fetching": "Discovering Links...",
+            "fetchLinks": "Discover Links",
+            "advancedOptions": "Advanced Crawl Engine"
+          }
+        }
+      }
+    },
+    "integrations": {
+      "title": "Integrations Hub",
+      "neuralConnect": "Neural Connect",
+      "refreshStatus": "Refresh Status",
+      "searchPlaceholder": "Search modules...",
+      "categories": {
+        "all": "All",
+        "ecommerce": "E-Commerce",
+        "social": "Social",
+        "productivity": "Productivity"
+      },
+      "status": {
+        "connected": "Connected",
+        "disconnected": "Disconnected",
+        "configurable": "Configurable",
+        "ready": "Ready"
+      },
+      "expertAssistance": {
+        "title": "Global Connectivity",
+        "subtitle": "Without Compromise.",
+        "description": "Our neural agents are designed to flow through every platform. From Shopify checkout to WhatsApp DM, maintain one identity.",
+        "integrity": "Network Integrity",
+        "expertsReady": "Neural Experts Ready",
+        "expertsDesc": "Need a custom integration? Let's talk.",
+        "consultBtn": "Consult Agent"
+      }
+    },
+    "embed": {
+      "title": "Go Live",
+      "controlCenter": "Control Center",
+      "workerOnline": "Worker Online",
+      "deploymentHealth": "Deployment Health",
+      "enterpriseVerified": "Enterprise Verified",
+      "nativeWebClient": "Native Web Client",
+      "directScript": "Direct Script",
+      "scriptDescription": "Our neural widget is compatible with every modern framework. Simply inject the code into your global header.",
+      "copyCode": "Copy Production Code",
+      "copySuccess": "Copied Successfully",
+      "cdnAccelerated": "Global CDN Accelerated",
+      "secure": "Secure",
+      "utf8Ready": "UTF-8 Ready",
+      "omnichannelEco": "Omnichannel Ecosystem",
+      "modulesActive": "{count} Modules Active",
+      "liveIntelligence": "Live Intelligence",
+      "knowledgeWeight": "Knowledge Weight",
+      "neuralLatency": "Neural Latency",
+      "systemHealth": "System Health",
+      "memory": "Memory",
+      "ioLoad": "IO Load",
+      "neuralRefresh": "Neural Refresh",
+      "expertSupport": {
+        "title": "Expert Support",
+        "description": "Need help with custom CSS or API integrations?",
+        "chatBtn": "Chat with Specialist"
+      }
     }
   },
   "Widget": {
@@ -269,6 +439,7 @@
       "tokens": "Usage Analytics",
       "apiKeys": "Neural Keys",
       "system": "Infrastructure Status",
+      "auditLogs": "Activity Audit",
       "settings": "Platform Settings",
       "categories": {
         "core": "Core",

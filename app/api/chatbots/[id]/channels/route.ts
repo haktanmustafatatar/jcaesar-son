@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { ChannelType } from "@prisma/client";
+import { encrypt, decrypt } from "@/lib/crypto";
+import { createAuditLog } from "@/lib/audit";
 
 // Get all channels for a chatbot
 export async function GET(
@@ -29,7 +31,13 @@ export async function GET(
       where: { chatbotId },
     });
 
-    return NextResponse.json(channels);
+    // Decrypt config for each channel
+    const decryptedChannels = channels.map(channel => ({
+      ...channel,
+      config: typeof channel.config === 'string' ? JSON.parse(decrypt(channel.config)) : channel.config
+    }));
+
+    return NextResponse.json(decryptedChannels);
   } catch (error) {
     console.error("Fetch Channels Error:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
@@ -64,18 +72,19 @@ export async function POST(
       return NextResponse.json({ error: "Chatbot not found" }, { status: 404 });
     }
 
+    // Encrypt config
+    const encryptedConfig = encrypt(JSON.stringify(config));
+
     // Upsert channel
     const channel = await prisma.channel.upsert({
       where: {
-        // We'll use a unique compound if possible, but schema doesn't have it.
-        // Let's find existing by type for this chatbot.
         id: (await prisma.channel.findFirst({
           where: { chatbotId, type }
         }))?.id || 'new-id'
       },
       update: {
         name,
-        config,
+        config: encryptedConfig as any,
         phoneNumberId,
         status: "CONNECTED",
       },
@@ -83,10 +92,19 @@ export async function POST(
         chatbotId,
         type,
         name,
-        config,
+        config: encryptedConfig as any,
         phoneNumberId,
         status: "CONNECTED",
       },
+    });
+
+    await createAuditLog({
+      userId: user?.id,
+      userEmail: user?.email,
+      action: "CONNECT_CHANNEL",
+      entityType: "CHANNEL",
+      entityId: channel.id,
+      metadata: { type, name, chatbotId }
     });
 
     return NextResponse.json(channel);
@@ -127,6 +145,15 @@ export async function DELETE(
 
     await prisma.channel.delete({
       where: { id: channelId },
+    });
+
+    await createAuditLog({
+      userId: user?.id,
+      userEmail: user?.email,
+      action: "DISCONNECT_CHANNEL",
+      entityType: "CHANNEL",
+      entityId: channelId,
+      metadata: { type: channel.type, chatbotId }
     });
 
     return NextResponse.json({ success: true });

@@ -49,7 +49,10 @@
       "chatbots": "بوتات الدردشة",
       "conversations": "المحادثات",
       "analytics": "التحليلات",
-      "settings": "الإعدادات"
+      "settings": "الإعدادات",
+      "overview": "Overview",
+      "integrations": "Integrations",
+      "embed": "Embed"
     },
     "header": {
       "freePlan": "خطة مجانية",
@@ -108,7 +111,8 @@
             "initializing": "جارٍ تهيئة الذكاء...",
             "dashboardBtn": "لوحة التحكم",
             "embedBtn": "كود التضمين",
-            "timeNote": "تستغرق هذه العملية عادةً من 2 إلى 5 دقائق حسب حجم موقعك."
+            "timeNote": "تستغرق هذه العملية عادةً من 2 إلى 5 دقائق حسب حجم موقعك.",
+            "trainingShort": "Training..."
           },
           "modal": {
             "websiteTitle": "مصادر الموقع",
@@ -119,9 +123,52 @@
             "urlLabel": "رابط URL الموقع الهدف",
             "fetching": "جارٍ الجلب...",
             "fetchLinks": "جلب الروابط",
-            "advancedOptions": "خيارات متقدمة"
+            "advancedOptions": "خيارات متقدمة",
+            "maxDepth": "Crawl Depth",
+            "pageLimit": "Page Limit",
+            "crawlSchedule": "Auto-Crawl Schedule",
+            "istanbulTime": "Istanbul Time",
+            "load": "LOAD"
+          },
+          "intro": {
+            "title": "Build Your Agent",
+            "description": "Let's analyze your website and build a custom AI experience in seconds.",
+            "urlLabel": "Your Website",
+            "useCaseLabel": "Use Case",
+            "useCases": {
+              "general": "General Assistant",
+              "sales": "Sales Agent",
+              "support": "Customer Support"
+            },
+            "analyzing": "Analyzing...",
+            "continue": "Continue",
+            "or": "OR",
+            "manual": "Add Manually",
+            "analysis": {
+              "logo": "Fetching logo",
+              "color": "Fetching brand color",
+              "links": "Fetching links",
+              "prompt": "Adjusting prompt"
+            }
+          },
+          "sources": {
+            "title": "Knowledge Sources",
+            "description": "Select the knowledge sources you want to use to train your AI agent.",
+            "types": {
+              "file": "Files",
+              "text": "Text",
+              "website": "Website",
+              "qa": "Q&A"
+            },
+            "next": "Train & continue",
+            "back": "Back",
+            "summary": "Sources Summary",
+            "totalSize": "Total size",
+            "noSources": "No sources added yet"
           }
-        }
+        },
+        "description": "Welcome back! Here's what's happening with your chatbots.",
+        "createButton": "Create Chatbot"
       }
     },
     "channels": {
@@ -155,6 +202,120 @@
         "verifyTokenTitle": "Verify Token",
         "verifyTokenDesc": "Use this token in your Meta Developer Portal webhook settings:",
         "submit": "Verify & Connect Channel"
+      },
+      "tabLabel": "Channels"
+    },
+    "overview": {
+      "title": "Dashboard",
+      "welcome": "Welcome! Here is what's happening with your chatbots.",
+      "createChatbot": "Create Chatbot",
+      "stats": {
+        "totalChatbots": "Total Chatbots",
+        "conversations": "Conversations",
+        "messages": "Messages",
+        "activeUsers": "Active Users",
+        "fromLastMonth": "from last month"
+      },
+      "recentChatbots": {
+        "title": "Recent Chatbots",
+        "viewAll": "View All",
+        "conversationsLabel": "conversations",
+        "status": {
+          "active": "Active",
+          "draft": "Draft"
+        },
+        "subtitle": "Status of your neural agents",
+        "noData": "No active agents found"
+      },
+      "recentConversations": {
+        "title": "Recent Conversations",
+        "viewAll": "View All",
+        "subtitle": "Latest user interactions",
+        "noData": "No recent conversations"
+      },
+      "subtitle": "Overview of your neural agents and performance metrics.",
+      "loading": "Syncing Intelligence...",
+      "noData": "No active agents found. Create your first one to get started."
+    },
+    "chatbotDetail": {
+      "status": {
+        "active": "Operational",
+        "training": "Synchronizing"
+      },
+      "defaultDescription": "Autonomous AI Intelligence Unit",
+      "settings": "Settings",
+      "embedCode": "Embed Code",
+      "liveStatus": "Neural Network Live",
+      "resetForge": "Reset Forge",
+      "placeholder": "Type a message to test {name} AI...",
+      "poweredBy": "Powered by JCaesar Autonomous RAG Engine",
+      "configTitle": "Neural Configuration",
+      "memoryLabel": "Memory",
+      "activeRAG": "active (RAG)",
+      "statsTitle": "Knowledge Base Stats",
+      "sourcesLabel": "Sources",
+      "chatsLabel": "Chats",
+      "viewAnalytics": "View Detailed Analytics",
+      "needAPI": "Need API Access?",
+      "apiDesc": "Connect your agent to 3rd party apps via our high-performance API infrastructure.",
+      "checkDocs": "Check Docs",
+      "prompt": "Prompt",
+      "response": "Response"
+    },
+    "integrations": {
+      "title": "Integrations Hub",
+      "neuralConnect": "Neural Connect",
+      "refreshStatus": "Refresh Status",
+      "searchPlaceholder": "Search modules...",
+      "categories": {
+        "all": "All",
+        "ecommerce": "E-Commerce",
+        "social": "Social",
+        "productivity": "Productivity"
+      },
+      "status": {
+        "connected": "Connected",
+        "disconnected": "Disconnected",
+        "configurable": "Configurable",
+        "ready": "Ready"
+      },
+      "expertAssistance": {
+        "title": "Global Connectivity",
+        "subtitle": "Without Compromise.",
+        "description": "Our neural agents are designed to flow through every platform. From Shopify checkout to WhatsApp DM, maintain one identity.",
+        "integrity": "Network Integrity",
+        "expertsReady": "Neural Experts Ready",
+        "expertsDesc": "Need a custom integration? Let's talk.",
+        "consultBtn": "Consult Agent"
+      }
+    },
+    "embed": {
+      "title": "Go Live",
+      "controlCenter": "Control Center",
+      "workerOnline": "Worker Online",
+      "deploymentHealth": "Deployment Health",
+      "enterpriseVerified": "Enterprise Verified",
+      "nativeWebClient": "Native Web Client",
+      "directScript": "Direct Script",
+      "scriptDescription": "Our neural widget is compatible with every modern framework. Simply inject the code into your global header.",
+      "copyCode": "Copy Production Code",
+      "copySuccess": "Copied Successfully",
+      "cdnAccelerated": "Global CDN Accelerated",
+      "secure": "Secure",
+      "utf8Ready": "UTF-8 Ready",
+      "omnichannelEco": "Omnichannel Ecosystem",
+      "modulesActive": "{count} Modules Active",
+      "liveIntelligence": "Live Intelligence",
+      "knowledgeWeight": "Knowledge Weight",
+      "neuralLatency": "Neural Latency",
+      "systemHealth": "System Health",
+      "memory": "Memory",
+      "ioLoad": "IO Load",
+      "neuralRefresh": "Neural Refresh",
+      "expertSupport": {
+        "title": "Expert Support",
+        "description": "Need help with custom CSS or API integrations?",
+        "chatBtn": "Chat with Specialist"
       }
     }
   },
@@ -195,44 +356,44 @@
     "HowItWorks": {
       "badge": "عملية بسيطة",
       "title": "أنشئ روبوت الدردشة في 3 خطوات سهلة",
-      "steps": [
-        {
+      "steps": {
+        "0": {
           "title": "ربط بياناتك",
           "description": "أدخل عنوان URL لموقعك أو ارفع مستنداتك. يقوم الذكاء الاصطناعي تلقائياً بالزحف وفهرسة كل محتواك.",
           "visual": "جارٍ الزحف على {count} صفحة..."
         },
-        {
+        "1": {
           "title": "تدريب الروبوت",
           "description": "خصّص الردود، وحدد الشخصية، وضبّط كيفية إجابة روبوتك على الأسئلة.",
           "visual": "جارٍ تدريب النموذج..."
         },
-        {
+        "2": {
           "title": "النشر والتضمين",
           "description": "احصل على كود التضمين وأضف روبوت الدردشة إلى موقعك في ثوانٍ. لا حاجة لبرمجة.",
           "visual": "جاهز للنشر!"
         }
-      ]
+      }
     },
     "Testimonials": {
       "badge": "قصص العملاء",
       "title": "محبوب من فرق حول العالم",
-      "items": [
-        {
+      "items": {
+        "0": {
           "quote": "وكيل J.Caesar حوّل دعم عملائنا. انخفضت أوقات الاستجابة بنسبة 80% ورضا العملاء في أعلى مستوياته.",
           "author": "سارة تشين",
           "role": "مديرة تقنية في TechFlow"
         },
-        {
+        "1": {
           "quote": "أسهل منشئ روبوتات دردشة استخدمته على الإطلاق. يُعدّ في 10 دقائق ويفهم منتجنا فعلاً.",
           "author": "ماركوس جونسون",
           "role": "مؤسس StartupXYZ"
         },
-        {
+        "2": {
           "quote": "دربناه على كل وثائقنا، والآن يجيب على 90% من الأسئلة دون تدخل بشري.",
           "author": "إيميلي رودريغيز",
           "role": "رئيسة الدعم في CloudScale"
         }
-      ]
+      }
     },
     "Pricing": {
       "badge": "الأسعار والخطط",
@@ -252,65 +413,65 @@
           "name": "المبتدئ",
           "description": "مثالي للمبتكرين الفرديين",
           "cta": "ابدأ تجربة مجانية",
-          "features": [
-            "وكيل ذكاء اصطناعي واحد",
-            "1,000 رسالة/شهر",
-            "زحف URL أساسي",
-            "تحليلات قياسية",
-            "دعم المجتمع"
-          ]
+          "features": {
+            "0": "وكيل ذكاء اصطناعي واحد",
+            "1": "1,000 رسالة/شهر",
+            "2": "زحف URL أساسي",
+            "3": "تحليلات قياسية",
+            "4": "دعم المجتمع"
+          }
         },
         "Elite": {
           "name": "النخبة",
           "description": "للشركات سريعة النمو",
           "cta": "انضم إلى النخبة",
-          "features": [
-            "10 وكلاء ذكاء اصطناعي",
-            "25,000 رسالة/شهر",
-            "زحف متكرر ذو أولوية",
-            "لوحة تحليلات متعمقة",
-            "وصول كامل للـ API",
-            "قنوات واتساب والويدجت",
-            "دعم عالي الأولوية 24/7"
-          ]
+          "features": {
+            "0": "10 وكلاء ذكاء اصطناعي",
+            "1": "25,000 رسالة/شهر",
+            "2": "زحف متكرر ذو أولوية",
+            "3": "لوحة تحليلات متعمقة",
+            "4": "وصول كامل للـ API",
+            "5": "قنوات واتساب والويدجت",
+            "6": "دعم عالي الأولوية 24/7"
+          }
         },
         "Enterprise": {
           "name": "المؤسسة",
           "description": "تحكم كامل واستقلالية",
           "cta": "تواصل معنا",
-          "features": [
-            "وكلاء ذكاء اصطناعي غير محدودين",
-            "رسائل غير محدودة",
-            "خط RAG مخصص",
-            "ضمان SLA",
-            "ويدجت بالعلامة التجارية الخاصة",
-            "مهندس ذكاء اصطناعي مخصص",
-            "نشر محلي"
-          ]
+          "features": {
+            "0": "وكلاء ذكاء اصطناعي غير محدودين",
+            "1": "رسائل غير محدودة",
+            "2": "خط RAG مخصص",
+            "3": "ضمان SLA",
+            "4": "ويدجت بالعلامة التجارية الخاصة",
+            "5": "مهندس ذكاء اصطناعي مخصص",
+            "6": "نشر محلي"
+          }
         }
       }
     },
     "FAQ": {
       "badge": "الأسئلة الشائعة",
       "title": "أسئلة مطروحة بكثرة",
-      "items": [
-        {
+      "items": {
+        "0": {
           "question": "كيف يعمل تدريب الذكاء الاصطناعي؟",
           "answer": "ببساطة أدخل عنوان URL لموقعك أو ارفع مستندات قاعدة المعرفة. يستخدم نظامنا تقنية RAG المتقدمة لفهرسة المحتوى وبناء نموذج ذكاء خاص بك."
         },
-        {
+        "1": {
           "question": "هل يمكنني تخصيص مظهر روبوت الدردشة؟",
           "answer": "نعم، يمكنك تخصيص الشخصية والألوان ورسالة الترحيب والموضع بالكامل لتتناسب مع هوية علامتك التجارية."
         },
-        {
+        "2": {
           "question": "هل يدعم عدة لغات؟",
           "answer": "بالتأكيد. يدعم J.Caesar أكثر من 50 لغة، بما فيها العربية والإنجليزية والتركية وغيرها مع الكشف التلقائي."
         },
-        {
+        "3": {
           "question": "كيف أضمّنه في موقعي؟",
           "answer": "بعد الإنشاء ستحصل على سطر واحد من الكود. انسخه والصقه في رأس موقعك أو استخدم إضافاتنا الرسمية."
         }
-      ]
+      }
     },
     "CTA": {
       "title": "هل أنت جاهز لأتمتة",
@@ -337,5 +498,14 @@
         "sla": "اتفاقية الخدمة"
       }
     }
+  },
+  "Widget": {
+    "welcomeDefault": "Hi! How can I help you today?",
+    "assistantTitle": "AI Assistant",
+    "online": "Online",
+    "you": "You",
+    "placeholder": "Type a message...",
+    "poweredBy": "Powered by JCaesar Agent",
+    "aiLabel": "AI"
   }
 }

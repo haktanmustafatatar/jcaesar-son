@@ -7,11 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
+import { EnterpriseForm } from "./enterprise-form";
 
 export function Pricing() {
   const [isYearly, setIsYearly] = useState(false);
   const [dbPlans, setDbPlans] = useState<any[]>([]);
   const [isCheckoutLoading, setIsCheckoutLoading] = useState<string | null>(null);
+  const [isEnterpriseFormOpen, setIsEnterpriseFormOpen] = useState(false);
   const t = useTranslations("Landing.Pricing");
 
   const fetchPlans = async () => {
@@ -57,64 +59,34 @@ export function Pricing() {
     }
   };
 
-  const plans = useMemo(() => [
-    {
-      id: dbPlans.find(p => p.slug === "starter")?.id,
-      name: t("plans.Starter.name"),
-      description: t("plans.Starter.description"),
-      monthlyPrice: 29,
-      yearlyPrice: 23,
-      features: [
-        t("plans.Starter.features.0"),
-        t("plans.Starter.features.1"),
-        t("plans.Starter.features.2"),
-        t("plans.Starter.features.3"),
-        t("plans.Starter.features.4"),
+  const plans = useMemo(() => {
+    if (dbPlans.length === 0) return [];
+
+    return dbPlans
+      .sort((a, b) => {
+        if (a.slug === "enterprise") return 1;
+        if (b.slug === "enterprise") return -1;
+        return (a.priceMonthly || 0) - (b.priceMonthly || 0);
+      })
+      .map(p => ({
+      id: p.id,
+      name: p.name,
+      slug: p.slug,
+      description: p.description || t(`plans.${p.name}.description`),
+      monthlyPrice: p.priceMonthly,
+      yearlyPrice: p.priceYearly,
+      features: Array.isArray(p.features) && p.features.length > 0 ? p.features : [
+        `${p.chatbotLimit} AI Chatbots`,
+        `${p.messageLimit.toLocaleString()} Messages / mo`,
+        "Knowledge Base & RAG",
+        "Analytics Dashboard"
       ],
-      cta: t("plans.Starter.cta"),
-      href: "/sign-up",
-      color: "zinc",
-    },
-    {
-      id: dbPlans.find(p => p.slug === "elite")?.id,
-      name: t("plans.Elite.name"),
-      description: t("plans.Elite.description"),
-      monthlyPrice: 79,
-      yearlyPrice: 63,
-      features: [
-        t("plans.Elite.features.0"),
-        t("plans.Elite.features.1"),
-        t("plans.Elite.features.2"),
-        t("plans.Elite.features.3"),
-        t("plans.Elite.features.4"),
-        t("plans.Elite.features.5"),
-        t("plans.Elite.features.6"),
-      ],
-      cta: t("plans.Elite.cta"),
-      href: "/sign-up",
-      popular: true,
-      color: "primary",
-    },
-    {
-      id: dbPlans.find(p => p.slug === "enterprise")?.id,
-      name: t("plans.Enterprise.name"),
-      description: t("plans.Enterprise.description"),
-      monthlyPrice: null,
-      yearlyPrice: null,
-      features: [
-        t("plans.Enterprise.features.0"),
-        t("plans.Enterprise.features.1"),
-        t("plans.Enterprise.features.2"),
-        t("plans.Enterprise.features.3"),
-        t("plans.Enterprise.features.4"),
-        t("plans.Enterprise.features.5"),
-        t("plans.Enterprise.features.6"),
-      ],
-      cta: t("plans.Enterprise.cta"),
-      href: "/contact",
-      color: "zinc",
-    },
-  ], [t, dbPlans]);
+      cta: p.slug === "enterprise" ? "İletişime Geç" : t("plans.Elite.cta"),
+      isEnterprise: p.slug === "enterprise",
+      popular: p.isPopular,
+      color: p.isPopular ? "primary" : "zinc"
+    }));
+  }, [t, dbPlans]);
 
   return (
     <section id="pricing" className="py-32 bg-zinc-50/50 relative overflow-hidden">
@@ -190,13 +162,24 @@ export function Pricing() {
               </div>
 
               <div className="mb-10 min-h-[80px] flex items-end">
-                {plan.monthlyPrice ? (
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-6xl font-black tracking-tighter text-zinc-900">
-                      ${isYearly ? plan.yearlyPrice : plan.monthlyPrice}
-                    </span>
-                    <span className="text-zinc-400 font-bold text-sm">{t("perMonth")}</span>
-                  </div>
+                {plan.isEnterprise ? (
+                  <div className="text-4xl font-black tracking-tighter text-zinc-900 leading-none">Özel Teklif<br/><span className="text-sm text-zinc-400 font-bold uppercase tracking-widest italic">Kurumsal Altyapı</span></div>
+                ) : plan.monthlyPrice ? (
+                  <>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-6xl font-black tracking-tighter text-zinc-900">
+                        ₺{isYearly 
+                          ? (plan.yearlyPrice / 12).toLocaleString('tr-TR', { maximumFractionDigits: 0 }) 
+                          : (plan.monthlyPrice || 0).toLocaleString('tr-TR')}
+                      </span>
+                      <span className="text-zinc-400 font-bold text-sm">{t("perMonth")}</span>
+                    </div>
+                    {isYearly && plan.yearlyPrice && (
+                      <div className="absolute -bottom-6 left-0 text-[10px] font-black text-emerald-500 uppercase tracking-widest">
+                        Yıllık faturalandırılır: ₺{plan.yearlyPrice.toLocaleString('tr-TR')}
+                      </div>
+                    )}
+                  </>
                 ) : (
                   <div className="text-5xl font-black tracking-tighter text-zinc-900 leading-none">{t("contact")}<br/><span className="text-lg text-zinc-400">{t("architecture")}</span></div>
                 )}
@@ -217,7 +200,13 @@ export function Pricing() {
               </div>
 
               <Button
-                onClick={() => plan.id ? handleCheckout(plan.id) : null}
+                onClick={() => {
+                  if (plan.isEnterprise) {
+                    setIsEnterpriseFormOpen(true);
+                  } else if (plan.id) {
+                    handleCheckout(plan.id);
+                  }
+                }}
                 disabled={!!isCheckoutLoading}
                 className={`w-full h-16 rounded-[24px] font-black text-sm uppercase tracking-widest transition-all active:scale-95 group/btn ${
                   plan.popular
@@ -248,6 +237,8 @@ export function Pricing() {
       
       {/* Background Decorative */}
       <div className="absolute top-0 right-0 w-[60%] h-[100%] bg-zinc-100/50 -rotate-12 translate-x-1/2 -z-10 rounded-[100px]" />
+
+      <EnterpriseForm open={isEnterpriseFormOpen} onOpenChange={setIsEnterpriseFormOpen} />
     </section>
   );
 }

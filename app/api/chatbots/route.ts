@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { addCrawlJob } from "@/lib/queue";
+import { createAuditLog } from "@/lib/audit";
 
 // GET /api/chatbots - List all chatbots for the current user
 export async function GET() {
@@ -98,6 +99,12 @@ export async function POST(req: NextRequest) {
       primaryColor,
       avatar,
       language,
+      fontFamily,
+      fontSize,
+      borderRadius,
+      widgetShadow,
+      userMessageColor,
+      assistantMessageColor,
       websiteUrl,
       rawText,
       qnaList,
@@ -124,9 +131,15 @@ export async function POST(req: NextRequest) {
         businessContext: businessContext || null,
         systemPrompt: systemPrompt || "You are a helpful assistant.",
         welcomeMessage: welcomeMessage || "Hi! How can I help you today?",
-        primaryColor: primaryColor || "#e25b31",
+        primaryColor: primaryColor || "#000000",
         avatar: avatar || null,
-        language: language || "en",
+        language: language || "tr",
+        fontFamily: fontFamily || "Inter, sans-serif",
+        fontSize: fontSize || "14px",
+        borderRadius: borderRadius || "24px",
+        widgetShadow: widgetShadow || "0 20px 40px -8px rgba(0,0,0,0.15)",
+        userMessageColor: userMessageColor || "#000000",
+        assistantMessageColor: assistantMessageColor || "#f4f4f5",
         userId,
         status: "TRAINING",
         // Nested creation of DataSources
@@ -140,7 +153,7 @@ export async function POST(req: NextRequest) {
               crawlDepth: maxDepth || 3,
               crawlSchedule: crawlSchedule || "never",
               urls: {
-                create: (links || []).map((link: string) => ({
+                create: (Array.isArray(links) ? [...new Set(links)] : []).map((link: any) => ({
                   url: link,
                   status: "PENDING" as any,
                 }))
@@ -175,44 +188,74 @@ export async function POST(req: NextRequest) {
       const createdDataSources = (chatbot as any).dataSources;
       
       for (const ds of createdDataSources) {
+        // Shared local bypass logic
+        const isDev = process.env.NODE_ENV === "development";
+
         if (ds.type === "WEBSITE" && websiteUrl) {
-          // If we have specific links, we should probably pass them, 
-          // but for now the crawler handles discovery or takes the root.
           await addCrawlJob({
             type: "crawl-website",
             url: websiteUrl,
-            urls: links, // Pass specific links if provided
+            urls: links,
             chatbotId: chatbot.id,
             dataSourceId: ds.id,
             userId,
             maxDepth: maxDepth || 3,
             limit: crawlLimit || 100,
           });
+
+          if (isDev) {
+            const { crawlWebsite } = require("@/lib/crawler");
+            (async () => {
+              try {
+                await crawlWebsite({ url: websiteUrl, maxDepth: maxDepth || 3, limit: crawlLimit || 100, chatbotId: chatbot.id, dataSourceId: ds.id, userId });
+              } catch (e) { console.error("[BypassError]", e); }
+            })();
+          }
         } else if (ds.type === "TEXT" && rawText) {
-          await addCrawlJob({
-            type: "process-document",
+          const jobData = {
+            type: "process-document" as any,
             fileUrl: "text-input",
             fileType: "text/plain",
             chatbotId: chatbot.id,
             dataSourceId: ds.id,
             userId,
             content: rawText
-          } as any);
+          };
+          await addCrawlJob(jobData);
+
+          if (isDev) {
+            const { processDocument } = require("@/lib/crawler");
+            (async () => {
+              try {
+                await processDocument({ fileUrl: "text-input", fileType: "text/plain", chatbotId: chatbot.id, dataSourceId: ds.id, content: rawText });
+              } catch (e) { console.error("[BypassError]", e); }
+            })();
+          }
         } else if (ds.type === "QNA" && qnaList) {
           const qnaContent = qnaList
             .filter((qa: any) => qa.question?.trim())
             .map((qa: any) => `Question: ${qa.question}\nAnswer: ${qa.answer}`)
             .join("\n\n");
 
-          await addCrawlJob({
-            type: "process-document",
+          const jobData = {
+            type: "process-document" as any,
             fileUrl: "qna-input",
             fileType: "text/plain",
             chatbotId: chatbot.id,
             dataSourceId: ds.id,
             userId,
             content: qnaContent
-          } as any);
+          };
+          await addCrawlJob(jobData);
+
+          if (isDev) {
+            const { processDocument } = require("@/lib/crawler");
+            (async () => {
+              try {
+                await processDocument({ fileUrl: "qna-input", fileType: "text/plain", chatbotId: chatbot.id, dataSourceId: ds.id, content: qnaContent });
+              } catch (e) { console.error("[BypassError]", e); }
+            })();
+          }
         }
       }
     } catch (jobError) {
@@ -220,11 +263,25 @@ export async function POST(req: NextRequest) {
       // We don't throw here to avoid 500 if the chatbot is already created
     }
 
+    await createAuditLog({
+      userId: user?.id,
+      userEmail: user?.email,
+      action: "CREATE_CHATBOT",
+      entityType: "CHATBOT",
+      entityId: chatbot.id,
+      metadata: { name: chatbot.name, slug: chatbot.slug }
+    });
+
     return NextResponse.json(chatbot, { status: 201 });
   } catch (error: any) {
-    console.error("Error creating chatbot:", error);
+    console.error("[ChatbotAPI] Detailed Error:", error);
     return NextResponse.json(
-      { error: error?.message || "Failed to create chatbot" },
+      { 
+        error: error?.message || "Failed to create chatbot",
+        details: error?.stack,
+        code: error?.code,
+        meta: error?.meta
+      },
       { status: 500 }
     );
   }

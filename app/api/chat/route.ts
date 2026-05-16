@@ -2,8 +2,9 @@ import { streamText, StreamData } from "ai";
 import { NextRequest } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
-import { LLM_MODELS, performRAGSearch, streamRAGResponse } from "@/lib/ai";
+import { LLM_MODELS, performRAGSearch, streamRAGResponse, analyzeConversationSentiment, checkAndNotifyMissingKnowledge } from "@/lib/ai";
 import { addTokenUsageJob } from "@/lib/queue";
+import { checkPlanLimits } from "@/lib/plan-guard";
 
 export async function POST(req: NextRequest) {
   try {
@@ -21,6 +22,16 @@ export async function POST(req: NextRequest) {
 
     if (!chatbot || chatbot.status !== "ACTIVE") {
       return new Response("Chatbot not found or inactive", { status: 404 });
+    }
+
+    // Check Plan Limits
+    const { allowed, reason, limit } = await checkPlanLimits(chatbotId);
+    if (!allowed) {
+      return new Response(JSON.stringify({ 
+        error: "Usage limit reached", 
+        code: reason,
+        limit 
+      }), { status: 403, headers: { "Content-Type": "application/json" } });
     }
 
     // Konuşmayı bul veya oluştur
@@ -124,6 +135,16 @@ export async function POST(req: NextRequest) {
           promptTokens,
           completionTokens,
         });
+
+        // Trigger Sentiment Analysis (Async background)
+        analyzeConversationSentiment(conversation.id).catch(e => console.error("[Sentiment] Background error:", e));
+
+        // Trigger Missing Knowledge Check (Async background)
+        checkAndNotifyMissingKnowledge({
+          conversationId: conversation.id,
+          chatbotId,
+          aiResponse: completion.text
+        }).catch(e => console.error("[SmartSuggestion] Background error:", e));
       },
     });
 

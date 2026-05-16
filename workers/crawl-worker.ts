@@ -24,9 +24,9 @@ export const crawlWorker = new Worker(
 
     // Worker Memory Protection
     const freeMemGB = os.freemem() / (1024 * 1024 * 1024);
-    if (freeMemGB < 0.5) { // less than 500MB free
-      logger.warn({ freeMemGB }, "[CrawlWorker] Low memory detected. Throwing to retry later.");
-      throw new Error("Worker OOM protection: Low memory, retrying later.");
+    if (freeMemGB < 0.2) { // less than 200MB free
+      logger.warn({ freeMemGB }, "[CrawlWorker] Extremely low memory detected. Throwing to retry later.");
+      throw new Error("Worker OOM protection: Extremely low memory, retrying later.");
     }
 
     try {

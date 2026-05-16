@@ -46,7 +46,7 @@ export class NeuralIndexer {
     dataSourceId?: string;
     knowledgeSourceId?: string;
   }) {
-    if (!content || content.trim().length < 100) {
+    if (!content || content.trim().length < 10) {
       console.warn(`[NeuralIndexer] Skipping thin content for ${url || title}`);
       return 0;
     }
@@ -127,15 +127,37 @@ export class NeuralIndexer {
    */
   static async updateStatus(id: string, type: "data" | "knowledge", status: "COMPLETED" | "ERROR", extra = {}) {
     if (type === "data") {
-      await prisma.dataSource.update({
+      const source = await prisma.dataSource.update({
         where: { id },
         data: { status, ...extra }
       });
+      
+      // Auto-activate chatbot if it was in TRAINING status
+      if (status === "COMPLETED") {
+        await prisma.chatbot.updateMany({
+          where: { 
+            id: source.chatbotId,
+            status: "TRAINING" 
+          },
+          data: { status: "ACTIVE" }
+        });
+      }
     } else {
-      await prisma.knowledgeSource.update({
+      const source = await prisma.knowledgeSource.update({
         where: { id },
         data: { status, ...extra }
       });
+
+      // Knowledge sources might also activate chatbot or just update its intelligence
+      if (status === "COMPLETED" && source.chatbotId) {
+        await prisma.chatbot.updateMany({
+          where: { 
+            id: source.chatbotId,
+            status: "TRAINING" 
+          },
+          data: { status: "ACTIVE" }
+        });
+      }
     }
   }
 }

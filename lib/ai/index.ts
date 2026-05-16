@@ -466,3 +466,104 @@ export async function performRAGSearch({
 
   return { context, sources };
 }
+
+/**
+ * Analyzes the overall sentiment of a conversation
+ * Categories: POSITIVE, NEUTRAL, NEGATIVE, FRUSTRATED
+ */
+export async function analyzeConversationSentiment(conversationId: string) {
+  try {
+    const messages = await prisma.message.findMany({
+      where: { conversationId },
+      orderBy: { createdAt: "asc" },
+      take: 20, // Analyze the context of the last 20 messages
+    });
+
+    if (messages.length < 2) return null;
+
+    const conversationText = messages
+      .map((m) => `${m.role}: ${m.content}`)
+      .join("\n");
+
+    const { text } = await generateText({
+      model: LLM_MODELS["gpt-4o-mini"].provider,
+      prompt: `Analyze the sentiment of the following conversation between a user and an AI assistant. 
+      Categorize it as one of the following: POSITIVE, NEUTRAL, NEGATIVE, or FRUSTRATED.
+      Only return the category name in uppercase.
+
+      Conversation:
+      ${conversationText}
+      
+      Sentiment:`,
+    });
+
+    const sentiment = text.trim().toUpperCase();
+    const validSentiments = ["POSITIVE", "NEUTRAL", "NEGATIVE", "FRUSTRATED"];
+    
+    if (validSentiments.includes(sentiment)) {
+      await prisma.conversation.update({
+        where: { id: conversationId },
+        data: { sentiment }
+      });
+      return sentiment;
+    }
+  } catch (error) {
+    console.error("[AI] Sentiment analysis failed:", error);
+  }
+  return null;
+}
+
+/**
+ * Checks if the AI response indicates missing knowledge and notifies the user
+ */
+export async function checkAndNotifyMissingKnowledge({
+  conversationId,
+  chatbotId,
+  aiResponse,
+}: {
+  conversationId: string;
+  chatbotId: string;
+  aiResponse: string;
+}) {
+  try {
+    // Patterns that suggest the AI doesn't know the answer
+    const missingKnowledgePatterns = [
+      "don't have enough information",
+      "not mentioned in the provided context",
+      "bilgim yok",
+      "verilen metinde bulunmamaktadır",
+      "üzgünüm, bu konuda bilgim yok",
+      "yeterli bilgiye sahip değilim",
+      "I don't know",
+      "I'm sorry, I cannot find"
+    ];
+
+    const isMissingKnowledge = missingKnowledgePatterns.some(pattern => 
+      aiResponse.toLowerCase().includes(pattern.toLowerCase())
+    );
+
+    if (isMissingKnowledge) {
+      const chatbot = await prisma.chatbot.findUnique({
+        where: { id: chatbotId },
+        select: { userId: true, name: true }
+      });
+
+      if (chatbot) {
+        // Create a notification for the user
+        await prisma.notification.create({
+          data: {
+            userId: chatbot.userId,
+            title: "Smart Suggestion: Missing Knowledge",
+            message: `Your chatbot "${chatbot.name}" was unable to answer a question. Add more data to its knowledge base to improve accuracy.`,
+            type: "SUGGESTION",
+            link: `/dashboard/chatbots/${chatbotId}/knowledge`
+          }
+        });
+        
+        console.log(`[SmartSuggestion] Notification created for chatbot ${chatbotId}`);
+      }
+    }
+  } catch (error) {
+    console.error("[SmartSuggestion] Failed to check/notify:", error);
+  }
+}

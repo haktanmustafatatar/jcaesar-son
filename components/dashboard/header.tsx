@@ -8,6 +8,7 @@ import { MobileSidebar } from "./mobile-sidebar";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
+import { NotificationCenter } from "./notification-center";
 
 export function DashboardHeader() {
   const pathname = usePathname();
@@ -67,11 +68,7 @@ export function DashboardHeader() {
 
           <LanguageSwitcher />
 
-          {/* Notifications */}
-          <Button variant="ghost" size="icon" className="relative h-10 w-10 text-zinc-500 hover:text-zinc-950 hover:bg-zinc-50 rounded-xl">
-            <Bell className="w-5 h-5" />
-            <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-primary rounded-full border-2 border-white" />
-          </Button>
+          <NotificationCenter />
         </div>
       </div>
     </header>

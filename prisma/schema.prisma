@@ -23,6 +23,7 @@ model User {
   subscriptions    Subscription[]
   teamMemberships  TeamMember[]
   tokenUsages      TokenUsage[]
+  notifications    Notification[]
   organization     Organization?  @relation(fields: [organizationId], references: [id])
 }
 
@@ -107,6 +108,13 @@ model Chatbot {
   avatar             String?
   language           String              @default("tr")
   widgetMode         WidgetMode          @default(FLOAT)
+  // Advanced Customization
+  fontFamily         String              @default("Inter, sans-serif")
+  fontSize           String              @default("14px")
+  borderRadius       String              @default("16px")
+  widgetShadow       String              @default("0 20px 40px -8px rgba(0,0,0,0.15)")
+  userMessageColor   String              @default("#18181b")
+  assistantMessageColor String           @default("#f4f4f5")
   collectLeads       Boolean             @default(false)
   handoffEnabled     Boolean             @default(true)
   status             ChatbotStatus       @default(DRAFT)
@@ -204,6 +212,7 @@ model Conversation {
   userAgent     String?
   country       String?
   tags          Json?
+  sentiment     String?
   createdAt     DateTime           @default(now())
   updatedAt     DateTime           @updatedAt
   chatbot       Chatbot            @relation(fields: [chatbotId], references: [id], onDelete: Cascade)
@@ -429,4 +438,48 @@ model KnowledgeSource {
   updatedAt DateTime @updatedAt
   chatbot   Chatbot  @relation(fields: [chatbotId], references: [id], onDelete: Cascade)
   documents Document[]
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  userEmail  String?
+  action     String   // e.g., "CREATE_CHATBOT", "DELETE_SOURCE", "UPDATE_SETTINGS"
+  entityType String   // e.g., "CHATBOT", "DATA_SOURCE", "USER"
+  entityId   String?
+  metadata   Json?    // e.g., { ip: "...", old: {...}, new: {...} }
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([action])
+  @@index([entityType])
+}
+
+model Notification {
+  id          String   @id @default(cuid())
+  userId      String
+  title       String
+  message     String
+  link        String?
+  read        Boolean  @default(false)
+  type        String   @default("INFO") // INFO, WARNING, SUGGESTION
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([read])
+}
+
+model Lead {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  company   String
+  phone     String?
+  message   String
+  status    String   @default("PENDING") // PENDING, CONTACTED, CLOSED
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([email])
 }

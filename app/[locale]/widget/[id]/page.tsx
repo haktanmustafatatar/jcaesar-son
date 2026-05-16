@@ -74,9 +74,14 @@ export default function WidgetPage() {
   }
 
   const primaryColor = chatbot?.primaryColor || "#e25b31";
+  const fontFamily = chatbot?.fontFamily || "Inter, sans-serif";
+  const borderRadius = chatbot?.borderRadius || "16px";
 
   return (
-    <div className="flex flex-col h-screen bg-white text-zinc-900 border-none">
+    <div 
+      className="flex flex-col h-screen bg-white text-zinc-900 border-none overflow-hidden"
+      style={{ fontFamily }}
+    >
       {/* Header */}
       <div className="p-4 flex items-center justify-between shadow-sm border-b" style={{ backgroundColor: primaryColor }}>
         <div className="flex items-center gap-3">
@@ -103,13 +108,17 @@ export default function WidgetPage() {
             {messages.map((message, i) => (
               <motion.div
                 key={i}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
+                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
                 className={`flex items-start gap-3 ${message.role === "user" ? "flex-row-reverse" : ""}`}
               >
-                <div className={`shrink-0 w-8 h-8 rounded-xl flex items-center justify-center shadow-sm ${
-                  message.role === "user" ? "bg-zinc-900" : "bg-white border"
-                }`}>
+                <div 
+                  className={`shrink-0 w-8 h-8 flex items-center justify-center shadow-sm ${
+                    message.role === "user" ? "bg-zinc-950" : "bg-white border"
+                  }`}
+                  style={{ borderRadius: `calc(${borderRadius} / 2)` }}
+                >
                   {message.role === "user" ? (
                     <User className="w-4 h-4 text-white" />
                   ) : (
@@ -117,11 +126,19 @@ export default function WidgetPage() {
                   )}
                 </div>
                 <div className={`max-w-[85%] space-y-1`}>
-                  <div className={`p-4 rounded-2xl text-sm leading-relaxed ${
-                    message.role === "user" 
-                    ? "bg-zinc-900 text-white rounded-tr-none" 
-                    : "bg-white border text-zinc-700 rounded-tl-none shadow-sm"
-                  }`}>
+                  <div 
+                    className={`p-4 text-[14px] leading-relaxed transition-all duration-300 ${
+                      message.role === "user" 
+                      ? "text-white" 
+                      : "bg-white border text-zinc-700 shadow-sm"
+                    }`}
+                    style={{ 
+                      borderRadius: `calc(${borderRadius} / 1.5)`,
+                      backgroundColor: message.role === "user" ? primaryColor : "white",
+                      borderBottomLeftRadius: message.role === "assistant" ? "4px" : undefined,
+                      borderBottomRightRadius: message.role === "user" ? "4px" : undefined,
+                    }}
+                  >
                     {message.content}
                   </div>
                 </div>
@@ -130,13 +147,16 @@ export default function WidgetPage() {
           </AnimatePresence>
           {isTyping && (
             <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-xl bg-white border flex items-center justify-center">
+              <div className="w-8 h-8 bg-white border flex items-center justify-center" style={{ borderRadius: `calc(${borderRadius} / 2)` }}>
                 <Bot className="w-4 h-4 text-zinc-400" />
               </div>
-              <div className="bg-white border p-4 rounded-2xl rounded-tl-none flex gap-1">
-                <span className="w-1 h-1 bg-zinc-300 rounded-full animate-bounce" />
-                <span className="w-1 h-1 bg-zinc-300 rounded-full animate-bounce [animation-delay:0.2s]" />
-                <span className="w-1 h-1 bg-zinc-300 rounded-full animate-bounce [animation-delay:0.4s]" />
+              <div 
+                className="bg-white border p-4 flex gap-1 shadow-sm"
+                style={{ borderRadius: `calc(${borderRadius} / 1.5)`, borderBottomLeftRadius: "4px" }}
+              >
+                <span className="w-1.5 h-1.5 bg-zinc-300 rounded-full animate-bounce" />
+                <span className="w-1.5 h-1.5 bg-zinc-300 rounded-full animate-bounce [animation-delay:0.2s]" />
+                <span className="w-1.5 h-1.5 bg-zinc-300 rounded-full animate-bounce [animation-delay:0.4s]" />
               </div>
             </div>
           )}
@@ -148,7 +168,8 @@ export default function WidgetPage() {
       <div className="p-4 bg-white border-t">
         <form onSubmit={handleSubmit} className="relative flex items-center gap-2">
           <Input 
-            className="h-12 rounded-xl bg-zinc-50 border-zinc-200 focus:bg-white transition-all pr-12"
+            className="h-12 bg-zinc-50 border-zinc-200 focus:bg-white transition-all pr-12 focus:ring-0 focus:border-zinc-300"
+            style={{ borderRadius: `calc(${borderRadius} / 2)` }}
             placeholder="Write a message..."
             value={input}
             onChange={handleInputChange}
@@ -157,15 +178,15 @@ export default function WidgetPage() {
             type="submit"
             size="icon"
             disabled={!input.trim() || isTyping}
-            className="absolute right-1 top-1 h-10 w-10 rounded-lg shadow-lg active:scale-95 transition-all text-white"
-            style={{ backgroundColor: primaryColor }}
+            className="absolute right-1 top-1 h-10 w-10 shadow-lg active:scale-95 transition-all text-white"
+            style={{ backgroundColor: primaryColor, borderRadius: `calc(${borderRadius} / 2.5)` }}
           >
             <Send className="w-4 h-4" />
           </Button>
         </form>
         {chatbot?.showBranding && (
-          <p className="text-center text-[9px] font-bold text-zinc-400 uppercase tracking-widest mt-3">
-            Powered by <span className="text-primary">JCaesar AI</span>
+          <p className="text-center text-[9px] font-bold text-zinc-400 uppercase tracking-widest mt-3 opacity-60">
+            Powered by <span className="text-primary font-black">JCaesar AI</span>
           </p>
         )}
       </div>

@@ -105,6 +105,10 @@ function SettingsPage() {
   const [metaSessionId, setMetaSessionId] = useState<string | null>(null);
   const [isDeletingKS, setIsDeletingKS] = useState<string | null>(null);
   const [editMode, setEditMode] = useState(false);
+  const [viewContentOpen, setViewContentOpen] = useState(false);
+  const [viewingSource, setViewingSource] = useState<any>(null);
+  const [sourceContent, setSourceContent] = useState("");
+  const [isLoadingContent, setIsLoadingContent] = useState(false);
 
 
   useEffect(() => {
@@ -215,6 +219,26 @@ function SettingsPage() {
     }
   };
 
+  const handleViewContent = async (source: any) => {
+    setViewingSource(source);
+    setViewContentOpen(true);
+    setIsLoadingContent(true);
+    setSourceContent("");
+    try {
+      const res = await fetch(`/api/chatbots/${id}/source-content?dataSourceId=${source.id}`);
+      if (res.ok) {
+        const data = await res.json();
+        setSourceContent(data.content);
+      } else {
+        toast.error("Failed to fetch source content");
+      }
+    } catch (err) {
+      toast.error("Error connecting to neural engine");
+    } finally {
+      setIsLoadingContent(false);
+    }
+  };
+
   const handleSave = async () => {
     setIsSaving(true);
     try {
@@ -276,7 +300,7 @@ function SettingsPage() {
       </div>
 
       <Tabs defaultValue="general" className="space-y-10">
-        <TabsList className="bg-zinc-100/50 p-1.5 rounded-3xl border border-zinc-200">
+        <TabsList className="bg-zinc-100/50 p-1.5 rounded-3xl border border-zinc-200 h-auto flex flex-wrap lg:flex-nowrap gap-1">
           <TabsTrigger value="general" className="rounded-2xl px-8 h-12 font-bold data-[state=active]:bg-white data-[state=active]:shadow-lg">
             <Bot className="w-4 h-4 mr-2" /> General
           </TabsTrigger>
@@ -289,9 +313,11 @@ function SettingsPage() {
           <TabsTrigger value="training" className="rounded-2xl px-8 h-12 font-bold data-[state=active]:bg-white data-[state=active]:shadow-lg">
             <Zap className="w-4 h-4 mr-2" /> Training
           </TabsTrigger>
-          <TabsTrigger value="channels" className="rounded-2xl px-8 h-12 font-bold data-[state=active]:bg-white data-[state=active]:shadow-lg">
-            <Share2 className="w-4 h-4 mr-2" /> {t("tabLabel") || "Channels"}
-          </TabsTrigger>
+          <Link href={`/dashboard/chatbots/${id}/integrations`} className="flex-1 lg:flex-none">
+            <Button variant="ghost" className="w-full rounded-2xl px-8 h-12 font-bold hover:bg-zinc-50 transition-all text-zinc-500 hover:text-zinc-950">
+              <Share2 className="w-4 h-4 mr-2" /> {t("tabLabel") || "Channels"}
+            </Button>
+          </Link>
         </TabsList>
 
         <TabsContent value="general" className="animate-in fade-in zoom-in-95 duration-500">
@@ -561,9 +587,77 @@ function SettingsPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* Advanced Styling Section */}
+                <div className="pt-10 space-y-8 border-t border-zinc-100">
+                  <div className="flex items-center gap-2">
+                    <Type className="w-4 h-4 text-zinc-400" />
+                    <h3 className="text-sm font-bold text-zinc-900">Advanced Styling</h3>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="space-y-4">
+                      <Label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest pl-1">Font Family</Label>
+                      <Select value={formData.fontFamily} onValueChange={(v) => setFormData({ ...formData, fontFamily: v })}>
+                        <SelectTrigger className="h-14 rounded-2xl bg-zinc-50 border-zinc-100 focus:bg-white transition-all">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-2xl">
+                          <SelectItem value="Inter, sans-serif">Inter (Modern)</SelectItem>
+                          <SelectItem value="'Outfit', sans-serif">Outfit (Premium)</SelectItem>
+                          <SelectItem value="'Plus Jakarta Sans', sans-serif">Jakarta (Clean)</SelectItem>
+                          <SelectItem value="system-ui, sans-serif">System Default</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-4">
+                      <Label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest pl-1">Border Radius</Label>
+                      <div className="pt-2 px-2">
+                        <Slider 
+                          value={[parseInt(formData.borderRadius || "16")]} 
+                          min={0} 
+                          max={40} 
+                          step={4}
+                          onValueChange={([v]) => setFormData({...formData, borderRadius: `${v}px`})}
+                        />
+                        <div className="flex justify-between mt-2 text-[10px] font-bold text-zinc-400 uppercase tracking-tighter">
+                          <span>Sharp</span>
+                          <span>{formData.borderRadius}</span>
+                          <span>Round</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="space-y-4">
+                      <Label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest pl-1">User Message Color</Label>
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-xl border border-zinc-200 shadow-sm" style={{ backgroundColor: formData.userMessageColor }} />
+                        <Input 
+                          value={formData.userMessageColor} 
+                          onChange={(e) => setFormData({...formData, userMessageColor: e.target.value})}
+                          className="h-14 flex-1 rounded-2xl bg-zinc-50 border-zinc-100"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-4">
+                      <Label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest pl-1">Assistant Message Color</Label>
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-xl border border-zinc-200 shadow-sm" style={{ backgroundColor: formData.assistantMessageColor }} />
+                        <Input 
+                          value={formData.assistantMessageColor} 
+                          onChange={(e) => setFormData({...formData, assistantMessageColor: e.target.value})}
+                          className="h-14 flex-1 rounded-2xl bg-zinc-50 border-zinc-100"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-6 border-t border-zinc-100">
                   <div className="space-y-4">
-                    <Label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest pl-1">Integration Message</Label>
+                    <Label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest pl-1">Welcome Message</Label>
                     <Input 
                       value={formData.welcomeMessage ?? ""} 
                       onChange={(e) => {
@@ -724,6 +818,16 @@ function SettingsPage() {
                                 </td>
                                 <td className="px-6 py-4 text-right">
                                   <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <Button 
+                                      variant="ghost" 
+                                      size="icon" 
+                                      className="h-9 w-9 rounded-xl hover:bg-zinc-100 text-zinc-400"
+                                      title="View Content"
+                                      onClick={() => handleViewContent(source)}
+                                    >
+                                      <Bot className="w-4 h-4" />
+                                    </Button>
+
                                     {(source.type === 'TEXT' || source.type === 'QA' || source.type === 'QNA') ? (
                                       <Button 
                                         variant="ghost" 
@@ -1279,8 +1383,42 @@ function SettingsPage() {
           </Dialog>
 
       </Tabs>
+      {/* Neural View Modal */}
+      <Dialog open={viewContentOpen} onOpenChange={setViewContentOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh] flex flex-col p-0 overflow-hidden rounded-[40px] border-zinc-100 shadow-2xl">
+          <DialogHeader className="p-8 border-b border-zinc-100 bg-zinc-50/50">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-zinc-950 flex items-center justify-center">
+                <Database className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <DialogTitle className="text-xl font-bold">Neural Knowledge Audit</DialogTitle>
+                <DialogDescription className="text-zinc-400 font-medium">Viewing extracted intelligence from <span className="text-zinc-900 font-bold">{viewingSource?.name}</span></DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+          <div className="flex-1 overflow-hidden">
+            {isLoadingContent ? (
+              <div className="flex flex-col items-center justify-center h-64 gap-4">
+                <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Extracting Knowledge...</p>
+              </div>
+            ) : (
+              <ScrollArea className="h-full p-8 bg-white">
+                <div className="font-mono text-sm leading-relaxed text-zinc-600 whitespace-pre-wrap selection:bg-primary selection:text-white">
+                  {sourceContent || "No readable content found for this source."}
+                </div>
+              </ScrollArea>
+            )}
+          </div>
+          <DialogFooter className="p-6 border-t border-zinc-100 bg-zinc-50/50">
+            <Button onClick={() => setViewContentOpen(false)} className="rounded-2xl h-12 px-8 font-bold bg-zinc-950 text-white hover:bg-zinc-900">
+              Done Auditing
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
-
   );
 }
 

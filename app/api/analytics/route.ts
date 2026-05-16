@@ -71,6 +71,23 @@ export async function GET(req: NextRequest) {
       color: s.channel === 'widget' ? '#3b82f6' : s.channel === 'whatsapp' ? '#10b981' : s.channel === 'instagram' ? '#ec4899' : '#64748b'
     }));
 
+    // 4. Sentiment Analysis
+    const sentimentRaw = await prisma.conversation.groupBy({
+      by: ['sentiment'],
+      where: {
+        chatbotId: { in: chatbotIds },
+        createdAt: { gte: startDate },
+        sentiment: { not: null }
+      },
+      _count: true
+    });
+
+    const sentimentData = sentimentRaw.map(s => ({
+      name: s.sentiment || "NEUTRAL",
+      value: s._count,
+      color: s.sentiment === 'POSITIVE' ? '#10b981' : s.sentiment === 'NEGATIVE' ? '#ef4444' : s.sentiment === 'FRUSTRATED' ? '#f59e0b' : '#64748b'
+    }));
+
     // 4. Token Usage & Cost
     const tokenStats = await prisma.tokenUsage.aggregate({
       where: {
@@ -146,6 +163,7 @@ export async function GET(req: NextRequest) {
       totalCost: tokenStats._sum.cost || 0,
       totalTokens: tokenStats._sum.tokensUsed || 0,
       sourceData,
+      sentimentData,
       trendData,
       botPerformance: botPerformance.sort((a, b) => b.msgs - a.msgs)
     });

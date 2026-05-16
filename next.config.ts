@@ -1,3 +1,4 @@
+// Force reload for Prisma Client sync
 import type { NextConfig } from "next";
 import createNextIntlPlugin from 'next-intl/plugin';
 

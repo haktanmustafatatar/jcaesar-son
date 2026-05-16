@@ -49,7 +49,10 @@
       "chatbots": "Chatbots",
       "conversations": "Conversations",
       "analytics": "Analytique",
-      "settings": "Paramètres"
+      "settings": "Paramètres",
+      "overview": "Aperçu",
+      "integrations": "Intégrations",
+      "embed": "Intégrer"
     },
     "header": {
       "freePlan": "Plan Gratuit",
@@ -108,7 +111,8 @@
             "initializing": "Initialisation de l'intelligence...",
             "dashboardBtn": "Tableau de bord",
             "embedBtn": "Code d'intégration",
-            "timeNote": "Ce processus prend généralement 2 à 5 minutes selon la taille de votre site."
+            "timeNote": "Ce processus prend généralement 2 à 5 minutes selon la taille de votre site.",
+            "trainingShort": "Training..."
           },
           "modal": {
             "websiteTitle": "Sources du site",
@@ -119,9 +123,52 @@
             "urlLabel": "URL du site cible",
             "fetching": "RÉCUPÉRATION...",
             "fetchLinks": "RÉCUPÉRER LES LIENS",
-            "advancedOptions": "Options avancées"
+            "advancedOptions": "Options avancées",
+            "maxDepth": "Crawl Depth",
+            "pageLimit": "Page Limit",
+            "crawlSchedule": "Auto-Crawl Schedule",
+            "istanbulTime": "Istanbul Time",
+            "load": "LOAD"
+          },
+          "intro": {
+            "title": "Build Your Agent",
+            "description": "Let's analyze your website and build a custom AI experience in seconds.",
+            "urlLabel": "Your Website",
+            "useCaseLabel": "Use Case",
+            "useCases": {
+              "general": "General Assistant",
+              "sales": "Sales Agent",
+              "support": "Customer Support"
+            },
+            "analyzing": "Analyzing...",
+            "continue": "Continue",
+            "or": "OR",
+            "manual": "Add Manually",
+            "analysis": {
+              "logo": "Fetching logo",
+              "color": "Fetching brand color",
+              "links": "Fetching links",
+              "prompt": "Adjusting prompt"
+            }
+          },
+          "sources": {
+            "title": "Knowledge Sources",
+            "description": "Select the knowledge sources you want to use to train your AI agent.",
+            "types": {
+              "file": "Files",
+              "text": "Text",
+              "website": "Website",
+              "qa": "Q&A"
+            },
+            "next": "Train & continue",
+            "back": "Back",
+            "summary": "Sources Summary",
+            "totalSize": "Total size",
+            "noSources": "No sources added yet"
           }
-        }
+        },
+        "description": "Welcome back! Here's what's happening with your chatbots.",
+        "createButton": "Create Chatbot"
       }
     },
     "channels": {
@@ -155,6 +202,120 @@
         "verifyTokenTitle": "Verify Token",
         "verifyTokenDesc": "Use this token in your Meta Developer Portal webhook settings:",
         "submit": "Verify & Connect Channel"
+      },
+      "tabLabel": "Channels"
+    },
+    "overview": {
+      "title": "Tableau de bord",
+      "welcome": "Bienvenue ! Voici ce qui se passe avec vos chatbots.",
+      "createChatbot": "Créer un chatbot",
+      "stats": {
+        "totalChatbots": "Total Chatbots",
+        "conversations": "Conversations",
+        "messages": "Messages",
+        "activeUsers": "Utilisateurs actifs",
+        "fromLastMonth": "par rapport au mois dernier"
+      },
+      "recentChatbots": {
+        "title": "Chatbots récents",
+        "viewAll": "Tout voir",
+        "conversationsLabel": "conversations",
+        "status": {
+          "active": "Actif",
+          "draft": "Brouillon"
+        },
+        "subtitle": "Status of your neural agents",
+        "noData": "No active agents found"
+      },
+      "recentConversations": {
+        "title": "Conversations récentes",
+        "viewAll": "Tout voir",
+        "subtitle": "Latest user interactions",
+        "noData": "No recent conversations"
+      },
+      "subtitle": "Overview of your neural agents and performance metrics.",
+      "loading": "Syncing Intelligence...",
+      "noData": "No active agents found. Create your first one to get started."
+    },
+    "chatbotDetail": {
+      "status": {
+        "active": "Opérationnel",
+        "training": "Synchronisation"
+      },
+      "defaultDescription": "Unité d'intelligence IA autonome",
+      "settings": "Paramètres",
+      "embedCode": "Code d'intégration",
+      "liveStatus": "Réseau neuronal actif",
+      "resetForge": "Réinitialiser la forge",
+      "placeholder": "Tapez un message pour tester l'IA {name}...",
+      "poweredBy": "Propulsé par le moteur RAG autonome JCaesar",
+      "configTitle": "Configuration neuronale",
+      "memoryLabel": "Mémoire",
+      "activeRAG": "actif (RAG)",
+      "statsTitle": "Stats de la base de connaissances",
+      "sourcesLabel": "Sources",
+      "chatsLabel": "Chats",
+      "viewAnalytics": "Voir les analyses détaillées",
+      "needAPI": "Besoin d'un accès API ?",
+      "apiDesc": "Connectez votre agent à des applications tierces via notre infrastructure API haute performance.",
+      "checkDocs": "Consulter la doc",
+      "prompt": "Prompt",
+      "response": "Response"
+    },
+    "integrations": {
+      "title": "Integrations Hub",
+      "neuralConnect": "Neural Connect",
+      "refreshStatus": "Refresh Status",
+      "searchPlaceholder": "Search modules...",
+      "categories": {
+        "all": "All",
+        "ecommerce": "E-Commerce",
+        "social": "Social",
+        "productivity": "Productivity"
+      },
+      "status": {
+        "connected": "Connected",
+        "disconnected": "Disconnected",
+        "configurable": "Configurable",
+        "ready": "Ready"
+      },
+      "expertAssistance": {
+        "title": "Global Connectivity",
+        "subtitle": "Without Compromise.",
+        "description": "Our neural agents are designed to flow through every platform. From Shopify checkout to WhatsApp DM, maintain one identity.",
+        "integrity": "Network Integrity",
+        "expertsReady": "Neural Experts Ready",
+        "expertsDesc": "Need a custom integration? Let's talk.",
+        "consultBtn": "Consult Agent"
+      }
+    },
+    "embed": {
+      "title": "Go Live",
+      "controlCenter": "Control Center",
+      "workerOnline": "Worker Online",
+      "deploymentHealth": "Deployment Health",
+      "enterpriseVerified": "Enterprise Verified",
+      "nativeWebClient": "Native Web Client",
+      "directScript": "Direct Script",
+      "scriptDescription": "Our neural widget is compatible with every modern framework. Simply inject the code into your global header.",
+      "copyCode": "Copy Production Code",
+      "copySuccess": "Copied Successfully",
+      "cdnAccelerated": "Global CDN Accelerated",
+      "secure": "Secure",
+      "utf8Ready": "UTF-8 Ready",
+      "omnichannelEco": "Omnichannel Ecosystem",
+      "modulesActive": "{count} Modules Active",
+      "liveIntelligence": "Live Intelligence",
+      "knowledgeWeight": "Knowledge Weight",
+      "neuralLatency": "Neural Latency",
+      "systemHealth": "System Health",
+      "memory": "Memory",
+      "ioLoad": "IO Load",
+      "neuralRefresh": "Neural Refresh",
+      "expertSupport": {
+        "title": "Expert Support",
+        "description": "Need help with custom CSS or API integrations?",
+        "chatBtn": "Chat with Specialist"
       }
     }
   },
@@ -195,44 +356,44 @@
     "HowItWorks": {
       "badge": "Processus simple",
       "title": "Créez votre chatbot en 3 étapes simples",
-      "steps": [
-        {
+      "steps": {
+        "0": {
           "title": "Connectez vos données",
           "description": "Entrez l'URL de votre site ou téléchargez des documents. Notre IA explore et indexe automatiquement tout votre contenu.",
           "visual": "Exploration de {count} pages..."
         },
-        {
+        "1": {
           "title": "Entraînez votre bot",
           "description": "Personnalisez les réponses, définissez la personnalité et affinez la manière dont votre bot répond aux questions.",
           "visual": "Entraînement du modèle..."
         },
-        {
+        "2": {
           "title": "Déployez et intégrez",
           "description": "Obtenez votre code d'intégration et ajoutez le chatbot à votre site en quelques secondes. Sans aucun codage.",
           "visual": "Prêt à déployer!"
         }
-      ]
+      }
     },
     "Testimonials": {
       "badge": "Témoignages clients",
       "title": "Plébiscité par des équipes du monde entier",
-      "items": [
-        {
+      "items": {
+        "0": {
           "quote": "L'agent J.Caesar a transformé notre support client. Les temps de réponse ont chuté de 80% et la satisfaction client est à son plus haut niveau.",
           "author": "Sarah Chen",
           "role": "Directrice technique chez TechFlow"
         },
-        {
+        "1": {
           "quote": "Le constructeur de chatbot le plus simple que j'aie jamais utilisé. Configuré en 10 minutes, et il comprend vraiment notre produit.",
           "author": "Marcus Johnson",
           "role": "Fondateur de StartupXYZ"
         },
-        {
+        "2": {
           "quote": "Nous l'avons entraîné sur toute notre documentation. Il répond maintenant à 90% des questions sans intervention humaine.",
           "author": "Emily Rodriguez",
           "role": "Responsable support chez CloudScale"
         }
-      ]
+      }
     },
     "Pricing": {
       "badge": "Tarifs et plans",
@@ -252,65 +413,65 @@
           "name": "Starter",
           "description": "Idéal pour les innovateurs solo",
           "cta": "Commencer l'essai gratuit",
-          "features": [
-            "1 agent IA",
-            "1 000 messages/mois",
-            "Exploration URL basique",
-            "Analytiques standard",
-            "Support communautaire"
-          ]
+          "features": {
+            "0": "1 agent IA",
+            "1": "1 000 messages/mois",
+            "2": "Exploration URL basique",
+            "3": "Analytiques standard",
+            "4": "Support communautaire"
+          }
         },
         "Elite": {
           "name": "Elite",
           "description": "Pour les entreprises en forte croissance",
           "cta": "Passer à Elite",
-          "features": [
-            "10 agents IA",
-            "25 000 messages/mois",
-            "Exploration récursive prioritaire",
-            "Tableau de bord analytique avancé",
-            "Accès API complet",
-            "Canaux WhatsApp et widget",
-            "Support prioritaire 24/7"
-          ]
+          "features": {
+            "0": "10 agents IA",
+            "1": "25 000 messages/mois",
+            "2": "Exploration récursive prioritaire",
+            "3": "Tableau de bord analytique avancé",
+            "4": "Accès API complet",
+            "5": "Canaux WhatsApp et widget",
+            "6": "Support prioritaire 24/7"
+          }
         },
         "Enterprise": {
           "name": "Entreprise",
           "description": "Contrôle total et autonomie",
           "cta": "Contacter l'équipe",
-          "features": [
-            "Agents IA illimités",
-            "Messages illimités",
-            "Pipeline RAG personnalisé",
-            "Garantie SLA",
-            "Widget en marque blanche",
-            "Architecte IA dédié",
-            "Déploiement sur site"
-          ]
+          "features": {
+            "0": "Agents IA illimités",
+            "1": "Messages illimités",
+            "2": "Pipeline RAG personnalisé",
+            "3": "Garantie SLA",
+            "4": "Widget en marque blanche",
+            "5": "Architecte IA dédié",
+            "6": "Déploiement sur site"
+          }
         }
       }
     },
     "FAQ": {
       "badge": "FAQ",
       "title": "Questions fréquemment posées",
-      "items": [
-        {
+      "items": {
+        "0": {
           "question": "Comment fonctionne l'entraînement IA ?",
           "answer": "Fournissez simplement l'URL de votre site ou téléchargez vos documents base de connaissances. Notre système utilise le RAG avancé pour indexer votre contenu."
         },
-        {
+        "1": {
           "question": "Puis-je personnaliser l'apparence du chatbot ?",
           "answer": "Oui, vous pouvez entièrement personnaliser l'avatar, les couleurs, le message de bienvenue et le placement pour correspondre à votre identité de marque."
         },
-        {
+        "2": {
           "question": "Prend-il en charge plusieurs langues ?",
           "answer": "Absolument. J.Caesar supporte plus de 50 langues, dont le français, l'anglais, l'arabe et plus encore, avec détection automatique."
         },
-        {
+        "3": {
           "question": "Comment l'intégrer à mon site ?",
           "answer": "Après la création, vous obtiendrez une seule ligne de script. Copiez-la et collez-la dans l'en-tête de votre site ou utilisez nos plugins officiels."
         }
-      ]
+      }
     },
     "CTA": {
       "title": "Prêt à automatiser votre",
@@ -337,5 +498,14 @@
         "sla": "SLA Architecture"
       }
     }
+  },
+  "Widget": {
+    "welcomeDefault": "Hi! How can I help you today?",
+    "assistantTitle": "AI Assistant",
+    "online": "Online",
+    "you": "You",
+    "placeholder": "Type a message...",
+    "poweredBy": "Powered by JCaesar Agent",
+    "aiLabel": "AI"
   }
 }

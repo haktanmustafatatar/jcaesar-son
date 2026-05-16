@@ -100,8 +100,8 @@ export default function UserSettingsPage() {
                     <Zap className="h-5 w-5 text-primary" />
                   </div>
                   <div className="space-y-1">
-                    <h3 className="text-sm font-bold">Pro Plan Active</h3>
-                    <p className="text-[10px] text-zinc-400 font-medium leading-relaxed">Your subscription will renew on May 12, 2024.</p>
+                     <h3 className="text-sm font-bold">Planınız Aktif</h3>
+                     <p className="text-[10px] text-zinc-400 font-medium leading-relaxed">Bir sonraki yenileme tarihiniz Mayıs 12, 2024.</p>
                   </div>
                   <Button size="sm" className="w-full bg-white text-zinc-950 hover:bg-zinc-200 text-[11px] font-bold h-9 rounded-xl">
                     View Billing
@@ -271,7 +271,7 @@ export default function UserSettingsPage() {
                               <div className="p-3 bg-emerald-50 rounded-2xl">
                                  <MessageSquare className="w-6 h-6 text-emerald-600" />
                               </div>
-                              <span className="text-[10px] font-bold px-2.5 py-1 bg-emerald-100 text-emerald-700 rounded-lg">82% USED</span>
+                              <span className="text-[10px] font-bold px-2.5 py-1 bg-emerald-100 text-emerald-700 rounded-lg">KULLANIM: %82</span>
                            </div>
                            <div className="space-y-2">
                               <div className="flex items-end justify-between px-1">
@@ -297,7 +297,7 @@ export default function UserSettingsPage() {
                               <div className="p-3 bg-blue-50 rounded-2xl">
                                  <Bot className="w-6 h-6 text-blue-600" />
                               </div>
-                              <span className="text-[10px] font-bold px-2.5 py-1 bg-blue-100 text-blue-700 rounded-lg">40% USED</span>
+                              <span className="text-[10px] font-bold px-2.5 py-1 bg-blue-100 text-blue-700 rounded-lg">KULLANIM: %40</span>
                            </div>
                            <div className="space-y-2">
                               <div className="flex items-end justify-between px-1">
@@ -347,11 +347,11 @@ export default function UserSettingsPage() {
                            </div>
 
                            <div className="flex flex-col items-center justify-center p-8 bg-white/5 rounded-[40px] border border-white/10 backdrop-blur-xl min-w-[240px]">
-                              <span className="text-sm font-bold text-zinc-400 mb-1">Billing cycle</span>
-                              <p className="text-3xl font-bold">Monthly</p>
+                              <span className="text-sm font-bold text-zinc-400 mb-1">Faturalandırma</span>
+                              <p className="text-3xl font-bold">Aylık</p>
                               <div className="w-full h-px bg-white/10 my-6" />
-                              <span className="text-sm font-bold text-primary mb-1">Next Payment</span>
-                              <p className="text-xl font-bold">May 12, 2024</p>
+                              <span className="text-sm font-bold text-primary mb-1">Sonraki Ödeme</span>
+                              <p className="text-xl font-bold">12 Mayıs 2024</p>
                            </div>
                         </div>
                      </CardContent>

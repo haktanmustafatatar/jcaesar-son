@@ -74,7 +74,7 @@ export default function DashboardPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
         <Loader2 className="w-8 h-8 text-zinc-300 animate-spin" />
-        <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest animate-pulse">Syncing Intelligence...</p>
+        <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest animate-pulse">{t("loading")}</p>
       </div>
     );
   }
@@ -141,7 +141,7 @@ export default function DashboardPage() {
           <CardHeader className="flex flex-row items-center justify-between border-b border-zinc-50 py-8 px-10">
             <div>
               <CardTitle className="text-xl font-black text-zinc-950">{t("recentChatbots.title")}</CardTitle>
-              <p className="text-xs font-medium text-zinc-400 mt-1">Status of your neural agents</p>
+              <p className="text-xs font-medium text-zinc-400 mt-1">{t("recentChatbots.subtitle")}</p>
             </div>
             <Link href="/dashboard/chatbots">
               <Button variant="ghost" size="sm" className="text-zinc-500 font-bold hover:text-zinc-950 hover:bg-zinc-50 rounded-xl px-4">
@@ -186,9 +186,9 @@ export default function DashboardPage() {
                   </div>
                 </div>
               ))}
-              {(!data?.recentChatbots || data.recentChatbots.length === 0) && (
+               {(!data?.recentChatbots || data.recentChatbots.length === 0) && (
                 <div className="py-12 text-center">
-                  <p className="text-sm font-bold text-zinc-400 uppercase tracking-widest">No active agents found</p>
+                  <p className="text-sm font-bold text-zinc-400 uppercase tracking-widest">{t("recentChatbots.noData")}</p>
                 </div>
               )}
             </div>
@@ -198,9 +198,9 @@ export default function DashboardPage() {
         {/* Recent Conversations */}
         <Card className="border-none shadow-2xl shadow-zinc-200/50 rounded-[40px] overflow-hidden bg-white">
           <CardHeader className="flex flex-row items-center justify-between border-b border-zinc-50 py-8 px-10">
-            <div>
+             <div>
               <CardTitle className="text-xl font-black text-zinc-950">{t("recentConversations.title")}</CardTitle>
-              <p className="text-xs font-medium text-zinc-400 mt-1">Latest user interactions</p>
+              <p className="text-xs font-medium text-zinc-400 mt-1">{t("recentConversations.subtitle")}</p>
             </div>
             <Link href="/dashboard/conversations">
               <Button variant="ghost" size="sm" className="text-zinc-500 font-bold hover:text-zinc-950 hover:bg-zinc-50 rounded-xl px-4">
@@ -229,9 +229,9 @@ export default function DashboardPage() {
                   </span>
                 </div>
               ))}
-              {(!data?.recentConversations || data.recentConversations.length === 0) && (
+               {(!data?.recentConversations || data.recentConversations.length === 0) && (
                 <div className="py-12 text-center">
-                  <p className="text-sm font-bold text-zinc-400 uppercase tracking-widest">No recent conversations</p>
+                  <p className="text-sm font-bold text-zinc-400 uppercase tracking-widest">{t("recentConversations.noData")}</p>
                 </div>
               )}
             </div>

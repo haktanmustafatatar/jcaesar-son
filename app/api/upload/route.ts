@@ -101,6 +101,27 @@ export async function POST(req: NextRequest) {
       userId: user.id,
     });
 
+    // Local Development Bypass: Process immediately if on local
+    if (process.env.NODE_ENV === "development") {
+      const { processDocument } = require("@/lib/crawler");
+      console.log(`[UploadBypass] Local environment detected. Auto-processing: ${file.name}`);
+      
+      // Run in background
+      (async () => {
+        try {
+          await processDocument({
+            fileUrl,
+            fileType: file.type,
+            chatbotId,
+            dataSourceId: dataSource.id,
+          });
+          console.log(`[UploadBypass] Successfully processed: ${file.name}`);
+        } catch (err) {
+          console.error(`[UploadBypass] Failed to process ${file.name}:`, err);
+        }
+      })();
+    }
+
     return NextResponse.json({
       success: true,
       dataSourceId: dataSource.id,

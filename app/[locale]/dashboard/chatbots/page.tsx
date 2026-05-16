@@ -233,7 +233,7 @@ export default function ChatbotsPage() {
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: chatbots.length * 0.05 + 0.1, duration: 0.5 }}
+            transition={{ delay: (chatbots?.length || 0) * 0.05 + 0.1, duration: 0.5 }}
           >
             <Link href="/dashboard/chatbots/new" className="block h-full">
               <Card className="h-full flex flex-col items-center justify-center p-10 rounded-[40px] border-2 border-dashed border-zinc-200 hover:border-primary/50 hover:bg-primary/5 transition-all duration-500 cursor-pointer min-h-[360px] group">

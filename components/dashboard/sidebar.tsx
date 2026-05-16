@@ -13,6 +13,7 @@ import {
   Database,
   ChevronLeft,
   ChevronRight,
+  Share2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
@@ -25,9 +26,23 @@ export function DashboardSidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const t = useTranslations("Dashboard.sidebar");
 
+  const chatbotIdMatch = pathname.match(/\/dashboard\/chatbots\/([^\/]+)/);
+  const chatbotId = chatbotIdMatch ? chatbotIdMatch[1] : null;
+  const isNewChatbot = chatbotId === "new";
+
   const navItems = [
     { href: "/dashboard", label: t("dashboard"), icon: LayoutDashboard },
     { href: "/dashboard/chatbots", label: t("chatbots"), icon: Bot },
+  ];
+
+  const chatbotNavItems = chatbotId && !isNewChatbot ? [
+    { href: `/dashboard/chatbots/${chatbotId}`, label: t("overview") || "Overview", icon: BarChart3 },
+    { href: `/dashboard/chatbots/${chatbotId}/integrations`, label: t("integrations") || "Integrations", icon: Share2 },
+    { href: `/dashboard/chatbots/${chatbotId}/settings`, label: t("settings"), icon: Settings },
+    { href: `/dashboard/chatbots/${chatbotId}/embed`, label: t("embed") || "Embed", icon: Plus },
+  ] : [];
+
+  const footerNavItems = [
     { href: "/dashboard/inbox", label: t("conversations"), icon: MessageSquare },
     { href: "/dashboard/analytics", label: t("analytics"), icon: BarChart3 },
     { href: "/dashboard/settings", label: t("settings"), icon: Settings },
@@ -99,26 +114,80 @@ export function DashboardSidebar() {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 px-3 py-4 space-y-1">
-          {navItems.map((item) => {
-            const isActive = pathname === item.href;
-            return (
-              <Link
-                key={item.href}
-                href={item.href as any}
-                className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-all",
-                  isActive
-                    ? "bg-zinc-950 text-white shadow-lg shadow-black/5"
-                    : "text-zinc-500 hover:bg-zinc-50 hover:text-zinc-950",
-                  collapsed && "justify-center px-1"
-                )}
-              >
-                <item.icon className={cn("w-5 h-5 flex-shrink-0", isActive ? "text-white" : "text-zinc-400")} />
-                {!collapsed && <span>{item.label}</span>}
-              </Link>
-            );
-          })}
+        <nav className="flex-1 px-3 py-4 space-y-8 overflow-y-auto scrollbar-hide">
+          {/* Main Section */}
+          <div className="space-y-1">
+            {!collapsed && <p className="px-3 mb-2 text-[10px] font-black uppercase tracking-widest text-zinc-400">Main</p>}
+            {navItems.map((item) => {
+              const isActive = pathname === item.href;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href as any}
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-all",
+                    isActive
+                      ? "bg-zinc-950 text-white shadow-lg shadow-black/5"
+                      : "text-zinc-500 hover:bg-zinc-50 hover:text-zinc-950",
+                    collapsed && "justify-center px-1"
+                  )}
+                >
+                  <item.icon className={cn("w-5 h-5 flex-shrink-0", isActive ? "text-white" : "text-zinc-400")} />
+                  {!collapsed && <span>{item.label}</span>}
+                </Link>
+              );
+            })}
+          </div>
+
+          {/* Chatbot Specific Section */}
+          {chatbotNavItems.length > 0 && (
+            <div className="space-y-1">
+              {!collapsed && <p className="px-3 mb-2 text-[10px] font-black uppercase tracking-widest text-zinc-400">Agent</p>}
+              {chatbotNavItems.map((item) => {
+                const isActive = pathname === item.href;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href as any}
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-all",
+                      isActive
+                        ? "bg-primary text-white shadow-lg shadow-primary/20"
+                        : "text-zinc-500 hover:bg-zinc-50 hover:text-zinc-950",
+                      collapsed && "justify-center px-1"
+                    )}
+                  >
+                    <item.icon className={cn("w-5 h-5 flex-shrink-0", isActive ? "text-white" : "text-zinc-400")} />
+                    {!collapsed && <span>{item.label}</span>}
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Footer Section */}
+          <div className="space-y-1">
+            {!collapsed && <p className="px-3 mb-2 text-[10px] font-black uppercase tracking-widest text-zinc-400">System</p>}
+            {footerNavItems.map((item) => {
+              const isActive = pathname === item.href;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href as any}
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-all",
+                    isActive
+                      ? "bg-zinc-950 text-white shadow-lg shadow-black/5"
+                      : "text-zinc-500 hover:bg-zinc-50 hover:text-zinc-950",
+                    collapsed && "justify-center px-1"
+                  )}
+                >
+                  <item.icon className={cn("w-5 h-5 flex-shrink-0", isActive ? "text-white" : "text-zinc-400")} />
+                  {!collapsed && <span>{item.label}</span>}
+                </Link>
+              );
+            })}
+          </div>
         </nav>
 
         {/* User */}

@@ -18,20 +18,20 @@ services:
       - pgbouncer
       - redis
 
-  # Background Worker (Crawl & Social Channels)
-  worker:
-    build: .
-    container_name: jcaesar-worker
-    restart: always
-    command: npm run start:worker
-    environment:
-      - DATABASE_URL=postgresql://jcaesar_user:jcaesar_password@pgbouncer:6432/jcaesar_db?pgbouncer=true&connection_limit=10
-      - REDIS_URL=redis://redis:6379
-    env_file:
-      - .env
-    depends_on:
-      - pgbouncer
-      - redis
+  # Background Worker (Disabled for Local Dev - Bypass active in code)
+  # worker:
+  #   build: .
+  #   container_name: jcaesar-worker
+  #   restart: always
+  #   command: npm run start:worker
+  #   environment:
+  #     - DATABASE_URL=postgresql://jcaesar_user:jcaesar_password@pgbouncer:6432/jcaesar_db?pgbouncer=true&connection_limit=10
+  #     - REDIS_URL=redis://redis:6379
+  #   env_file:
+  #     - .env
+  #   depends_on:
+  #     - pgbouncer
+  #     - redis
 
   # Database: PostgreSQL + pgvector
   db:
