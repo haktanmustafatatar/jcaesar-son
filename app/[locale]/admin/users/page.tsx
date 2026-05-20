@@ -111,6 +111,27 @@ export default function UsersPage() {
     }
   };
 
+  const handleImpersonate = async (userId: string) => {
+    try {
+      toast.loading("Giriş bileti oluşturuluyor...", { id: "impersonate" });
+      const res = await fetch("/api/admin/impersonate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ targetUserId: userId })
+      });
+      
+      const data = await res.json();
+      if (res.ok && data.url) {
+        toast.success("Bağlantı kuruldu! Yönlendiriliyorsunuz...", { id: "impersonate" });
+        window.location.href = data.url;
+      } else {
+        toast.error(data.error || "Giriş başarısız oldu", { id: "impersonate" });
+      }
+    } catch (error) {
+      toast.error("Sistem hatası", { id: "impersonate" });
+    }
+  };
+
   const filteredUsers = users.filter((user) => {
     const matchesSearch =
       user.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -258,6 +279,12 @@ export default function UsersPage() {
                               <DropdownMenuSeparator className="bg-white/5" />
                               <DropdownMenuItem className="rounded-2xl px-4 py-3 text-sm font-bold text-white hover:bg-white/5 cursor-pointer">
                                  <UserIcon className="w-4 h-4 mr-3 text-primary" /> Profil Detayları
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                onClick={() => handleImpersonate(user.id)}
+                                className="rounded-2xl px-4 py-3 text-sm font-bold text-white hover:bg-white/5 cursor-pointer"
+                              >
+                                 <Bot className="w-4 h-4 mr-3 text-emerald-400" /> Müşteri Paneline Geçiş Yap
                               </DropdownMenuItem>
                               <DropdownMenuItem className="rounded-2xl px-4 py-3 text-sm font-bold text-white hover:bg-white/5 cursor-pointer">
                                  <Mail className="w-4 h-4 mr-3 text-blue-400" /> Protokol Gönder

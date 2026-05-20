@@ -317,6 +317,58 @@
         "description": "Need help with custom CSS or API integrations?",
         "chatBtn": "Chat with Specialist"
       }
+    },
+    "Calendar": {
+      "title": "Calendar Management",
+      "subtitle": "Manage your appointments autonomously or manually.",
+      "newAppointment": "New Appointment",
+      "today": "Today",
+      "scheduledEvents": "Scheduled Events",
+      "dailyFlow": "Daily Flow",
+      "noAppointments": "No appointments for this day.",
+      "edit": "Edit",
+      "delete": "Delete",
+      "cancel": "Cancel",
+      "save": "Save",
+      "deleteConfirm": "Are you sure you want to delete this appointment?",
+      "appointmentTitle": "Appointment Title",
+      "dateAndTime": "Date & Time",
+      "price": "Price",
+      "selectAgent": "Select Agent (Bot)",
+      "customerEmail": "Customer Email",
+      "status": {
+        "paid": "PAID",
+        "unpaid": "PENDING PAYMENT"
+      }
+    },
+    "CRM": {
+      "title": "Customer Portfolio",
+      "subtitle": "Customer data captured and enriched automatically by your chatbots.",
+      "totalContacts": "Total Contacts",
+      "hotLeads": "Hot Leads",
+      "newLeads": "New Leads",
+      "activeBots": "Active Bots",
+      "searchPlaceholder": "Search customer...",
+      "massCampaign": "Mass Campaign",
+      "noData": "No Data Yet",
+      "noDataDesc": "Your bots haven't captured any customer info yet.",
+      "edit": "Edit",
+      "delete": "Delete",
+      "notes": "Notes",
+      "status": {
+        "new": "NEW",
+        "qualified": "QUALIFIED",
+        "closed": "CLOSED"
+      },
+      "campaign": {
+        "title": "Send Mass Campaign",
+        "subtitle": "Send bulk emails to all customers of the selected bot.",
+        "targetGroup": "Target Chatbot Group",
+        "subject": "Email Subject",
+        "message": "Message Content",
+        "send": "Start Sending",
+        "cancel": "Cancel"
+      }
     }
   },
   "Admin": {
@@ -470,6 +522,22 @@
         "3": {
           "question": "Wie bette ich es auf meiner Website ein?",
           "answer": "Nach der Erstellung erhalten Sie eine einzelne Script-Zeile. Kopieren Sie diese und fügen Sie sie in den Header Ihrer Website ein oder verwenden Sie unsere offiziellen Plugins."
+        },
+        "4": {
+          "question": "Kann ich meine eigenen APIs integrieren?",
+          "answer": "Ja! JCaesar unterstützt benutzerdefinierte API (Webhook) Integrationen. Sie können Ihre eigenen HTTP-Endpunkte definieren, damit die KI mit Ihren internen Systemen interagieren kann."
+        },
+        "5": {
+          "question": "Wie sicher sind meine Daten?",
+          "answer": "Wir verwenden AES-256 Verschlüsselung für gespeicherte Daten und TLS 1.3 für die Datenübertragung. Ihre Dokumente sind strikt isoliert."
+        },
+        "6": {
+          "question": "Gibt es ein integriertes CRM?",
+          "answer": "Ja, JCaesar bietet ein integriertes CRM und Kalendersystem. Gewonnene Leads werden automatisch im CRM gespeichert."
+        },
+        "7": {
+          "question": "Was passiert, wenn ich mein Limit überschreite?",
+          "answer": "Sie erhalten eine E-Mail, bevor Ihr Limit erreicht ist. Sie können Ihr Paket jederzeit upgraden."
         }
       }
     },

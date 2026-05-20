@@ -12,6 +12,12 @@ export async function checkPlanLimits(chatbotId: string) {
               select: { chatbots: true }
             }
           }
+        },
+        user: {
+          select: {
+            email: true,
+            name: true
+          }
         }
       }
     });
@@ -36,13 +42,13 @@ export async function checkPlanLimits(chatbotId: string) {
 
     if (messageCount >= plan.messageLimit) {
       // Trigger limit reached notification if not already sent
-      await createLimitNotification(chatbot.userId, orgId, plan.name, "100%");
+      await createLimitNotification(chatbot.userId, chatbot.user?.email || undefined, chatbot.user?.name || undefined, orgId, plan.name, "100%");
       return { allowed: false, reason: "MESSAGE_LIMIT_REACHED", limit: plan.messageLimit };
     }
 
     // Check for 80% threshold
     if (messageCount >= plan.messageLimit * 0.8) {
-      await createLimitNotification(chatbot.userId, orgId, plan.name, "80%");
+      await createLimitNotification(chatbot.userId, chatbot.user?.email || undefined, chatbot.user?.name || undefined, orgId, plan.name, "80%");
     }
 
     return { allowed: true, current: messageCount, limit: plan.messageLimit };
@@ -52,7 +58,14 @@ export async function checkPlanLimits(chatbotId: string) {
   }
 }
 
-async function createLimitNotification(userId: string, orgId: string, planName: string, threshold: string) {
+async function createLimitNotification(
+  userId: string, 
+  userEmail: string | undefined, 
+  userName: string | undefined,
+  orgId: string, 
+  planName: string, 
+  threshold: string
+) {
   const title = `Usage Alert: ${threshold} Reached`;
   const message = `Your ${planName} plan has reached ${threshold} of its monthly message limit. Upgrade now to avoid service interruption.`;
   
@@ -75,6 +88,38 @@ async function createLimitNotification(userId: string, orgId: string, planName: 
         link: "/dashboard/settings/billing"
       }
     });
+
+    // Send email alert to user
+    if (userEmail) {
+      const { sendEmail } = await import("./email");
+      await sendEmail({
+        to: userEmail,
+        subject: `[J.Caesar Alert] ${threshold} Plan Limit Reached`,
+        html: `
+          <div style="font-family: sans-serif; padding: 24px; max-width: 600px; border: 1px solid #eaeaea; borderRadius: 16px;">
+            <h2 style="color: #4f46e5; margin-bottom: 16px;">Hello ${userName || 'Valued Customer'},</h2>
+            <p style="font-size: 15px; color: #374151; line-height: 1.6;">
+              This is an automated alert from <strong>J.Caesar</strong>. 
+              Your active plan (<strong>${planName}</strong>) has reached <strong>${threshold}</strong> of its monthly message usage limit.
+            </p>
+            <div style="background-color: #f9fafb; padding: 16px; border-radius: 8px; margin: 24px 0; border-left: 4px solid #4f46e5;">
+              <p style="margin: 0; font-size: 14px; color: #4b5563;">
+                To ensure your customers don't face service interruptions or offline chatbots, we highly recommend upgrading your plan.
+              </p>
+            </div>
+            <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://jcaesar.com'}/dashboard/settings/billing" 
+               style="display: inline-block; background-color: #4f46e5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 14px;">
+              Upgrade My Plan
+            </a>
+            <p style="font-size: 12px; color: #9ca3af; margin-top: 32px; border-top: 1px solid #eaeaea; padding-top: 16px;">
+              If you have any questions or need enterprise-grade resources, reply directly to this mail.
+            </p>
+          </div>
+        `
+      }).catch(err => {
+        console.error("[LimitEmail] Failed to send limit email:", err);
+      });
+    }
   }
 }
 

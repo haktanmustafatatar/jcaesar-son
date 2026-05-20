@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { userId: clerkId } = await auth();
@@ -12,6 +12,7 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { id: chatbotId } = await params;
     const { searchParams } = new URL(req.url);
     const dataSourceId = searchParams.get("dataSourceId");
 
@@ -23,7 +24,7 @@ export async function GET(
     const dataSource = await prisma.dataSource.findFirst({
       where: {
         id: dataSourceId,
-        chatbotId: params.id,
+        chatbotId: chatbotId,
         chatbot: { userId: (await prisma.user.findUnique({ where: { clerkId } }))?.id }
       },
       include: {

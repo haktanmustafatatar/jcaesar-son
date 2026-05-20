@@ -110,27 +110,27 @@ export default function AdminDashboard() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <StatCard 
             title="Total Users" 
-            value={stats?.overview.totalUsers} 
+            value={stats?.overview?.totalUsers ?? 0} 
             subValue="+12% from last month" 
             icon={Users} 
             trend="up"
           />
           <StatCard 
             title="Active Chatbots" 
-            value={stats?.overview.totalChatbots} 
+            value={stats?.overview?.totalChatbots ?? 0} 
             subValue="Across all organizations" 
             icon={Bot} 
           />
           <StatCard 
             title="Token Consumption" 
-            value={(stats?.overview.totalTokens / 1000).toFixed(1) + "k"} 
+            value={(((stats?.overview?.totalTokens ?? 0) / 1000)).toFixed(1) + "k"} 
             subValue="Global usage volume" 
             icon={Cpu} 
             trend="up"
           />
           <StatCard 
             title="Est. Revenue" 
-            value={"$" + stats?.overview.totalRevenue.toFixed(2)} 
+            value={"$" + (stats?.overview?.totalRevenue ?? 0).toFixed(2)} 
             subValue="Total value generated" 
             icon={DollarSign} 
             trend="up"

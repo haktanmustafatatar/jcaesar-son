@@ -8,16 +8,20 @@ import { createAuditLog } from "@/lib/audit";
 export async function GET() {
   try {
     const { userId: clerkId } = await auth();
+    console.log("[ChatbotAPI GET] clerkId from auth():", clerkId);
     
     if (!clerkId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const user = await prisma.user.findUnique({
-      where: { clerkId }
+      where: { clerkId: clerkId as string }
     });
+    
+    console.log("[ChatbotAPI GET] user found in DB:", !!user, user?.id);
 
     if (!user) {
+      // Auto-sync missing user if possible? Wait, we'll just log it for now
       return NextResponse.json([]);
     }
 
@@ -30,6 +34,8 @@ export async function GET() {
       },
       orderBy: { createdAt: "desc" },
     });
+    
+    console.log("[ChatbotAPI GET] chatbots found:", chatbots.length);
 
     return NextResponse.json(chatbots);
   } catch (error) {
@@ -52,7 +58,7 @@ export async function POST(req: NextRequest) {
 
     // Ensure user exists in our DB (Auto-sync if missing)
     let user = await prisma.user.findUnique({
-      where: { clerkId }
+      where: { clerkId: clerkId as string }
     });
     
     if (!user) {
@@ -86,6 +92,36 @@ export async function POST(req: NextRequest) {
     }
 
     const userId = user.id;
+
+    // Plan Gating & Chatbot Limit Checks
+    const activeSub = await prisma.subscription.findFirst({
+      where: {
+        userId,
+        status: { in: ["ACTIVE", "TRIALING"] }
+      },
+      include: {
+        plan: true
+      }
+    });
+
+    const isBypassed = user.role === "ADMIN" || user.role === "SUPERADMIN";
+
+    if (!isBypassed) {
+      if (!activeSub) {
+        return NextResponse.json({ error: "Active subscription required to forge AI Chatbots." }, { status: 403 });
+      }
+
+      const currentChatbotCount = await prisma.chatbot.count({
+        where: { userId }
+      });
+
+      const limit = activeSub.plan.chatbotLimit;
+      if (currentChatbotCount >= limit) {
+        return NextResponse.json({ 
+          error: `You have reached the maximum of ${limit} chatbots allowed on the ${activeSub.plan.name} plan. Please upgrade your subscription to create more agents.` 
+        }, { status: 403 });
+      }
+    }
 
     const body = await req.json();
     const {
@@ -275,6 +311,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(chatbot, { status: 201 });
   } catch (error: any) {
     console.error("[ChatbotAPI] Detailed Error:", error);
+    
+    // SEND ADMIN ALERT ON CRITICAL FAILURE
+    const { sendAdminAlert } = await import("@/lib/email");
+    await sendAdminAlert(
+      "Agent Creation Failed", 
+      "An error occurred while a user was trying to forge a new AI Agent.", 
+      { errorMessage: error?.message, stack: error?.stack }
+    ).catch(() => {});
+
     return NextResponse.json(
       { 
         error: error?.message || "Failed to create chatbot",

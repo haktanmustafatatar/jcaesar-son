@@ -4,14 +4,14 @@ import { prisma } from "@/lib/prisma";
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { userId } = await auth();
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const { status } = await req.json();
-    const { id } = params;
+    const { id } = await params;
 
     try {
       await prisma.$executeRaw`UPDATE "Lead" SET status = ${status}, "updatedAt" = NOW() WHERE id = ${id}`;

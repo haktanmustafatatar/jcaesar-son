@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
 
     const { planId, interval } = await req.json();
 
-    const user = await prisma.user.findUnique({ where: { clerkId } });
+    const user = await prisma.user.findUnique({ where: { clerkId: clerkId as string } });
     if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
     const plan = await prisma.plan.findUnique({ where: { id: planId } });

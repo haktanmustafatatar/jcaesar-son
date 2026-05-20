@@ -28,7 +28,7 @@ export async function POST(
     const message = lastMessage.content;
 
     // 1. Get Chatbot & User
-    const user = await prisma.user.findUnique({ where: { clerkId } });
+    const user = await prisma.user.findUnique({ where: { clerkId: clerkId as string } });
     const chatbot = await prisma.chatbot.findUnique({
       where: { id: chatbotId },
       include: {

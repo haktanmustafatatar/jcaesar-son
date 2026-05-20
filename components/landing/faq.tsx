@@ -30,6 +30,22 @@ export function FAQ() {
       question: t("items.3.question"),
       answer: t("items.3.answer"),
     },
+    {
+      question: t("items.4.question"),
+      answer: t("items.4.answer"),
+    },
+    {
+      question: t("items.5.question"),
+      answer: t("items.5.answer"),
+    },
+    {
+      question: t("items.6.question"),
+      answer: t("items.6.answer"),
+    },
+    {
+      question: t("items.7.question"),
+      answer: t("items.7.answer"),
+    },
   ], [t]);
 
   return (

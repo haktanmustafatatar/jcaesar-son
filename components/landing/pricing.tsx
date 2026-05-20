@@ -188,7 +188,7 @@ export function Pricing() {
               <div className="space-y-6 mb-12 flex-1">
                  <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">{t("everythingIn", { name: plan.name })}</p>
                  <ul className="space-y-4">
-                   {plan.features.map((feature) => (
+                   {plan.features.map((feature: string) => (
                      <li key={feature} className="flex items-start gap-3">
                        <div className={`mt-1 w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${plan.popular ? 'bg-primary/10 text-primary' : 'bg-zinc-100 text-zinc-400'}`}>
                           <Check className="w-3 h-3 stroke-[3]" />

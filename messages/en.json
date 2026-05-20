@@ -61,209 +61,6 @@
     },
     "chatbots": {
       "new": {
-        "title": "Create New Chatbot",
-        "description": "Welcome back! Here's what's happening with your chatbots.",
-        "createButton": "Create Chatbot",
-        "steps": {
-          "intro": "Intro",
-          "sources": "Sources",
-          "ui": "Agent's UI",
-          "personality": "Personality",
-          "deploy": "Deploy"
-        },
-        "wizard": {
-          "intro": {
-            "title": "Build Your Agent",
-            "description": "Let's analyze your website and build a custom AI experience in seconds.",
-            "urlLabel": "Your Website",
-            "useCaseLabel": "Use Case",
-            "useCases": {
-              "general": "General Assistant",
-              "sales": "Sales Agent",
-              "support": "Customer Support"
-            },
-            "analyzing": "Analyzing...",
-            "continue": "Continue",
-            "or": "OR",
-            "manual": "Add Manually",
-            "analysis": {
-              "logo": "Fetching logo",
-              "color": "Fetching brand color",
-              "links": "Fetching links",
-              "prompt": "Adjusting prompt"
-            }
-          },
-          "ui": {
-            "title": "Agent's UI",
-            "subtitle": "Customize how your AI agent looks and behaves on your website.",
-            "namePlaceholder": "My AI Agent",
-            "nameLabel": "Chatbot name",
-            "welcomeLabel": "Welcome message",
-            "welcomePlaceholder": "Hi! How can I help you today?",
-            "appearanceLabel": "Appearance",
-            "colorLabel": "Primary color",
-            "headerColorLabel": "Use primary color for header",
-            "livePreview": "Live preview",
-            "typeMessage": "Type a message...",
-            "next": "Looks good",
-            "back": "Back"
-          },
-          "personality": {
-            "title": "Agent's Personality",
-            "subtitle": "Fine-tune how your AI interacts with users and which model it uses.",
-            "modelLabel": "Model selection",
-            "gpt4oDesc": "Advanced reasoning and high-quality responses.",
-            "gpt4oMiniDesc": "Blazing fast responses, perfect for simple FAQs.",
-            "styleLabel": "Agent style",
-            "instructionsLabel": "Instructions / Goal",
-            "regenerate": "Regenerate",
-            "instructionsPlaceholder": "Paste or write detailed instructions for the agent...",
-            "instructionsHint": "These instructions define the agent's persona and how it should handle user queries based on your sources.",
-            "back": "Back",
-            "confirm": "Confirm settings",
-            "launching": "Launching..."
-          },
-          "deploy": {
-            "trainingComplete": "Your Agent reached full intelligence!",
-            "training": "Sharpening your Agent's mind...",
-            "trainingShort": "Training...",
-            "trainingCompleteDesc": "Training is complete. Your agent is ready to provide instant answers.",
-            "trainingDesc": "We're currently processing your sources and generating smart embeddings.",
-            "progress": "Progress",
-            "chunksIndexed": "{count} Chunks Indexed",
-            "active": "Active & Ready",
-            "initializing": "Initializing intelligence...",
-            "dashboardBtn": "Dashboard",
-            "embedBtn": "Embed code",
-            "timeNote": "This process usually takes 2-5 minutes depending on your website size."
-          },
-          "sources": {
-            "title": "Knowledge Sources",
-            "description": "Select the knowledge sources you want to use to train your AI agent.",
-            "types": {
-              "file": "Files",
-              "text": "Text",
-              "website": "Website",
-              "qa": "Q&A"
-            },
-            "next": "Train & continue",
-            "back": "Back",
-            "summary": "Sources Summary",
-            "totalSize": "Total size",
-            "noSources": "No sources added yet"
-          },
-          "modal": {
-            "websiteTitle": "Website Sources",
-            "websiteSubtitle": "Connect your site knowledge",
-            "tabCrawl": "Crawl links",
-            "tabSitemap": "Sitemap",
-            "tabManual": "Individual link",
-            "urlLabel": "Target Website URL",
-            "fetching": "FETCHING...",
-            "fetchLinks": "FETCH LINKS",
-            "advancedOptions": "Advanced options",
-            "maxDepth": "Crawl Depth",
-            "pageLimit": "Page Limit",
-            "crawlSchedule": "Auto-Crawl Schedule",
-            "istanbulTime": "Istanbul Time",
-            "load": "LOAD"
-          }
-        }
-      }
-    },
-    "overview": {
-      "title": "Dashboard",
-      "welcome": "Welcome! Here is what's happening with your chatbots.",
-      "subtitle": "Overview of your neural agents and performance metrics.",
-      "loading": "Syncing Intelligence...",
-      "noData": "No active agents found. Create your first one to get started.",
-      "createChatbot": "Create Chatbot",
-      "stats": {
-        "totalChatbots": "Total Chatbots",
-        "conversations": "Conversations",
-        "messages": "Messages",
-        "activeUsers": "Active Users",
-        "fromLastMonth": "from last month"
-      },
-      "recentChatbots": {
-        "title": "Recent Chatbots",
-        "subtitle": "Status of your neural agents",
-        "viewAll": "View All",
-        "conversationsLabel": "conversations",
-        "noData": "No active agents found",
-        "status": {
-          "active": "Active",
-          "draft": "Draft"
-        }
-      },
-      "recentConversations": {
-        "title": "Recent Conversations",
-        "subtitle": "Latest user interactions",
-        "viewAll": "View All",
-        "noData": "No recent conversations"
-      }
-    },
-    "channels": {
-      "title": "Omnichannel Sync",
-      "subtitle": "Connect your neural agent to social message streams",
-      "tabLabel": "Channels",
-      "connect": "Connect",
-      "disconnect": "Disconnect",
-      "configure": "Configure",
-      "status": {
-        "connected": "Connected",
-        "disconnected": "Disconnected",
-        "error": "Error",
-        "pending": "Pending"
-      },
-      "setup": {
-        "title": "Webhook Setup",
-        "description": "To receive messages, configure the following Webhook URL in your Meta Developer Portal:",
-        "urlLabel": "Target Webhook URL",
-        "note": "Replace [type] with whatsapp, instagram, or messenger."
-      },
-      "modal": {
-        "whatsappTitle": "Connect WhatsApp Business",
-        "instagramTitle": "Connect Instagram DM",
-        "messengerTitle": "Connect Facebook Messenger",
-        "whatsappDesc": "Link your WhatsApp Business phone number using Meta Cloud API tokens.",
-        "instagramDesc": "Connect your Instagram Business account DMs to your AI agent.",
-        "messengerDesc": "Allow your agent to respond to Facebook Page messages.",
-        "tokenLabel": "Meta Access Token",
-        "phoneLabel": "Phone Number ID",
-        "pageLabel": "Page ID",
-        "verifyTokenTitle": "Verify Token",
-        "verifyTokenDesc": "Use this token in your Meta Developer Portal webhook settings:",
-        "submit": "Verify & Connect Channel"
-      }
-    },
-    "chatbotDetail": {
-      "status": {
-        "active": "Operational",
-        "training": "Synchronizing"
-      },
-      "defaultDescription": "Autonomous AI Intelligence Unit",
-      "settings": "Settings",
-      "embedCode": "Embed Code",
-      "liveStatus": "Neural Network Live",
-      "resetForge": "Reset Forge",
-      "placeholder": "Type your message to test {name} AI...",
-      "poweredBy": "Powered by JCaesar Autonomous RAG Engine",
-      "configTitle": "Neural Configuration",
-      "memoryLabel": "Memory",
-      "activeRAG": "active (RAG)",
-      "statsTitle": "Knowledge Base Stats",
-      "sourcesLabel": "Sources",
-      "chatsLabel": "Chats",
-      "viewAnalytics": "View Detailed Analytics",
-      "needAPI": "Need API Access?",
-      "apiDesc": "Connect your agent to third-party apps via our performant API infrastructure.",
-      "checkDocs": "Check Docs",
-      "prompt": "Prompt",
-      "response": "Response"
-    },
-    "chatbots": {
-      "new": {
         "steps": {
           "intro": "Discovery",
           "sources": "Knowledge",
@@ -364,6 +161,97 @@
         }
       }
     },
+    "overview": {
+      "title": "Dashboard",
+      "welcome": "Welcome! Here is what's happening with your chatbots.",
+      "subtitle": "Overview of your neural agents and performance metrics.",
+      "loading": "Syncing Intelligence...",
+      "noData": "No active agents found. Create your first one to get started.",
+      "createChatbot": "Create Chatbot",
+      "stats": {
+        "totalChatbots": "Total Chatbots",
+        "conversations": "Conversations",
+        "messages": "Messages",
+        "activeUsers": "Active Users",
+        "fromLastMonth": "from last month"
+      },
+      "recentChatbots": {
+        "title": "Recent Chatbots",
+        "subtitle": "Status of your neural agents",
+        "viewAll": "View All",
+        "conversationsLabel": "conversations",
+        "noData": "No active agents found",
+        "status": {
+          "active": "Active",
+          "draft": "Draft"
+        }
+      },
+      "recentConversations": {
+        "title": "Recent Conversations",
+        "subtitle": "Latest user interactions",
+        "viewAll": "View All",
+        "noData": "No recent conversations"
+      }
+    },
+    "channels": {
+      "title": "Omnichannel Sync",
+      "subtitle": "Connect your neural agent to social message streams",
+      "tabLabel": "Channels",
+      "connect": "Connect",
+      "disconnect": "Disconnect",
+      "configure": "Configure",
+      "status": {
+        "connected": "Connected",
+        "disconnected": "Disconnected",
+        "error": "Error",
+        "pending": "Pending"
+      },
+      "setup": {
+        "title": "Webhook Setup",
+        "description": "To receive messages, configure the following Webhook URL in your Meta Developer Portal:",
+        "urlLabel": "Target Webhook URL",
+        "note": "Replace [type] with whatsapp, instagram, or messenger."
+      },
+      "modal": {
+        "whatsappTitle": "Connect WhatsApp Business",
+        "instagramTitle": "Connect Instagram DM",
+        "messengerTitle": "Connect Facebook Messenger",
+        "whatsappDesc": "Link your WhatsApp Business phone number using Meta Cloud API tokens.",
+        "instagramDesc": "Connect your Instagram Business account DMs to your AI agent.",
+        "messengerDesc": "Allow your agent to respond to Facebook Page messages.",
+        "tokenLabel": "Meta Access Token",
+        "phoneLabel": "Phone Number ID",
+        "pageLabel": "Page ID",
+        "verifyTokenTitle": "Verify Token",
+        "verifyTokenDesc": "Use this token in your Meta Developer Portal webhook settings:",
+        "submit": "Verify & Connect Channel"
+      }
+    },
+    "chatbotDetail": {
+      "status": {
+        "active": "Operational",
+        "training": "Synchronizing"
+      },
+      "defaultDescription": "Autonomous AI Intelligence Unit",
+      "settings": "Settings",
+      "embedCode": "Embed Code",
+      "liveStatus": "Neural Network Live",
+      "resetForge": "Reset Forge",
+      "placeholder": "Type your message to test {name} AI...",
+      "poweredBy": "Powered by JCaesar Autonomous RAG Engine",
+      "configTitle": "Neural Configuration",
+      "memoryLabel": "Memory",
+      "activeRAG": "active (RAG)",
+      "statsTitle": "Knowledge Base Stats",
+      "sourcesLabel": "Sources",
+      "chatsLabel": "Chats",
+      "viewAnalytics": "View Detailed Analytics",
+      "needAPI": "Need API Access?",
+      "apiDesc": "Connect your agent to third-party apps via our performant API infrastructure.",
+      "checkDocs": "Check Docs",
+      "prompt": "Prompt",
+      "response": "Response"
+    },
     "integrations": {
       "title": "Integrations Hub",
       "neuralConnect": "Neural Connect",
@@ -418,6 +306,58 @@
         "title": "Expert Support",
         "description": "Need help with custom CSS or API integrations?",
         "chatBtn": "Chat with Specialist"
+      }
+    },
+    "Calendar": {
+      "title": "Calendar Management",
+      "subtitle": "Manage your appointments autonomously or manually.",
+      "newAppointment": "New Appointment",
+      "today": "Today",
+      "scheduledEvents": "Scheduled Events",
+      "dailyFlow": "Daily Flow",
+      "noAppointments": "No appointments for this day.",
+      "edit": "Edit",
+      "delete": "Delete",
+      "cancel": "Cancel",
+      "save": "Save",
+      "deleteConfirm": "Are you sure you want to delete this appointment?",
+      "appointmentTitle": "Appointment Title",
+      "dateAndTime": "Date & Time",
+      "price": "Price",
+      "selectAgent": "Select Agent (Bot)",
+      "customerEmail": "Customer Email",
+      "status": {
+        "paid": "PAID",
+        "unpaid": "PENDING PAYMENT"
+      }
+    },
+    "CRM": {
+      "title": "Customer Portfolio",
+      "subtitle": "Customer data captured and enriched automatically by your chatbots.",
+      "totalContacts": "Total Contacts",
+      "hotLeads": "Hot Leads",
+      "newLeads": "New Leads",
+      "activeBots": "Active Bots",
+      "searchPlaceholder": "Search customer...",
+      "massCampaign": "Mass Campaign",
+      "noData": "No Data Yet",
+      "noDataDesc": "Your bots haven't captured any customer info yet.",
+      "edit": "Edit",
+      "delete": "Delete",
+      "notes": "Notes",
+      "status": {
+        "new": "NEW",
+        "qualified": "QUALIFIED",
+        "closed": "CLOSED"
+      },
+      "campaign": {
+        "title": "Send Mass Campaign",
+        "subtitle": "Send bulk emails to all customers of the selected bot.",
+        "targetGroup": "Target Chatbot Group",
+        "subject": "Email Subject",
+        "message": "Message Content",
+        "send": "Start Sending",
+        "cancel": "Cancel"
       }
     }
   },
@@ -582,6 +522,22 @@
         {
           "question": "How do I embed it on my site?",
           "answer": "After creation, you'll get a single line of script. Just copy and paste it into your website's header or use our official plugins."
+        },
+        {
+          "question": "Can I integrate my own custom APIs?",
+          "answer": "Yes! JCaesar supports Custom API (Webhook) integrations. You can define your own HTTP endpoints, headers, and body mapping to allow the AI to interact with your internal systems (e.g., checking order status, fetching inventory)."
+        },
+        {
+          "question": "How secure is my data?",
+          "answer": "We use enterprise-grade encryption (AES-256) for data at rest and TLS 1.3 for data in transit. Your uploaded documents and customer data are completely isolated per tenant."
+        },
+        {
+          "question": "Does it have a built-in CRM?",
+          "answer": "Yes, JCaesar features a built-in CRM and Calendar system. When the AI collects a lead, it is automatically logged into the CRM, and you can manage appointments seamlessly."
+        },
+        {
+          "question": "What happens if I exceed my limits?",
+          "answer": "You will receive an automated email notification before you hit your limit. You can easily upgrade your plan from the billing dashboard to avoid any service interruptions."
         }
       ]
     },

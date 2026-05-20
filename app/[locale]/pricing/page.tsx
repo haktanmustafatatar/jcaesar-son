@@ -17,10 +17,46 @@ import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 
+import { Input } from "@/components/ui/input";
+import { Ticket } from "lucide-react";
+
 export default function PricingPage() {
   const [isYearly, setIsYearly] = useState(false);
   const [plans, setPlans] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [couponCode, setCouponCode] = useState("");
+  const [isRedeeming, setIsRedeeming] = useState(false);
+
+  const handleRedeemCoupon = async () => {
+    if (!couponCode.trim()) {
+      toast.error("Please enter a coupon code");
+      return;
+    }
+
+    setIsRedeeming(true);
+    try {
+      const res = await fetch("/api/coupons/redeem", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: couponCode }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        toast.success(data.message || "Coupon redeemed successfully!");
+        setCouponCode("");
+        setTimeout(() => {
+          window.location.href = "/dashboard";
+        }, 1500);
+      } else {
+        toast.error(data.error || "Failed to redeem coupon");
+      }
+    } catch (err) {
+      toast.error("Network error");
+    } finally {
+      setIsRedeeming(false);
+    }
+  };
 
   useEffect(() => {
     fetchPlans();
@@ -86,6 +122,34 @@ export default function PricingPage() {
             <span className={`text-sm font-bold ${isYearly ? 'text-zinc-950' : 'text-zinc-400'}`}>
               Yearly <span className="text-emerald-500 ml-1">(Save 20%)</span>
             </span>
+          </div>
+
+          {/* Coupon Redemption Box */}
+          <div className="max-w-md mx-auto p-8 rounded-[32px] bg-zinc-50 border border-zinc-100 shadow-xl space-y-4 text-left">
+            <div className="flex items-center gap-3 text-zinc-950 font-black">
+              <div className="w-8 h-8 rounded-xl bg-zinc-950 text-white flex items-center justify-center">
+                <Ticket className="w-4 h-4" />
+              </div>
+              <span>Have a Promotional Coupon?</span>
+            </div>
+            <p className="text-xs font-medium text-zinc-500">
+              Redeem your promotional trial code to bypass billing gateways immediately.
+            </p>
+            <div className="flex gap-2">
+              <Input 
+                value={couponCode}
+                onChange={(e) => setCouponCode(e.target.value)}
+                placeholder="ENTER CODE"
+                className="h-12 rounded-xl bg-white border-zinc-200 font-mono tracking-wider uppercase font-bold pl-4 focus:bg-white"
+              />
+              <Button 
+                onClick={handleRedeemCoupon}
+                disabled={isRedeeming}
+                className="h-12 rounded-xl bg-zinc-950 text-white hover:bg-zinc-900 px-6 font-bold flex items-center gap-2"
+              >
+                {isRedeeming ? <Loader2 className="w-4 h-4 animate-spin" /> : "Redeem"}
+              </Button>
+            </div>
           </div>
         </div>
 

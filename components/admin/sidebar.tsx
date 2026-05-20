@@ -22,7 +22,8 @@ import {
   Globe,
   Lock,
   History,
-  MessageSquare
+  MessageSquare,
+  Ticket
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
@@ -42,6 +43,7 @@ export function AdminSidebar() {
     
     { href: "/admin/plans", label: t("plans"), icon: Package, category: t("categories.commerce") },
     { href: "/admin/tokens", label: t("tokens"), icon: Coins, category: t("categories.commerce") },
+    { href: "/admin/coupons", label: "Kuponlar", icon: Ticket, category: t("categories.commerce") },
     { href: "/admin/leads", label: "Talepler", icon: MessageSquare, category: t("categories.commerce") },
     
     { href: "/admin/api-keys", label: t("apiKeys"), icon: Key, category: t("categories.system") },

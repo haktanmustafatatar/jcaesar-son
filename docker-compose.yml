@@ -9,8 +9,8 @@ services:
     ports:
       - "3000:3000"
     environment:
-      # Route via PgBouncer
-      - DATABASE_URL=postgresql://jcaesar_user:jcaesar_password@pgbouncer:6432/jcaesar_db?pgbouncer=true&connection_limit=5
+      # Direct connection to the database (bypassing pgbouncer to avoid auth/scram errors in local dev)
+      - DATABASE_URL=postgresql://jcaesar_user:jcaesar_password@db:5432/jcaesar_db
       - REDIS_URL=redis://redis:6379
     env_file:
       - .env
@@ -25,7 +25,7 @@ services:
   #   restart: always
   #   command: npm run start:worker
   #   environment:
-  #     - DATABASE_URL=postgresql://jcaesar_user:jcaesar_password@pgbouncer:6432/jcaesar_db?pgbouncer=true&connection_limit=10
+  #     - DATABASE_URL=postgresql://jcaesar_user:jcaesar_password@pgbouncer:5432/jcaesar_db?pgbouncer=true&connection_limit=10
   #     - REDIS_URL=redis://redis:6379
   #   env_file:
   #     - .env
@@ -58,7 +58,7 @@ services:
       - DEFAULT_POOL_SIZE=50
       - MIN_POOL_SIZE=10
     ports:
-      - "127.0.0.1:6432:6432"
+      - "127.0.0.1:6432:5432"
     depends_on:
       - db
 

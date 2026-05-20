@@ -317,6 +317,58 @@
         "description": "Need help with custom CSS or API integrations?",
         "chatBtn": "Chat with Specialist"
       }
+    },
+    "Calendar": {
+      "title": "Calendar Management",
+      "subtitle": "Manage your appointments autonomously or manually.",
+      "newAppointment": "New Appointment",
+      "today": "Today",
+      "scheduledEvents": "Scheduled Events",
+      "dailyFlow": "Daily Flow",
+      "noAppointments": "No appointments for this day.",
+      "edit": "Edit",
+      "delete": "Delete",
+      "cancel": "Cancel",
+      "save": "Save",
+      "deleteConfirm": "Are you sure you want to delete this appointment?",
+      "appointmentTitle": "Appointment Title",
+      "dateAndTime": "Date & Time",
+      "price": "Price",
+      "selectAgent": "Select Agent (Bot)",
+      "customerEmail": "Customer Email",
+      "status": {
+        "paid": "PAID",
+        "unpaid": "PENDING PAYMENT"
+      }
+    },
+    "CRM": {
+      "title": "Customer Portfolio",
+      "subtitle": "Customer data captured and enriched automatically by your chatbots.",
+      "totalContacts": "Total Contacts",
+      "hotLeads": "Hot Leads",
+      "newLeads": "New Leads",
+      "activeBots": "Active Bots",
+      "searchPlaceholder": "Search customer...",
+      "massCampaign": "Mass Campaign",
+      "noData": "No Data Yet",
+      "noDataDesc": "Your bots haven't captured any customer info yet.",
+      "edit": "Edit",
+      "delete": "Delete",
+      "notes": "Notes",
+      "status": {
+        "new": "NEW",
+        "qualified": "QUALIFIED",
+        "closed": "CLOSED"
+      },
+      "campaign": {
+        "title": "Send Mass Campaign",
+        "subtitle": "Send bulk emails to all customers of the selected bot.",
+        "targetGroup": "Target Chatbot Group",
+        "subject": "Email Subject",
+        "message": "Message Content",
+        "send": "Start Sending",
+        "cancel": "Cancel"
+      }
     }
   },
   "Admin": {
@@ -470,6 +522,22 @@
         "3": {
           "question": "Как встроить чат-бот на сайт?",
           "answer": "После создания вы получите одну строку кода. Просто скопируйте и вставьте её в заголовок вашего сайта или воспользуйтесь нашими официальными плагинами."
+        },
+        "4": {
+          "question": "Могу ли я интегрировать свои собственные API?",
+          "answer": "Да! JCaesar поддерживает пользовательские API (Webhook) интеграции. Вы можете определить свои собственные конечные точки HTTP."
+        },
+        "5": {
+          "question": "Насколько безопасны мои данные?",
+          "answer": "Мы используем шифрование AES-256 для хранимых данных и TLS 1.3 для передаваемых данных. Ваши данные полностью изолированы."
+        },
+        "6": {
+          "question": "Есть ли встроенная CRM?",
+          "answer": "Да, JCaesar имеет встроенную систему CRM и календаря. Полученные лиды автоматически сохраняются в CRM."
+        },
+        "7": {
+          "question": "Что произойдет, если я превышу свои лимиты?",
+          "answer": "Вы получите уведомление по электронной почте до достижения лимита. Вы можете легко обновить свой план."
         }
       }
     },

@@ -31,7 +31,8 @@ import {
   AlertTriangle,
   Database,
   FileText,
-  Pencil
+  Pencil,
+  Users
 } from "lucide-react";
 import { 
   Dialog, 
@@ -403,6 +404,73 @@ function SettingsPage() {
                       onCheckedChange={(v) => setFormData({...formData, isPublic: v})} 
                       className="data-[state=checked]:bg-primary"
                     />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="rounded-[40px] border-2 border-zinc-100 shadow-2xl shadow-black/5 overflow-hidden bg-white">
+                <CardHeader className="p-10 pb-0">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-emerald-500 flex items-center justify-center">
+                      <Users className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-xl font-bold">CRM & Appointments</CardTitle>
+                      <CardDescription className="text-zinc-400 font-medium tracking-tight mt-1">Enable AI-driven lead capture and scheduling</CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-10 space-y-8">
+                  <div className="flex items-center justify-between p-6 rounded-3xl bg-emerald-50/50 border border-emerald-100">
+                    <div className="space-y-1">
+                      <h4 className="text-sm font-bold text-emerald-950">Collect Leads</h4>
+                      <p className="text-xs text-emerald-700 font-medium">AI will actively ask for and save contact details</p>
+                    </div>
+                    <Switch 
+                      checked={formData.collectLeads} 
+                      onCheckedChange={(v) => setFormData({...formData, collectLeads: v})} 
+                      className="data-[state=checked]:bg-emerald-500"
+                    />
+                  </div>
+                  
+                  <div className="space-y-6 pt-4 border-t border-zinc-100">
+                    <div className="flex items-center gap-2 mb-4">
+                       <Clock className="w-4 h-4 text-emerald-600" />
+                       <h4 className="text-sm font-bold text-zinc-950">Randevu Hatırlatıcı Ayarları</h4>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                       <div className="space-y-3">
+                          <Label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest pl-1">Kaç Saat Önce?</Label>
+                          <Select 
+                            value={String(formData.appointmentReminderHours || 24)} 
+                            onValueChange={(v) => setFormData({...formData, appointmentReminderHours: parseInt(v)})}
+                          >
+                            <SelectTrigger className="h-12 rounded-2xl bg-zinc-50 border-zinc-100">
+                              <SelectValue placeholder="Süre seçin" />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-2xl">
+                               <SelectItem value="1">1 Saat Önce</SelectItem>
+                               <SelectItem value="2">2 Saat Önce</SelectItem>
+                               <SelectItem value="4">4 Saat Önce</SelectItem>
+                               <SelectItem value="12">12 Saat Önce</SelectItem>
+                               <SelectItem value="24">24 Saat Önce</SelectItem>
+                               <SelectItem value="48">48 Saat Önce</SelectItem>
+                            </SelectContent>
+                          </Select>
+                       </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      <Label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest pl-1">Hatırlatma Mesajı</Label>
+                      <Textarea 
+                        value={formData.appointmentReminderMsg || ""} 
+                        onChange={(e) => setFormData({...formData, appointmentReminderMsg: e.target.value})}
+                        className="min-h-[100px] rounded-2xl bg-zinc-50 border-zinc-100 p-4 font-medium"
+                        placeholder="Merhaba {name}, {time} saatindeki randevunuzu hatırlatmak isteriz."
+                      />
+                      <p className="text-[10px] text-zinc-400 font-bold italic">Kullanılabilir etiketler: {"{name}, {time}, {date}"}</p>
+                    </div>
                   </div>
                 </CardContent>
               </Card>

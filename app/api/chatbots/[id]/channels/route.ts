@@ -18,7 +18,7 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const user = await prisma.user.findUnique({ where: { clerkId } });
+    const user = await prisma.user.findUnique({ where: { clerkId: clerkId as string } });
     const chatbot = await prisma.chatbot.findUnique({
       where: { id: chatbotId },
     });
@@ -63,7 +63,7 @@ export async function POST(
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    const user = await prisma.user.findUnique({ where: { clerkId } });
+    const user = await prisma.user.findUnique({ where: { clerkId: clerkId as string } });
     const chatbot = await prisma.chatbot.findUnique({
       where: { id: chatbotId },
     });
@@ -133,7 +133,7 @@ export async function DELETE(
       return NextResponse.json({ error: "Channel ID is required" }, { status: 400 });
     }
 
-    const user = await prisma.user.findUnique({ where: { clerkId } });
+    const user = await prisma.user.findUnique({ where: { clerkId: clerkId as string } });
     const channel = await prisma.channel.findUnique({
       where: { id: channelId },
       include: { chatbot: true }

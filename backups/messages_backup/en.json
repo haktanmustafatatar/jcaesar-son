@@ -1,0 +1,614 @@
+{
+  "Common": {
+    "getStarted": "Get Started",
+    "login": "Login",
+    "signup": "Sign Up",
+    "demo": "Watch Demo",
+    "earlyAccess": "Get Early Access"
+  },
+  "Hero": {
+    "badge": "Next Generation AI Agents",
+    "title1": "Build",
+    "titleElite": "Elite",
+    "title2": "AI Intelligence.",
+    "description": "Train bespoke AI agents on your data in seconds. Deploy a high-fidelity command center that handles sales, support, and growth—autonomously.",
+    "trusted": "Trusted by 500+ Innovators",
+    "scaling": "Scaling 10M+ Conversations Monthly",
+    "performance": "Performance",
+    "intelligence": "Intelligence",
+    "resolutions": "Resolutions",
+    "activeAgents": "Active Agents",
+    "growthRate": "Growth Rate",
+    "mockChatQ": "How can I scale my customer support?",
+    "mockChatA": "JCaesar Agents handle 90% of queries automatically."
+  },
+  "Features": {
+    "badge": "Core Intelligence",
+    "title1": "Capabilities that Redefine",
+    "titleAI": "AI Autonomy.",
+    "title2": "",
+    "description": "Every feature is engineered for speed, accuracy, and absolute brand alignment.",
+    "explore": "Explore Feature",
+    "f1Title": "Train on Any Website",
+    "f1Desc": "Automatically crawl and extract intelligence from any digital footprint. Our AI understands deep context.",
+    "f2Title": "Infinite Knowledge",
+    "f2Desc": "Seamless processing for PDFs, Docs, and structured data. Your specialized knowledge base, refined.",
+    "f3Title": "Bespoke Personality",
+    "f3Desc": "Define your agent's soul. Match your brand's voice with absolute precision and elegance.",
+    "f4Title": "Elite Deployment",
+    "f4Desc": "One snippet. Infinite reach. Deploy across platforms with a high-fidelity interface.",
+    "f5Title": "Pro Analytics",
+    "f5Desc": "Deep intelligence dashboard to monitor behavior, sentiment, and conversion metrics.",
+    "f6Title": "Developer First",
+    "f6Desc": "Full API capabilities for architectural integration. Built for those who demand flexibility."
+  },
+  "Dashboard": {
+    "sidebar": {
+      "newChatbot": "New Chatbot",
+      "dashboard": "Dashboard",
+      "chatbots": "Chatbots",
+      "conversations": "Conversations",
+      "analytics": "Analytics",
+      "settings": "Settings",
+      "overview": "Overview",
+      "integrations": "Integrations",
+      "embed": "Embed"
+    },
+    "header": {
+      "freePlan": "Free Plan",
+      "search": "Search...",
+      "notifications": "Notifications"
+    },
+    "chatbots": {
+      "new": {
+        "title": "Create New Chatbot",
+        "description": "Welcome back! Here's what's happening with your chatbots.",
+        "createButton": "Create Chatbot",
+        "steps": {
+          "intro": "Intro",
+          "sources": "Sources",
+          "ui": "Agent's UI",
+          "personality": "Personality",
+          "deploy": "Deploy"
+        },
+        "wizard": {
+          "intro": {
+            "title": "Build Your Agent",
+            "description": "Let's analyze your website and build a custom AI experience in seconds.",
+            "urlLabel": "Your Website",
+            "useCaseLabel": "Use Case",
+            "useCases": {
+              "general": "General Assistant",
+              "sales": "Sales Agent",
+              "support": "Customer Support"
+            },
+            "analyzing": "Analyzing...",
+            "continue": "Continue",
+            "or": "OR",
+            "manual": "Add Manually",
+            "analysis": {
+              "logo": "Fetching logo",
+              "color": "Fetching brand color",
+              "links": "Fetching links",
+              "prompt": "Adjusting prompt"
+            }
+          },
+          "ui": {
+            "title": "Agent's UI",
+            "subtitle": "Customize how your AI agent looks and behaves on your website.",
+            "namePlaceholder": "My AI Agent",
+            "nameLabel": "Chatbot name",
+            "welcomeLabel": "Welcome message",
+            "welcomePlaceholder": "Hi! How can I help you today?",
+            "appearanceLabel": "Appearance",
+            "colorLabel": "Primary color",
+            "headerColorLabel": "Use primary color for header",
+            "livePreview": "Live preview",
+            "typeMessage": "Type a message...",
+            "next": "Looks good",
+            "back": "Back"
+          },
+          "personality": {
+            "title": "Agent's Personality",
+            "subtitle": "Fine-tune how your AI interacts with users and which model it uses.",
+            "modelLabel": "Model selection",
+            "gpt4oDesc": "Advanced reasoning and high-quality responses.",
+            "gpt4oMiniDesc": "Blazing fast responses, perfect for simple FAQs.",
+            "styleLabel": "Agent style",
+            "instructionsLabel": "Instructions / Goal",
+            "regenerate": "Regenerate",
+            "instructionsPlaceholder": "Paste or write detailed instructions for the agent...",
+            "instructionsHint": "These instructions define the agent's persona and how it should handle user queries based on your sources.",
+            "back": "Back",
+            "confirm": "Confirm settings",
+            "launching": "Launching..."
+          },
+          "deploy": {
+            "trainingComplete": "Your Agent reached full intelligence!",
+            "training": "Sharpening your Agent's mind...",
+            "trainingShort": "Training...",
+            "trainingCompleteDesc": "Training is complete. Your agent is ready to provide instant answers.",
+            "trainingDesc": "We're currently processing your sources and generating smart embeddings.",
+            "progress": "Progress",
+            "chunksIndexed": "{count} Chunks Indexed",
+            "active": "Active & Ready",
+            "initializing": "Initializing intelligence...",
+            "dashboardBtn": "Dashboard",
+            "embedBtn": "Embed code",
+            "timeNote": "This process usually takes 2-5 minutes depending on your website size."
+          },
+          "sources": {
+            "title": "Knowledge Sources",
+            "description": "Select the knowledge sources you want to use to train your AI agent.",
+            "types": {
+              "file": "Files",
+              "text": "Text",
+              "website": "Website",
+              "qa": "Q&A"
+            },
+            "next": "Train & continue",
+            "back": "Back",
+            "summary": "Sources Summary",
+            "totalSize": "Total size",
+            "noSources": "No sources added yet"
+          },
+          "modal": {
+            "websiteTitle": "Website Sources",
+            "websiteSubtitle": "Connect your site knowledge",
+            "tabCrawl": "Crawl links",
+            "tabSitemap": "Sitemap",
+            "tabManual": "Individual link",
+            "urlLabel": "Target Website URL",
+            "fetching": "FETCHING...",
+            "fetchLinks": "FETCH LINKS",
+            "advancedOptions": "Advanced options",
+            "maxDepth": "Crawl Depth",
+            "pageLimit": "Page Limit",
+            "crawlSchedule": "Auto-Crawl Schedule",
+            "istanbulTime": "Istanbul Time",
+            "load": "LOAD"
+          }
+        }
+      }
+    },
+    "overview": {
+      "title": "Dashboard",
+      "welcome": "Welcome! Here is what's happening with your chatbots.",
+      "subtitle": "Overview of your neural agents and performance metrics.",
+      "loading": "Syncing Intelligence...",
+      "noData": "No active agents found. Create your first one to get started.",
+      "createChatbot": "Create Chatbot",
+      "stats": {
+        "totalChatbots": "Total Chatbots",
+        "conversations": "Conversations",
+        "messages": "Messages",
+        "activeUsers": "Active Users",
+        "fromLastMonth": "from last month"
+      },
+      "recentChatbots": {
+        "title": "Recent Chatbots",
+        "subtitle": "Status of your neural agents",
+        "viewAll": "View All",
+        "conversationsLabel": "conversations",
+        "noData": "No active agents found",
+        "status": {
+          "active": "Active",
+          "draft": "Draft"
+        }
+      },
+      "recentConversations": {
+        "title": "Recent Conversations",
+        "subtitle": "Latest user interactions",
+        "viewAll": "View All",
+        "noData": "No recent conversations"
+      }
+    },
+    "channels": {
+      "title": "Omnichannel Sync",
+      "subtitle": "Connect your neural agent to social message streams",
+      "tabLabel": "Channels",
+      "connect": "Connect",
+      "disconnect": "Disconnect",
+      "configure": "Configure",
+      "status": {
+        "connected": "Connected",
+        "disconnected": "Disconnected",
+        "error": "Error",
+        "pending": "Pending"
+      },
+      "setup": {
+        "title": "Webhook Setup",
+        "description": "To receive messages, configure the following Webhook URL in your Meta Developer Portal:",
+        "urlLabel": "Target Webhook URL",
+        "note": "Replace [type] with whatsapp, instagram, or messenger."
+      },
+      "modal": {
+        "whatsappTitle": "Connect WhatsApp Business",
+        "instagramTitle": "Connect Instagram DM",
+        "messengerTitle": "Connect Facebook Messenger",
+        "whatsappDesc": "Link your WhatsApp Business phone number using Meta Cloud API tokens.",
+        "instagramDesc": "Connect your Instagram Business account DMs to your AI agent.",
+        "messengerDesc": "Allow your agent to respond to Facebook Page messages.",
+        "tokenLabel": "Meta Access Token",
+        "phoneLabel": "Phone Number ID",
+        "pageLabel": "Page ID",
+        "verifyTokenTitle": "Verify Token",
+        "verifyTokenDesc": "Use this token in your Meta Developer Portal webhook settings:",
+        "submit": "Verify & Connect Channel"
+      }
+    },
+    "chatbotDetail": {
+      "status": {
+        "active": "Operational",
+        "training": "Synchronizing"
+      },
+      "defaultDescription": "Autonomous AI Intelligence Unit",
+      "settings": "Settings",
+      "embedCode": "Embed Code",
+      "liveStatus": "Neural Network Live",
+      "resetForge": "Reset Forge",
+      "placeholder": "Type your message to test {name} AI...",
+      "poweredBy": "Powered by JCaesar Autonomous RAG Engine",
+      "configTitle": "Neural Configuration",
+      "memoryLabel": "Memory",
+      "activeRAG": "active (RAG)",
+      "statsTitle": "Knowledge Base Stats",
+      "sourcesLabel": "Sources",
+      "chatsLabel": "Chats",
+      "viewAnalytics": "View Detailed Analytics",
+      "needAPI": "Need API Access?",
+      "apiDesc": "Connect your agent to third-party apps via our performant API infrastructure.",
+      "checkDocs": "Check Docs",
+      "prompt": "Prompt",
+      "response": "Response"
+    },
+    "chatbots": {
+      "new": {
+        "steps": {
+          "intro": "Discovery",
+          "sources": "Knowledge",
+          "ui": "Persona",
+          "personality": "Neural",
+          "deploy": "Launch"
+        },
+        "wizard": {
+          "intro": {
+            "title": "Neural Discovery",
+            "description": "Enter your website URL or business context to begin the intelligence synthesis.",
+            "urlLabel": "Website Core URL",
+            "useCaseLabel": "Agent Purpose",
+            "useCases": {
+              "general": "General Assistant",
+              "sales": "Sales Accelerator",
+              "support": "Customer Support"
+            },
+            "analyzing": "Analyzing Infrastructure...",
+            "continue": "Initialize Synthesis",
+            "or": "OR",
+            "manual": "Configure Manually",
+            "analysis": {
+              "logo": "Visual Identity",
+              "color": "Brand Palette",
+              "links": "Network Crawl",
+              "prompt": "Behavioral Core"
+            }
+          },
+          "sources": {
+            "title": "Knowledge Vault",
+            "description": "Connect the data sources that will define your agent's intelligence.",
+            "back": "Back",
+            "next": "Next Step",
+            "noSources": "No sources connected yet.",
+            "totalSize": "Total Knowledge Size",
+            "summary": "{count} sources connected",
+            "types": {
+              "file": "Documents",
+              "text": "Raw Text",
+              "website": "Web Crawl",
+              "qa": "Q&A Pairs"
+            }
+          },
+          "ui": {
+            "title": "Visual Identity",
+            "subtitle": "Craft the aesthetic presence of your neural agent.",
+            "back": "Back",
+            "next": "Next Step",
+            "appearanceLabel": "Interface Style",
+            "nameLabel": "Agent Name",
+            "namePlaceholder": "e.g., JCaesar Sales Lead",
+            "welcomeLabel": "Welcome Message",
+            "welcomePlaceholder": "Hi! How can I help you today?",
+            "colorLabel": "Primary Color",
+            "headerColorLabel": "Header Contrast",
+            "typeMessage": "Type a message...",
+            "livePreview": "Neural Live Preview"
+          },
+          "personality": {
+            "title": "Neural Core",
+            "subtitle": "Define the behavioral logic and intelligence model.",
+            "back": "Back",
+            "confirm": "Finalize Agent",
+            "styleLabel": "Personality Style",
+            "modelLabel": "Base Intelligence",
+            "gpt4oDesc": "High Performance Intelligence",
+            "gpt4oMiniDesc": "Efficient Response Engine",
+            "instructionsLabel": "System Instructions",
+            "instructionsPlaceholder": "You are a helpful assistant...",
+            "instructionsHint": "Expert Mode: Define constraints and identity.",
+            "regenerate": "Regenerate Prompt",
+            "launching": "Initializing Agent..."
+          },
+          "deploy": {
+            "active": "Operational",
+            "training": "Synchronizing Intelligence",
+            "trainingDesc": "Our neural engine is indexing your data sources.",
+            "trainingShort": "Indexing...",
+            "progress": "{count} documents processed",
+            "timeNote": "This usually takes 1-2 minutes.",
+            "trainingComplete": "Synthesis Complete",
+            "trainingCompleteDesc": "Your neural agent is now fully synchronized and ready for deployment.",
+            "dashboardBtn": "Go to Dashboard",
+            "initializing": "Preparing Infrastructure..."
+          },
+          "modal": {
+            "websiteTitle": "Website Crawl",
+            "websiteSubtitle": "Extract knowledge from any public URL.",
+            "urlLabel": "Target URL",
+            "tabCrawl": "Auto Crawl",
+            "tabSitemap": "Sitemap",
+            "tabManual": "Manual List",
+            "fetching": "Discovering Links...",
+            "fetchLinks": "Discover Links",
+            "advancedOptions": "Advanced Crawl Engine"
+          }
+        }
+      }
+    },
+    "integrations": {
+      "title": "Integrations Hub",
+      "neuralConnect": "Neural Connect",
+      "refreshStatus": "Refresh Status",
+      "searchPlaceholder": "Search modules...",
+      "categories": {
+        "all": "All",
+        "ecommerce": "E-Commerce",
+        "social": "Social",
+        "productivity": "Productivity"
+      },
+      "status": {
+        "connected": "Connected",
+        "disconnected": "Disconnected",
+        "configurable": "Configurable",
+        "ready": "Ready"
+      },
+      "expertAssistance": {
+        "title": "Global Connectivity",
+        "subtitle": "Without Compromise.",
+        "description": "Our neural agents are designed to flow through every platform. From Shopify checkout to WhatsApp DM, maintain one identity.",
+        "integrity": "Network Integrity",
+        "expertsReady": "Neural Experts Ready",
+        "expertsDesc": "Need a custom integration? Let's talk.",
+        "consultBtn": "Consult Agent"
+      }
+    },
+    "embed": {
+      "title": "Go Live",
+      "controlCenter": "Control Center",
+      "workerOnline": "Worker Online",
+      "deploymentHealth": "Deployment Health",
+      "enterpriseVerified": "Enterprise Verified",
+      "nativeWebClient": "Native Web Client",
+      "directScript": "Direct Script",
+      "scriptDescription": "Our neural widget is compatible with every modern framework. Simply inject the code into your global header.",
+      "copyCode": "Copy Production Code",
+      "copySuccess": "Copied Successfully",
+      "cdnAccelerated": "Global CDN Accelerated",
+      "secure": "Secure",
+      "utf8Ready": "UTF-8 Ready",
+      "omnichannelEco": "Omnichannel Ecosystem",
+      "modulesActive": "{count} Modules Active",
+      "liveIntelligence": "Live Intelligence",
+      "knowledgeWeight": "Knowledge Weight",
+      "neuralLatency": "Neural Latency",
+      "systemHealth": "System Health",
+      "memory": "Memory",
+      "ioLoad": "IO Load",
+      "neuralRefresh": "Neural Refresh",
+      "expertSupport": {
+        "title": "Expert Support",
+        "description": "Need help with custom CSS or API integrations?",
+        "chatBtn": "Chat with Specialist"
+      }
+    }
+  },
+  "Widget": {
+    "welcomeDefault": "Hi! How can I help you today?",
+    "assistantTitle": "AI Assistant",
+    "online": "Online",
+    "you": "You",
+    "placeholder": "Type a message...",
+    "poweredBy": "Powered by JCaesar Agent",
+    "aiLabel": "AI"
+  },
+  "Admin": {
+    "sidebar": {
+      "overview": "Overview",
+      "users": "Identity Management",
+      "chatbots": "Agent Audit",
+      "plans": "Plans & Payments",
+      "tokens": "Usage Analytics",
+      "apiKeys": "Neural Keys",
+      "system": "Infrastructure Status",
+      "auditLogs": "Activity Audit",
+      "settings": "Platform Settings",
+      "categories": {
+        "core": "Core",
+        "commerce": "Commerce",
+        "system": "System"
+      },
+      "status": {
+        "global": "Global Status",
+        "stable": "STABLE",
+        "dbSync": "DB SYNC",
+        "load": "Q-LOAD",
+        "low": "LOW"
+      },
+      "role": "Super Admin",
+      "access": "Full Access Permission"
+    }
+  },
+  "Landing": {
+    "Navigation": {
+      "features": "Features",
+      "howItWorks": "How it Works",
+      "pricing": "Pricing",
+      "faq": "FAQ",
+      "dashboard": "Dashboard"
+    },
+    "HowItWorks": {
+      "badge": "Simple Process",
+      "title": "Build Your Chatbot in 3 Easy Steps",
+      "steps": [
+        {
+          "title": "Connect Your Data",
+          "description": "Enter your website URL or upload documents. Our AI automatically crawls and indexes all your content.",
+          "visual": "Crawling {count} pages..."
+        },
+        {
+          "title": "Train Your Bot",
+          "description": "Customize responses, set the personality, and fine-tune how your bot answers questions.",
+          "visual": "Training model..."
+        },
+        {
+          "title": "Deploy & Embed",
+          "description": "Get your embed code and add the chatbot to your website in seconds. No coding required.",
+          "visual": "Ready to deploy!"
+        }
+      ]
+    },
+    "Testimonials": {
+      "badge": "Customer Stories",
+      "title": "Loved by Teams Worldwide",
+      "items": [
+        {
+          "quote": "J.Caesar Agent transformed our customer support. Response times dropped 80% and customer satisfaction is at an all-time high.",
+          "author": "Sarah Chen",
+          "role": "CTO at TechFlow"
+        },
+        {
+          "quote": "The easiest chatbot builder I've ever used. Set up in 10 minutes, and it actually understands our product.",
+          "author": "Marcus Johnson",
+          "role": "Founder of StartupXYZ"
+        },
+        {
+          "quote": "We trained it on our entire documentation. Now it answers 90% of questions without human intervention.",
+          "author": "Emily Rodriguez",
+          "role": "Head of Support at CloudScale"
+        }
+      ]
+    },
+    "Pricing": {
+      "badge": "Pricing & Plans",
+      "title": "Flexible Plans for",
+      "subtitle": "Every Scale.",
+      "monthly": "Monthly",
+      "yearly": "Yearly",
+      "save": "SAVE 20%",
+      "popular": "Most Popular",
+      "perMonth": "/ month",
+      "contact": "Contact",
+      "architecture": "Architecture",
+      "everythingIn": "Everything in {name}:",
+      "security": "Enterprise Security Included",
+      "plans": {
+        "Starter": {
+          "name": "Starter",
+          "description": "Ideal for solo innovators",
+          "cta": "Start Free Trial",
+          "features": [
+            "1 AI Agent",
+            "1,000 Messages /mo",
+            "Basic URL Crawling",
+            "Standard Analytics",
+            "Community Support"
+          ]
+        },
+        "Elite": {
+          "name": "Elite",
+          "description": "For rapid scale businesses",
+          "cta": "Go Elite Now",
+          "features": [
+            "10 AI Agents",
+            "25,000 Messages /mo",
+            "Priority Recursive Crawling",
+            "Deep Intelligence Dashboard",
+            "Full API Access",
+            "WhatsApp & Widget Channels",
+            "24/7 Priority Support"
+          ]
+        },
+        "Enterprise": {
+          "name": "Enterprise",
+          "description": "Total control & autonomy",
+          "cta": "Contact Architecture",
+          "features": [
+            "Unlimited AI Agents",
+            "Unlimited Messages",
+            "Custom RAG Pipeline",
+            "SLA Guarantee",
+            "White-label Widget",
+            "Dedicated AI Architect",
+            "On-premise Deployment"
+          ]
+        }
+      }
+    },
+    "FAQ": {
+      "badge": "FAQ",
+      "title": "Frequently Asked Questions",
+      "items": [
+        {
+          "question": "How does the AI training work?",
+          "answer": "Simply provide your website URL or upload your knowledge base documents. Our system use advanced RAG (Retrieval Augmented Generation) to index your content and build a custom intelligence model."
+        },
+        {
+          "question": "Can I customize the chatbot appearance?",
+          "answer": "Yes, you can fully customize the avatar, colors, welcome message, and placement to match your brand identity perfectly."
+        },
+        {
+          "question": "Does it support multiple languages?",
+          "answer": "Absolutely. J.Caesar supports over 50+ languages, including Turkish, English, Arabic, and more with automatic detection."
+        },
+        {
+          "question": "How do I embed it on my site?",
+          "answer": "After creation, you'll get a single line of script. Just copy and paste it into your website's header or use our official plugins."
+        }
+      ]
+    },
+    "CTA": {
+      "title": "Ready to Automate Your",
+      "subtitle": "Business Intelligence?",
+      "primary": "Start Building Now",
+      "secondary": "Talk to Strategy",
+      "instant": "Instant Deployment",
+      "security": "Enterprise Security"
+    },
+    "Footer": {
+      "description": "Pioneering high-fidelity AI agents for the next era of business autonomy. Train, deploy, and scale with absolute precision.",
+      "categories": {
+        "Intelligence": "Intelligence",
+        "Architecture": "Architecture",
+        "Security": "Security",
+        "SystemStatus": "System Status"
+      },
+      "status": "Systems Operational",
+      "securityNote": "ISO/IEC 27001 Certified Security Protocol",
+      "copyright": "© {year} J.CAESAR AUTONOMY.",
+      "links": {
+        "privacy": "Privacy",
+        "terms": "Terms",
+        "sla": "Architecture SLA"
+      }
+    }
+  }
+}

@@ -181,6 +181,17 @@ export default function IntegrationsPage() {
       complexity: "OAuth",
       color: "from-amber-500/20 to-orange-500/20",
       accent: "amber"
+    },
+    {
+      id: "CUSTOM_API",
+      title: "Custom API",
+      subtitle: "Webhooks & Actions",
+      category: "productivity",
+      description: "Connect your own REST APIs to allow the AI to trigger real-time actions and fetch internal data.",
+      icons: [<Cpu className="w-5 h-5 text-indigo-500" />],
+      complexity: "Developer",
+      color: "from-indigo-500/20 to-blue-500/20",
+      accent: "indigo"
     }
   ];
 
@@ -313,8 +324,12 @@ export default function IntegrationsPage() {
                             variant="ghost" 
                             size="sm" 
                             onClick={() => {
-                              setConnectType(item.id);
-                              setConnectModalOpen(true);
+                              if (item.id === "CUSTOM_API") {
+                                window.location.href = `/dashboard/chatbots/${id}/integrations/custom-api`;
+                              } else {
+                                setConnectType(item.id);
+                                setConnectModalOpen(true);
+                              }
                             }}
                             className="h-10 px-4 rounded-xl font-bold text-xs hover:bg-zinc-100"
                           >
@@ -332,8 +347,12 @@ export default function IntegrationsPage() {
                       ) : (
                         <Button 
                           onClick={() => {
-                            setConnectType(item.id);
-                            setConnectModalOpen(true);
+                            if (item.id === "CUSTOM_API") {
+                              window.location.href = `/dashboard/chatbots/${id}/integrations/custom-api`;
+                            } else {
+                              setConnectType(item.id);
+                              setConnectModalOpen(true);
+                            }
                           }}
                           className="h-12 w-full rounded-2xl bg-zinc-950 text-white font-bold text-xs hover:bg-zinc-800"
                         >

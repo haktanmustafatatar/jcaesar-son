@@ -4,6 +4,7 @@ import { tool } from "ai";
 import { searchShopifyProducts, getShopifyOrdersByEmail, ShopifyConfig } from "../integrations/shopify";
 import { searchWooProducts, WooCommerceConfig } from "../integrations/woocommerce";
 import { createCalendarEvent, GoogleCalendarConfig } from "../integrations/google-calendar";
+import { addNotificationJob } from "@/lib/queue";
 
 /**
  * Creates a map of tools based on the chatbot's active integrations
@@ -116,7 +117,102 @@ export async function getChatbotTools(chatbotId: string, conversationId?: string
     });
   }
 
-  // 5. Custom API (Webhooks)
+  // 5. Internal CRM & Lead Capture (Always Available if collectLeads is true)
+  if (chatbot.collectLeads) {
+    tools.save_contact_info = tool({
+      description: "Save user's contact information (name, email, phone) to the internal CRM. Use this when the user provides their details or shows high interest.",
+      parameters: z.object({
+        name: z.string().describe("User's full name"),
+        email: z.string().email().describe("User's email address"),
+        phone: z.string().optional().describe("User's phone number"),
+        notes: z.string().optional().describe("Context or specific interest mentioned by user"),
+      }),
+      execute: async (args) => {
+        // Detect source from conversation
+        let sourceChannel = "WIDGET";
+        let externalId = null;
+        
+        if (conversationId) {
+          const conv = await prisma.conversation.findUnique({
+            where: { id: conversationId }
+          });
+          if (conv) {
+            sourceChannel = conv.channel.toUpperCase();
+            externalId = conv.channelUserId;
+          }
+        }
+
+        const contact = await (prisma as any).crmContact.create({
+          data: {
+            chatbotId,
+            name: args.name,
+            email: args.email,
+            phone: args.phone,
+            notes: args.notes,
+            sourceChannel,
+            externalId,
+            status: "NEW",
+          }
+        });
+        return { success: true, message: `Contact information saved from ${sourceChannel}.`, contactId: contact.id };
+      },
+    });
+
+    tools.schedule_appointment = tool({
+      description: "Schedule a new appointment/meeting in the internal calendar. Ensure you have the user's name and email first.",
+      parameters: z.object({
+        title: z.string().describe("Title/Purpose of the appointment"),
+        name: z.string().describe("Full name of the user booking"),
+        startTime: z.string().describe("ISO string of start time"),
+        notes: z.string().optional().describe("Extra details for the meeting"),
+        userEmail: z.string().email().describe("Email of the user booking"),
+        price: z.number().optional().describe("Cost of the appointment if applicable"),
+      }),
+      execute: async (args) => {
+        // Find or create contact first
+        let contact = await (prisma as any).crmContact.findFirst({
+          where: { chatbotId, email: args.userEmail }
+        });
+
+        const appointment = await prisma.appointment.create({
+          data: {
+            chatbotId,
+            contactId: contact?.id,
+            title: args.title,
+            description: args.notes,
+            startTime: new Date(args.startTime),
+            endTime: new Date(new Date(args.startTime).getTime() + 60 * 60000), // Default 1 hour
+            price: args.price || 0,
+            paymentStatus: (args.price && args.price > 0) ? "UNPAID" : "PAID",
+            status: "SCHEDULED"
+          }
+        });
+
+        // Auto-schedule notification job
+        try {
+          const reminderHours = chatbot.appointmentReminderHours || 24;
+          const delay = Math.max(0, (new Date(args.startTime).getTime() - reminderHours * 60 * 60 * 1000) - Date.now());
+          
+          let message = chatbot.appointmentReminderMsg || "Merhaba {name}, {time} saatindeki randevunuzu hatırlatmak isteriz.";
+          message = message.replace("{name}", args.name || contact?.name || "Müşterimiz")
+                          .replace("{time}", new Date(args.startTime).toLocaleTimeString("tr-TR", { hour: '2-digit', minute: '2-digit' }));
+
+          await addNotificationJob({
+            type: "email",
+            to: args.userEmail,
+            subject: `Randevu Onayı: ${args.title}`,
+            body: message,
+          });
+        } catch (queueError) {
+          console.warn("Notification job failed to schedule (Redis might be down):", queueError);
+        }
+
+        return { success: true, message: "Appointment scheduled successfully and reminder set.", appointmentId: appointment.id };
+      },
+    });
+  }
+
+  // 6. Custom API (Webhooks)
   const customActions = await prisma.aIAction.findMany({
     where: { chatbotId, type: "WEBHOOK", isActive: true }
   });

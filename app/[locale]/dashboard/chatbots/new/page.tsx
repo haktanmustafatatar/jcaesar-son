@@ -90,6 +90,9 @@ export default function NewChatbotPage() {
   
   const [formData, setFormData] = useState({
     name: "",
+    description: "",
+    avatar: "",
+    primaryColor: "#000000",
     websiteUrl: "",
     useCase: "general",
     language: "en",
@@ -101,7 +104,6 @@ export default function NewChatbotPage() {
     temperature: 0.7,
     model: "GPT-4o",
     welcomeMessage: "Hi! How can I help you today?",
-    primaryColor: "#000000",
     suggestedMessages: ["What is this website about?", "How can I contact you?"],
     appearance: "light" as "light" | "dark",
     usePrimaryColorForHeader: false,

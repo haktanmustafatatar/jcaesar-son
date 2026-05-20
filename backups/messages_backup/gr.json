@@ -1,0 +1,511 @@
+{
+  "Common": {
+    "getStarted": "Ξεκινήστε",
+    "login": "Σύνδεση",
+    "signup": "Εγγραφή",
+    "demo": "Δείτε το Demo",
+    "earlyAccess": "Αποκτήστε Πρόωρη Πρόσβαση"
+  },
+  "Hero": {
+    "badge": "Πράκτορες Τεχνητής Νοημοσύνης Επόμενης Γενιάς",
+    "title1": "Δημιουργήστε",
+    "titleElite": "Ελίτ",
+    "title2": "Νοημοσύνη AI.",
+    "description": "Εκπαιδεύστε εξατομικευμένους πράκτορες AI στα δεδομένα σας σε δευτερόλεπτα. Αναπτύξτε ένα κέντρο ελέγχου υψηλής πιστότητας που διαχειρίζεται αυτόνομα πωλήσεις, υποστήριξη και ανάπτυξη.",
+    "trusted": "Μας εμπιστεύονται 500+ Πρωτοπόροι",
+    "scaling": "Κλιμάκωση 10M+ Συνομιλιών Μηνιαίως",
+    "performance": "Απόδοση",
+    "intelligence": "Νοημοσύνη",
+    "resolutions": "Επιλύσεις",
+    "activeAgents": "Ενεργοί Πράκτορες",
+    "growthRate": "Ρυθμός Ανάπτυξης",
+    "mockChatQ": "Πώς μπορώ να κλιμακώσω την υποστήριξη πελατών μου;",
+    "mockChatA": "Οι πράκτορες JCaesar χειρίζονται το 90% των ερωτημάτων αυτόματα."
+  },
+  "Features": {
+    "badge": "Βασική Νοημοσύνη",
+    "title1": "Δυνατότητες που Επαναπροσδιορίζουν",
+    "titleAI": "Την Αυτονομία του AI.",
+    "title2": "",
+    "description": "Κάθε χαρακτηριστικό είναι σχεδιασμένο για ταχύτητα, ακρίβεια και απόλυτη εναρμόνιση με το brand.",
+    "explore": "Εξερευνήστε τη Λειτουργία",
+    "f1Title": "Εκπαίδευση σε κάθε Ιστότοπο",
+    "f1Desc": "Αυτόματη εξαγωγή νοημοσύνης από κάθε ψηφιακό αποτύπωμα.",
+    "f2Title": "Άπειρη Γνώση",
+    "f2Desc": "Απρόσκοπτη επεξεργασία για PDF, έγγραφα και δομημένα δεδομένα.",
+    "f3Title": "Προσαρμοσμένη Προσωπικότητα",
+    "f3Desc": "Καθορίστε την ψυχή του πράκτορά σας. Ταιριάξτε τη φωνή της επωνυμίας σας.",
+    "f4Title": "Ελίτ Ανάπτυξη",
+    "f4Desc": "Ένα απόσπασμα. Άπειρη εμβέλεια. Αναπτύξτε σε πλατφόρμες με διεπαφή υψηλής πιστότητας.",
+    "f5Title": "Pro Analytics",
+    "f5Desc": "πίνακας εργαλείων βαθιάς νοημοσύνης για την παρακολούθηση συμπεριφοράς και μετατροπών.",
+    "f6Title": "Developer First",
+    "f6Desc": "Πλήρεις ικανότητες API για αρχιτεκτονική ενσωμάτωση."
+  },
+  "Dashboard": {
+    "sidebar": {
+      "newChatbot": "Νέο Chatbot",
+      "dashboard": "Πίνακας Ελέγχου",
+      "chatbots": "Chatbots",
+      "conversations": "Συνομιλίες",
+      "analytics": "Αναλυτικά Στοιχεία",
+      "settings": "Ρυθμίσεις",
+      "overview": "Overview",
+      "integrations": "Integrations",
+      "embed": "Embed"
+    },
+    "header": {
+      "freePlan": "Δωρεάν Πρόγραμμα",
+      "search": "Αναζήτηση...",
+      "notifications": "Ειδοποιήσεις"
+    },
+    "chatbots": {
+      "new": {
+        "title": "Δημιουργία Νέου Chatbot",
+        "steps": {
+          "intro": "Εισαγωγή",
+          "sources": "Πηγές",
+          "ui": "UI Πράκτορα",
+          "personality": "Προσωπικότητα",
+          "deploy": "Ανάπτυξη"
+        },
+        "wizard": {
+          "ui": {
+            "title": "Διεπαφή Πράκτορα",
+            "subtitle": "Προσαρμόστε την εμφάνιση και τη συμπεριφορά του ΤΝ πράκτορά σας στον ιστότοπό σας.",
+            "namePlaceholder": "ΤΝ Πράκτοράς μου",
+            "nameLabel": "Όνομα chatbot",
+            "welcomeLabel": "Μήνυμα καλωσορίσματος",
+            "welcomePlaceholder": "Γεια! Πώς μπορώ να σας βοηθήσω;",
+            "appearanceLabel": "Εμφάνιση",
+            "colorLabel": "Κύριο χρώμα",
+            "headerColorLabel": "Χρήση κύριου χρώματος για την κεφαλίδα",
+            "livePreview": "Ζωντανή προεπισκόπηση",
+            "typeMessage": "Πληκτρολογήστε μήνυμα...",
+            "next": "Φαίνεται τέλεια",
+            "back": "Πίσω"
+          },
+          "personality": {
+            "title": "Προσωπικότητα Πράκτορα",
+            "subtitle": "Βελτιστοποιήστε τον τρόπο αλληλεπίδρασης της ΤΝ σας με τους χρήστες και το μοντέλο που χρησιμοποιεί.",
+            "modelLabel": "Επιλογή μοντέλου",
+            "gpt4oDesc": "Προηγμένη συλλογιστική και υψηλής ποιότητας απαντήσεις.",
+            "gpt4oMiniDesc": "Αστραπιαίες απαντήσεις, ιδανικό για απλές ΣΕΕ.",
+            "styleLabel": "Στυλ πράκτορα",
+            "instructionsLabel": "Οδηγίες / Στόχος",
+            "regenerate": "Αναδημιουργία",
+            "instructionsPlaceholder": "Επικολλήστε ή γράψτε λεπτομερείς οδηγίες για τον πράκτορα...",
+            "instructionsHint": "Αυτές οι οδηγίες καθορίζουν την προσωπικότητα του πράκτορα και τον τρόπο χειρισμού ερωτημάτων.",
+            "back": "Πίσω",
+            "confirm": "Επιβεβαίωση ρυθμίσεων",
+            "launching": "Εκκίνηση..."
+          },
+          "deploy": {
+            "trainingComplete": "Ο πράκτοράς σας έφτασε σε πλήρη νοημοσύνη!",
+            "training": "Η σκέψη του πράκτορά σας ακονίζεται...",
+            "trainingCompleteDesc": "Η εκπαίδευση ολοκληρώθηκε. Ο πράκτοράς σας είναι έτοιμος να δώσει άμεσες απαντήσεις.",
+            "trainingDesc": "Επεξεργαζόμαστε τις πηγές σας και δημιουργούμε έξυπνες ενσωματώσεις.",
+            "progress": "Πρόοδος",
+            "chunksIndexed": "{count} Τμήματα ευρετηριάστηκαν",
+            "active": "Ενεργός και Έτοιμος",
+            "initializing": "Αρχικοποίηση νοημοσύνης...",
+            "dashboardBtn": "Πίνακας",
+            "embedBtn": "Κώδικας ενσωμάτωσης",
+            "timeNote": "Αυτή η διαδικασία διαρκεί συνήθως 2-5 λεπτά ανάλογα με το μέγεθος του ιστότοπού σας.",
+            "trainingShort": "Training..."
+          },
+          "modal": {
+            "websiteTitle": "Πηγές Ιστότοπου",
+            "websiteSubtitle": "Συνδέστε τις γνώσεις του ιστότοπού σας",
+            "tabCrawl": "Ανάκτηση συνδέσμων",
+            "tabSitemap": "Χάρτης ιστότοπου",
+            "tabManual": "Μεμονωμένος σύνδεσμος",
+            "urlLabel": "URL Στόχου Ιστότοπου",
+            "fetching": "ΑΝΑΚΤΗΣΗ...",
+            "fetchLinks": "ΑΝΑΚΤΗΣΗ ΣΥΝΔΕΣΜΩΝ",
+            "advancedOptions": "Προχωρημένες επιλογές",
+            "maxDepth": "Crawl Depth",
+            "pageLimit": "Page Limit",
+            "crawlSchedule": "Auto-Crawl Schedule",
+            "istanbulTime": "Istanbul Time",
+            "load": "LOAD"
+          },
+          "intro": {
+            "title": "Build Your Agent",
+            "description": "Let's analyze your website and build a custom AI experience in seconds.",
+            "urlLabel": "Your Website",
+            "useCaseLabel": "Use Case",
+            "useCases": {
+              "general": "General Assistant",
+              "sales": "Sales Agent",
+              "support": "Customer Support"
+            },
+            "analyzing": "Analyzing...",
+            "continue": "Continue",
+            "or": "OR",
+            "manual": "Add Manually",
+            "analysis": {
+              "logo": "Fetching logo",
+              "color": "Fetching brand color",
+              "links": "Fetching links",
+              "prompt": "Adjusting prompt"
+            }
+          },
+          "sources": {
+            "title": "Knowledge Sources",
+            "description": "Select the knowledge sources you want to use to train your AI agent.",
+            "types": {
+              "file": "Files",
+              "text": "Text",
+              "website": "Website",
+              "qa": "Q&A"
+            },
+            "next": "Train & continue",
+            "back": "Back",
+            "summary": "Sources Summary",
+            "totalSize": "Total size",
+            "noSources": "No sources added yet"
+          }
+        },
+        "description": "Welcome back! Here's what's happening with your chatbots.",
+        "createButton": "Create Chatbot"
+      }
+    },
+    "channels": {
+      "title": "Omnichannel Sync",
+      "subtitle": "Connect your neural agent to social message streams",
+      "connect": "Connect",
+      "disconnect": "Disconnect",
+      "configure": "Configure",
+      "status": {
+        "connected": "Connected",
+        "disconnected": "Disconnected",
+        "error": "Error",
+        "pending": "Pending"
+      },
+      "setup": {
+        "title": "Webhook Setup",
+        "description": "To receive messages, configure the following Webhook URL in your Meta Developer Portal:",
+        "urlLabel": "Target Webhook URL",
+        "note": "Replace [type] with whatsapp, instagram, or messenger."
+      },
+      "modal": {
+        "whatsappTitle": "Connect WhatsApp Business",
+        "instagramTitle": "Connect Instagram DM",
+        "messengerTitle": "Connect Facebook Messenger",
+        "whatsappDesc": "Link your WhatsApp Business phone number using Meta Cloud API tokens.",
+        "instagramDesc": "Connect your Instagram Business account DMs to your AI agent.",
+        "messengerDesc": "Allow your agent to respond to Facebook Page messages.",
+        "tokenLabel": "Meta Access Token",
+        "phoneLabel": "Phone Number ID",
+        "pageLabel": "Page ID",
+        "verifyTokenTitle": "Verify Token",
+        "verifyTokenDesc": "Use this token in your Meta Developer Portal webhook settings:",
+        "submit": "Verify & Connect Channel"
+      },
+      "tabLabel": "Channels"
+    },
+    "overview": {
+      "title": "Πίνακας Ελέγχου",
+      "welcome": "Hoş geldiniz! Chatbotlarınızla ilgili neler olup bittiğine bir göz atın.",
+      "createChatbot": "Chatbot Oluştur",
+      "stats": {
+        "totalChatbots": "Toplam Chatbotlar",
+        "conversations": "Konuşmalar",
+        "messages": "Mesajlar",
+        "activeUsers": "Aktif Kullanıcılar",
+        "fromLastMonth": "geçen aya göre"
+      },
+      "recentChatbots": {
+        "title": "Son Chatbotlar",
+        "viewAll": "Hepsini Gör",
+        "conversationsLabel": "konuşmalar",
+        "status": {
+          "active": "Aktif",
+          "draft": "Taslak"
+        },
+        "subtitle": "Status of your neural agents",
+        "noData": "No active agents found"
+      },
+      "recentConversations": {
+        "title": "Son Konuşmalar",
+        "viewAll": "Hepsini Gör",
+        "subtitle": "Latest user interactions",
+        "noData": "No recent conversations"
+      },
+      "subtitle": "Overview of your neural agents and performance metrics.",
+      "loading": "Syncing Intelligence...",
+      "noData": "No active agents found. Create your first one to get started."
+    },
+    "chatbotDetail": {
+      "status": {
+        "active": "Operational",
+        "training": "Synchronizing"
+      },
+      "defaultDescription": "Autonomous AI Intelligence Unit",
+      "settings": "Settings",
+      "embedCode": "Embed Code",
+      "liveStatus": "Neural Network Live",
+      "resetForge": "Reset Forge",
+      "placeholder": "Type a message to test {name} AI...",
+      "poweredBy": "Powered by JCaesar Autonomous RAG Engine",
+      "configTitle": "Neural Configuration",
+      "memoryLabel": "Memory",
+      "activeRAG": "active (RAG)",
+      "statsTitle": "Knowledge Base Stats",
+      "sourcesLabel": "Sources",
+      "chatsLabel": "Chats",
+      "viewAnalytics": "View Detailed Analytics",
+      "needAPI": "Need API Access?",
+      "apiDesc": "Connect your agent to 3rd party apps via our high-performance API infrastructure.",
+      "checkDocs": "Check Docs",
+      "prompt": "Prompt",
+      "response": "Response"
+    },
+    "integrations": {
+      "title": "Integrations Hub",
+      "neuralConnect": "Neural Connect",
+      "refreshStatus": "Refresh Status",
+      "searchPlaceholder": "Search modules...",
+      "categories": {
+        "all": "All",
+        "ecommerce": "E-Commerce",
+        "social": "Social",
+        "productivity": "Productivity"
+      },
+      "status": {
+        "connected": "Connected",
+        "disconnected": "Disconnected",
+        "configurable": "Configurable",
+        "ready": "Ready"
+      },
+      "expertAssistance": {
+        "title": "Global Connectivity",
+        "subtitle": "Without Compromise.",
+        "description": "Our neural agents are designed to flow through every platform. From Shopify checkout to WhatsApp DM, maintain one identity.",
+        "integrity": "Network Integrity",
+        "expertsReady": "Neural Experts Ready",
+        "expertsDesc": "Need a custom integration? Let's talk.",
+        "consultBtn": "Consult Agent"
+      }
+    },
+    "embed": {
+      "title": "Go Live",
+      "controlCenter": "Control Center",
+      "workerOnline": "Worker Online",
+      "deploymentHealth": "Deployment Health",
+      "enterpriseVerified": "Enterprise Verified",
+      "nativeWebClient": "Native Web Client",
+      "directScript": "Direct Script",
+      "scriptDescription": "Our neural widget is compatible with every modern framework. Simply inject the code into your global header.",
+      "copyCode": "Copy Production Code",
+      "copySuccess": "Copied Successfully",
+      "cdnAccelerated": "Global CDN Accelerated",
+      "secure": "Secure",
+      "utf8Ready": "UTF-8 Ready",
+      "omnichannelEco": "Omnichannel Ecosystem",
+      "modulesActive": "{count} Modules Active",
+      "liveIntelligence": "Live Intelligence",
+      "knowledgeWeight": "Knowledge Weight",
+      "neuralLatency": "Neural Latency",
+      "systemHealth": "System Health",
+      "memory": "Memory",
+      "ioLoad": "IO Load",
+      "neuralRefresh": "Neural Refresh",
+      "expertSupport": {
+        "title": "Expert Support",
+        "description": "Need help with custom CSS or API integrations?",
+        "chatBtn": "Chat with Specialist"
+      }
+    }
+  },
+  "Admin": {
+    "sidebar": {
+      "overview": "Επισκόπηση",
+      "users": "Διαχείριση",
+      "chatbots": "Έλεγχος",
+      "plans": "Προγράμματα",
+      "tokens": "Αναλυτικά",
+      "apiKeys": "Κλειδιά",
+      "system": "Κατάσταση",
+      "settings": "Ρυθμίσεις",
+      "categories": {
+        "core": "Πυρήνας",
+        "commerce": "Εμπόριο",
+        "system": "Σύστημα"
+      },
+      "status": {
+        "global": "Κατάσταση",
+        "stable": "ΣΤΑΘΕΡΟ",
+        "dbSync": "DB SYNC",
+        "load": "ΦΟΡΤΙΟ",
+        "low": "ΧΑΜΗΛΟ"
+      },
+      "role": "Super Admin",
+      "access": "Πλήρης Πρόσβαση"
+    }
+  },
+  "Landing": {
+    "Navigation": {
+      "features": "Χαρακτηριστικά",
+      "howItWorks": "Πώς λειτουργεί",
+      "pricing": "Τιμολόγηση",
+      "faq": "ΣΕΕ",
+      "dashboard": "Πίνακας"
+    },
+    "HowItWorks": {
+      "badge": "Απλά βήματα",
+      "title": "Δημιουργήστε το chatbot σας σε 3 εύκολα βήματα",
+      "steps": {
+        "0": {
+          "title": "Συνδέστε τα δεδομένα σας",
+          "description": "Εισάγετε τη διεύθυνση URL του ιστότοπού σας ή ανεβάστε έγγραφα. Η ΤΝ μας ανακτά και ευρετηριάζει αυτόματα όλο το περιεχόμενό σας.",
+          "visual": "Ανάκτηση {count} σελίδων..."
+        },
+        "1": {
+          "title": "Εκπαιδεύστε το bot σας",
+          "description": "Προσαρμόστε τις απαντήσεις, ορίστε την προσωπικότητα και ρυθμίστε τον τρόπο που το bot σας απαντά σε ερωτήσεις.",
+          "visual": "Εκπαίδευση μοντέλου..."
+        },
+        "2": {
+          "title": "Εγκατάσταση και Ενσωμάτωση",
+          "description": "Αποκτήστε τον κώδικα ενσωμάτωσης και προσθέστε το chatbot στον ιστότοπό σας σε δευτερόλεπτα. Δεν απαιτείται κωδικοποίηση.",
+          "visual": "Έτοιμο για εγκατάσταση!"
+        }
+      }
+    },
+    "Testimonials": {
+      "badge": "Ιστορίες Πελατών",
+      "title": "Αγαπημένο από ομάδες παγκοσμίως",
+      "items": {
+        "0": {
+          "quote": "Ο πράκτορας J.Caesar μεταμόρφωσε την υποστήριξη πελατών μας. Οι χρόνοι απόκρισης μειώθηκαν κατά 80% και η ικανοποίηση πελατών είναι σε υψηλό επίπεδο.",
+          "author": "Σάρα Τσεν",
+          "role": "CTO στη TechFlow"
+        },
+        "1": {
+          "quote": "Ο πιο εύκολος κατασκευαστής chatbot που έχω χρησιμοποιήσει ποτέ. Ρυθμίστηκε σε 10 λεπτά και κατανοεί πραγματικά το προϊόν μας.",
+          "author": "Μάρκους Τζόνσον",
+          "role": "Ιδρυτής της StartupXYZ"
+        },
+        "2": {
+          "quote": "Το εκπαιδεύσαμε σε όλη μας την τεκμηρίωση. Τώρα απαντά στο 90% των ερωτήσεων χωρίς ανθρώπινη παρέμβαση.",
+          "author": "Έμιλι Ροδρίγκεζ",
+          "role": "Υπεύθυνη Υποστήριξης στη CloudScale"
+        }
+      }
+    },
+    "Pricing": {
+      "badge": "Τιμολόγηση και Πλάνα",
+      "title": "Ευέλικτα πλάνα για",
+      "subtitle": "κάθε κλίμακα.",
+      "monthly": "Μηνιαίο",
+      "yearly": "Ετήσιο",
+      "save": "20% ΕΞΟΙΚΟΝΟΜΗΣΗ",
+      "popular": "Πιο Δημοφιλές",
+      "perMonth": "/ μήνα",
+      "contact": "Επικοινωνήστε",
+      "architecture": "μαζί μας",
+      "everythingIn": "Όλα στο {name}:",
+      "security": "Εταιρική Ασφάλεια Συμπεριλαμβάνεται",
+      "plans": {
+        "Starter": {
+          "name": "Εκκινητής",
+          "description": "Ιδανικό για μεμονωμένους καινοτόμους",
+          "cta": "Ξεκινήστε Δωρεάν",
+          "features": {
+            "0": "1 Πράκτορας ΤΝ",
+            "1": "1.000 Μηνύματα/μήνα",
+            "2": "Βασική Ανάκτηση URL",
+            "3": "Τυπικά Αναλυτικά",
+            "4": "Υποστήριξη Κοινότητας"
+          }
+        },
+        "Elite": {
+          "name": "Elite",
+          "description": "Για επιχειρήσεις ταχείας ανάπτυξης",
+          "cta": "Γίνετε Elite Τώρα",
+          "features": {
+            "0": "10 Πράκτορες ΤΝ",
+            "1": "25.000 Μηνύματα/μήνα",
+            "2": "Αναδρομική Ανάκτηση Προτεραιότητας",
+            "3": "Βαθύ Ταμπλό Ευφυΐας",
+            "4": "Πλήρης Πρόσβαση API",
+            "5": "Κανάλια WhatsApp και Widget",
+            "6": "24/7 Υποστήριξη Προτεραιότητας"
+          }
+        },
+        "Enterprise": {
+          "name": "Επιχειρηματικό",
+          "description": "Πλήρης έλεγχος και αυτονομία",
+          "cta": "Επικοινωνήστε μαζί μας",
+          "features": {
+            "0": "Απεριόριστοι Πράκτορες ΤΝ",
+            "1": "Απεριόριστα Μηνύματα",
+            "2": "Προσαρμοσμένο Pipeline RAG",
+            "3": "Εγγύηση SLA",
+            "4": "Widget Λευκής Ετικέτας",
+            "5": "Αφιερωμένος Αρχιτέκτονας ΤΝ",
+            "6": "Εγκατάσταση On-premise"
+          }
+        }
+      }
+    },
+    "FAQ": {
+      "badge": "ΣΕΕ",
+      "title": "Συχνές Ερωτήσεις",
+      "items": {
+        "0": {
+          "question": "Πώς λειτουργεί η εκπαίδευση ΤΝ;",
+          "answer": "Απλά παρέχετε τη διεύθυνση URL ή ανεβάστε έγγραφα βάσης γνώσεων. Το σύστημά μας χρησιμοποιεί προηγμένο RAG για την ευρετηρίαση του περιεχομένου σας."
+        },
+        "1": {
+          "question": "Μπορώ να προσαρμόσω την εμφάνιση του chatbot;",
+          "answer": "Ναι, μπορείτε να προσαρμόσετε πλήρως το avatar, τα χρώματα, το μήνυμα καλωσορίσματος και την τοποθέτηση για να ταιριάζει με την ταυτότητα της επωνυμίας σας."
+        },
+        "2": {
+          "question": "Υποστηρίζει πολλές γλώσσες;",
+          "answer": "Απολύτως. Το J.Caesar υποστηρίζει πάνω από 50 γλώσσες, συμπεριλαμβανομένων των Ελληνικών, Αγγλικών, Αραβικών και πολλών άλλων με αυτόματη ανίχνευση."
+        },
+        "3": {
+          "question": "Πώς το ενσωματώνω στον ιστότοπό μου;",
+          "answer": "Μετά τη δημιουργία θα λάβετε μία γραμμή κώδικα. Αντιγράψτε και επικολλήστε το στην κεφαλίδα του ιστότοπού σας ή χρησιμοποιήστε τα επίσημα plugins μας."
+        }
+      }
+    },
+    "CTA": {
+      "title": "Έτοιμοι να αυτοματοποιήσετε",
+      "subtitle": "την Επιχειρηματική Ευφυΐα σας;",
+      "primary": "Ξεκινήστε Τώρα",
+      "secondary": "Συζήτηση Στρατηγικής",
+      "instant": "Άμεση Εγκατάσταση",
+      "security": "Εταιρική Ασφάλεια"
+    },
+    "Footer": {
+      "description": "Πρωτοπορούμε στους πράκτορες ΤΝ υψηλής πιστότητας για τη νέα εποχή επιχειρηματικής αυτονομίας. Εκπαιδεύστε, αναπτύξτε και κλιμακώστε με απόλυτη ακρίβεια.",
+      "categories": {
+        "Intelligence": "Ευφυΐα",
+        "Architecture": "Αρχιτεκτονική",
+        "Security": "Ασφάλεια",
+        "SystemStatus": "Κατάσταση Συστήματος"
+      },
+      "status": "Τα συστήματα λειτουργούν",
+      "securityNote": "Πιστοποιημένο Πρωτόκολλο Ασφαλείας ISO/IEC 27001",
+      "copyright": "© {year} J.CAESAR AUTONOMY.",
+      "links": {
+        "privacy": "Απόρρητο",
+        "terms": "Όροι",
+        "sla": "SLA Αρχιτεκτονικής"
+      }
+    }
+  },
+  "Widget": {
+    "welcomeDefault": "Hi! How can I help you today?",
+    "assistantTitle": "AI Assistant",
+    "online": "Online",
+    "you": "You",
+    "placeholder": "Type a message...",
+    "poweredBy": "Powered by JCaesar Agent",
+    "aiLabel": "AI"
+  }
+}

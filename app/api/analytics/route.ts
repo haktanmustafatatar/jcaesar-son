@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
     }
 
     const user = await prisma.user.findUnique({
-      where: { clerkId }
+      where: { clerkId: clerkId as string }
     });
 
     if (!user) {

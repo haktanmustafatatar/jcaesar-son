@@ -1,0 +1,485 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String         @id @default(cuid())
+  clerkId          String         @unique
+  email            String         @unique
+  name             String?
+  avatar           String?
+  role             UserRole       @default(USER)
+  stripeCustomerId String?
+  organizationId   String?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  chatbots         Chatbot[]
+  conversations    Conversation[]
+  subscriptions    Subscription[]
+  teamMemberships  TeamMember[]
+  tokenUsages      TokenUsage[]
+  notifications    Notification[]
+  organization     Organization?  @relation(fields: [organizationId], references: [id])
+}
+
+model Organization {
+  id          String       @id @default(cuid())
+  name        String
+  slug        String       @unique
+  planId      String
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  chatbots    Chatbot[]
+  plan        Plan         @relation(fields: [planId], references: [id])
+  teamMembers TeamMember[]
+  users       User[]
+}
+
+model TeamMember {
+  id             String       @id @default(cuid())
+  userId         String
+  organizationId String
+  role           TeamRole     @default(MEMBER)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  user           User         @relation(fields: [userId], references: [id])
+
+  @@unique([userId, organizationId])
+}
+
+model Plan {
+  id            String         @id @default(cuid())
+  name          String
+  slug          String         @unique
+  description   String?
+  priceMonthly  Int
+  priceYearly   Int
+  messageLimit  Int
+  chatbotLimit  Int
+  tokenLimit    Int
+  features      Json
+  isPopular     Boolean        @default(false)
+  isEnterprise  Boolean        @default(false)
+  stripePriceId String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  organizations Organization[]
+  subscriptions Subscription[]
+}
+
+model Subscription {
+  id                   String             @id @default(cuid())
+  userId               String
+  planId               String
+  status               SubscriptionStatus
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+  currentPeriodStart   DateTime
+  currentPeriodEnd     DateTime
+  cancelAtPeriodEnd    Boolean            @default(false)
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  plan                 Plan               @relation(fields: [planId], references: [id])
+  user                 User               @relation(fields: [userId], references: [id])
+}
+
+model Chatbot {
+  id                 String              @id @default(cuid())
+  name               String
+  slug               String              @unique
+  description        String?
+  userId             String
+  organizationId     String?
+  model              String              @default("gpt-4o")
+  temperature        Float               @default(0.7)
+  maxTokens          Int                 @default(1000)
+  businessContext    String?
+  systemPrompt       String              @default("You are a helpful assistant.")
+  welcomeMessage     String              @default("Hi! How can I help you today?")
+  primaryColor       String              @default("#e25b31")
+  position           String              @default("bottom-right")
+  showBranding       Boolean             @default(true)
+  avatar             String?
+  language           String              @default("tr")
+  widgetMode         WidgetMode          @default(FLOAT)
+  // Advanced Customization
+  fontFamily         String              @default("Inter, sans-serif")
+  fontSize           String              @default("14px")
+  borderRadius       String              @default("16px")
+  widgetShadow       String              @default("0 20px 40px -8px rgba(0,0,0,0.15)")
+  userMessageColor   String              @default("#18181b")
+  assistantMessageColor String           @default("#f4f4f5")
+  collectLeads       Boolean             @default(false)
+  handoffEnabled     Boolean             @default(true)
+  status             ChatbotStatus       @default(DRAFT)
+  isPublic           Boolean             @default(false)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  channels           Channel[]
+  organization       Organization?       @relation(fields: [organizationId], references: [id])
+  user               User                @relation(fields: [userId], references: [id])
+  conversations      Conversation[]
+  dataSources        DataSource[]
+  suggestedQuestions SuggestedQuestion[]
+  tokenUsages        TokenUsage[]
+  knowledgeSources   KnowledgeSource[]
+}
+
+model SuggestedQuestion {
+  id        String   @id @default(cuid())
+  chatbotId String
+  question  String
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  chatbot   Chatbot  @relation(fields: [chatbotId], references: [id], onDelete: Cascade)
+}
+
+model DataSource {
+  id            String           @id @default(cuid())
+  chatbotId     String
+  type          DataSourceType
+  name          String
+  url           String?
+  status        DataSourceStatus @default(PENDING)
+  fileUrl       String?
+  fileType      String?
+  fileSize      Int?
+  crawlDepth    Int              @default(3)
+  crawlStatus   String?
+  pagesCount    Int              @default(0)
+  crawlSchedule String?
+  lastCrawledAt DateTime?
+  settings      Json?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  chatbot       Chatbot          @relation(fields: [chatbotId], references: [id], onDelete: Cascade)
+  urls          DataSourceUrl[]
+  documents     Document[]
+}
+
+model DataSourceUrl {
+  id            String           @id @default(cuid())
+  dataSourceId  String
+  url           String
+  title         String?
+  charCount     Int?
+  status        DataSourceStatus @default(PENDING)
+  errorMessage  String?
+  lastCrawledAt DateTime?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  dataSource    DataSource       @relation(fields: [dataSourceId], references: [id], onDelete: Cascade)
+
+  @@unique([dataSourceId, url])
+  @@index([dataSourceId])
+}
+
+model Document {
+  id                String                 @id @default(cuid())
+  dataSourceId      String?
+  knowledgeSourceId String?
+  content           String
+  url               String?
+  title             String?
+  metadata          Json?
+  embedding         Unsupported("vector")?
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+  dataSource        DataSource?            @relation(fields: [dataSourceId], references: [id], onDelete: Cascade)
+  knowledgeSource   KnowledgeSource?       @relation(fields: [knowledgeSourceId], references: [id], onDelete: Cascade)
+
+  @@index([dataSourceId])
+  @@index([knowledgeSourceId])
+}
+
+model Conversation {
+  id            String             @id @default(cuid())
+  chatbotId     String
+  userId        String?
+  channel       String             @default("widget")
+  channelUserId String?
+  status        ConversationStatus @default(ACTIVE)
+  assignedTo    String?
+  aiEnabled     Boolean            @default(true)
+  ipAddress     String?
+  userAgent     String?
+  country       String?
+  tags          Json?
+  sentiment     String?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  chatbot       Chatbot            @relation(fields: [chatbotId], references: [id], onDelete: Cascade)
+  user          User?              @relation(fields: [userId], references: [id])
+  notes         ConversationNote[]
+  messages      Message[]
+  tokenUsages   TokenUsage[]
+
+  @@index([chatbotId])
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model ConversationNote {
+  id             String       @id @default(cuid())
+  conversationId String
+  content        String
+  createdBy      String
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+}
+
+model Message {
+  id               String       @id @default(cuid())
+  conversationId   String
+  role             MessageRole
+  content          String
+  model            String?
+  tokensUsed       Int          @default(0)
+  promptTokens     Int          @default(0)
+  completionTokens Int          @default(0)
+  sources          Json?
+  rating           Int?
+  feedback         String?
+  agentId          String?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  conversation     Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@index([createdAt])
+}
+
+model Channel {
+  id            String        @id @default(cuid())
+  chatbotId     String
+  type          ChannelType
+  name          String
+  config        Json
+  status        ChannelStatus @default(DISCONNECTED)
+  webhookUrl    String?
+  phoneNumberId String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  chatbot       Chatbot       @relation(fields: [chatbotId], references: [id], onDelete: Cascade)
+
+  @@index([chatbotId])
+  @@index([type])
+}
+
+model TokenUsage {
+  id               String   @id @default(cuid())
+  userId           String
+  chatbotId        String?
+  conversationId   String?
+  model            String
+  tokensUsed       Int
+  promptTokens     Int
+  completionTokens Int
+  cost             Float
+  createdAt        DateTime @default(now())
+  user             User          @relation(fields: [userId], references: [id])
+  chatbot          Chatbot?       @relation(fields: [chatbotId], references: [id])
+  conversation     Conversation?  @relation(fields: [conversationId], references: [id])
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([model])
+}
+
+model AIAction {
+  id        String     @id @default(cuid())
+  chatbotId String
+  name      String
+  type      ActionType
+  config    Json
+  isActive  Boolean    @default(true)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model AdminSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     Json
+  encrypted Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ApiKey {
+  id         String    @id @default(cuid())
+  name       String
+  key        String
+  provider   String
+  isActive   Boolean   @default(true)
+  lastUsedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+}
+
+enum UserRole {
+  USER
+  ADMIN
+  SUPERADMIN
+}
+
+enum TeamRole {
+  OWNER
+  ADMIN
+  MEMBER
+  VIEWER
+}
+
+enum SubscriptionStatus {
+  INCOMPLETE
+  INCOMPLETE_EXPIRED
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  UNPAID
+  PAUSED
+}
+
+enum WidgetMode {
+  FLOAT
+  POPUP
+  INLINE
+}
+
+enum ChatbotStatus {
+  DRAFT
+  TRAINING
+  ACTIVE
+  PAUSED
+  ERROR
+}
+
+enum DataSourceType {
+  WEBSITE
+  FILE
+  TEXT
+  API
+  NOTION
+  QNA
+}
+
+enum DataSourceStatus {
+  PENDING
+  CRAWLING
+  PROCESSING
+  COMPLETED
+  ERROR
+}
+
+enum ConversationStatus {
+  ACTIVE
+  CLOSED
+  ESCALATED
+}
+
+enum MessageRole {
+  USER
+  ASSISTANT
+  SYSTEM
+}
+
+enum ChannelType {
+  WIDGET
+  WHATSAPP
+  INSTAGRAM
+  FACEBOOK
+  SLACK
+  TELEGRAM
+  EMAIL
+  API
+  ZAPIER
+  SHOPIFY
+  WOOCOMMERCE
+  GOOGLE_CALENDAR
+}
+
+enum ChannelStatus {
+  CONNECTED
+  DISCONNECTED
+  ERROR
+  PENDING
+}
+
+enum ActionType {
+  CALENDLY
+  STRIPE_PAYMENT
+  ZENDESK_TICKET
+  WEBHOOK
+  FORM
+  LEAD_CAPTURE
+  GOOGLE_CALENDAR
+}
+
+model KnowledgeSource {
+  id        String   @id @default(cuid())
+  chatbotId String
+  type      String
+  name      String
+  url       String?
+  fileUrl   String?
+  content   String?
+  status    String   @default("PENDING")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  chatbot   Chatbot  @relation(fields: [chatbotId], references: [id], onDelete: Cascade)
+  documents Document[]
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  userEmail  String?
+  action     String   // e.g., "CREATE_CHATBOT", "DELETE_SOURCE", "UPDATE_SETTINGS"
+  entityType String   // e.g., "CHATBOT", "DATA_SOURCE", "USER"
+  entityId   String?
+  metadata   Json?    // e.g., { ip: "...", old: {...}, new: {...} }
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([action])
+  @@index([entityType])
+}
+
+model Notification {
+  id          String   @id @default(cuid())
+  userId      String
+  title       String
+  message     String
+  link        String?
+  read        Boolean  @default(false)
+  type        String   @default("INFO") // INFO, WARNING, SUGGESTION
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([read])
+}
+
+model Lead {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  company   String
+  phone     String?
+  message   String
+  status    String   @default("PENDING") // PENDING, CONTACTED, CLOSED
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([email])
+}

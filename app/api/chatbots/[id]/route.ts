@@ -57,7 +57,7 @@ export async function DELETE(
     }
 
     // Is current user owner?
-    const user = await prisma.user.findUnique({ where: { clerkId } });
+    const user = await prisma.user.findUnique({ where: { clerkId: clerkId as string } });
     const chatbot = await prisma.chatbot.findUnique({
       where: { id },
       select: { userId: true },
@@ -106,7 +106,7 @@ export async function PATCH(
     }
 
     const body = await req.json();
-    const user = await prisma.user.findUnique({ where: { clerkId } });
+    const user = await prisma.user.findUnique({ where: { clerkId: clerkId as string } });
     
     // Check ownership
     const existing = await prisma.chatbot.findUnique({

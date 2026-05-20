@@ -10,10 +10,11 @@ const connection = new Redis(redisUrl, { maxRetriesPerRequest: null });
 export async function GET() {
   try {
     const { userId: clerkId } = await auth();
+    if (!clerkId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     
     // Admin check
     const user = await prisma.user.findUnique({
-      where: { clerkId },
+      where: { clerkId: clerkId as string },
       select: { role: true }
     });
 

@@ -8,6 +8,9 @@ import {
   BarChart3,
   Settings,
   Menu,
+  Users,
+  CalendarDays,
+  BookOpen
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -29,8 +32,17 @@ export function MobileSidebar() {
   const navItems = [
     { href: "/dashboard", label: t("dashboard"), icon: LayoutDashboard },
     { href: "/dashboard/chatbots", label: t("chatbots"), icon: Bot },
+  ];
+
+  const operationsItems = [
+    { href: "/dashboard/leads", label: "Müşteriler (CRM)", icon: Users },
+    { href: "/dashboard/calendar", label: "Takvim & Randevu", icon: CalendarDays },
+  ];
+
+  const footerNavItems = [
     { href: "/dashboard/inbox", label: t("conversations"), icon: MessageSquare },
     { href: "/dashboard/analytics", label: t("analytics"), icon: BarChart3 },
+    { href: "/dashboard/docs", label: "Kullanıcı Kılavuzu", icon: BookOpen },
     { href: "/dashboard/settings", label: t("settings"), icon: Settings },
   ];
 
@@ -54,27 +66,81 @@ export function MobileSidebar() {
              </div>
           </SheetTitle>
         </SheetHeader>
-        <div className="flex flex-col h-[calc(100vh-65px)]">
-          <nav className="flex-1 px-3 py-4 space-y-1">
-            {navItems.map((item) => {
-              const isActive = pathname === item.href;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href as any}
-                  onClick={() => setOpen(false)}
-                  className={cn(
-                    "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-all",
-                    isActive
-                      ? "bg-zinc-950 text-white shadow-lg shadow-black/5"
-                      : "text-zinc-500 hover:bg-zinc-50 hover:text-zinc-950"
-                  )}
-                >
-                  <item.icon className={cn("w-5 h-5 flex-shrink-0", isActive ? "text-white" : "text-zinc-400")} />
-                  <span>{item.label}</span>
-                </Link>
-              );
-            })}
+        <div className="flex flex-col h-[calc(100vh-65px)] overflow-y-auto">
+          <nav className="flex-1 px-3 py-4 space-y-6">
+            
+            {/* Main */}
+            <div className="space-y-1">
+              <p className="px-3 mb-2 text-[9px] font-black uppercase tracking-widest text-zinc-400">Main</p>
+              {navItems.map((item) => {
+                const isActive = pathname === item.href;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href as any}
+                    onClick={() => setOpen(false)}
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-all",
+                      isActive
+                        ? "bg-zinc-950 text-white shadow-lg shadow-black/5"
+                        : "text-zinc-500 hover:bg-zinc-50 hover:text-zinc-950"
+                    )}
+                  >
+                    <item.icon className={cn("w-5 h-5 flex-shrink-0", isActive ? "text-white" : "text-zinc-400")} />
+                    <span>{item.label}</span>
+                  </Link>
+                );
+              })}
+            </div>
+
+            {/* Operations */}
+            <div className="space-y-1">
+              <p className="px-3 mb-2 text-[9px] font-black uppercase tracking-widest text-zinc-400">Operations</p>
+              {operationsItems.map((item) => {
+                const isActive = pathname === item.href;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href as any}
+                    onClick={() => setOpen(false)}
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-all",
+                      isActive
+                        ? "bg-zinc-950 text-white shadow-lg shadow-black/5"
+                        : "text-zinc-500 hover:bg-zinc-50 hover:text-zinc-950"
+                    )}
+                  >
+                    <item.icon className={cn("w-5 h-5 flex-shrink-0", isActive ? "text-white" : "text-zinc-400")} />
+                    <span>{item.label}</span>
+                  </Link>
+                );
+              })}
+            </div>
+
+            {/* System */}
+            <div className="space-y-1">
+              <p className="px-3 mb-2 text-[9px] font-black uppercase tracking-widest text-zinc-400">System</p>
+              {footerNavItems.map((item) => {
+                const isActive = pathname === item.href;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href as any}
+                    onClick={() => setOpen(false)}
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-all",
+                      isActive
+                        ? "bg-zinc-950 text-white shadow-lg shadow-black/5"
+                        : "text-zinc-500 hover:bg-zinc-50 hover:text-zinc-950"
+                    )}
+                  >
+                    <item.icon className={cn("w-5 h-5 flex-shrink-0", isActive ? "text-white" : "text-zinc-400")} />
+                    <span>{item.label}</span>
+                  </Link>
+                );
+              })}
+            </div>
+
           </nav>
         </div>
       </SheetContent>

@@ -70,6 +70,14 @@ export default function AnalyticsPage() {
     }
   };
 
+  const satisfactionScore = useMemo(() => {
+    const sentimentData = data?.sentimentData;
+    if (!sentimentData || sentimentData.length === 0) return 0;
+    const positive = sentimentData.find((s: any) => s.name === 'POSITIVE')?.value || 0;
+    const total = sentimentData.reduce((acc: number, curr: any) => acc + curr.value, 0);
+    return total > 0 ? Math.round((positive / total) * 100) : 0;
+  }, [data]);
+
   if (!data && isLoading) {
     return <div className="flex items-center justify-center h-[60vh] font-bold text-muted-foreground animate-pulse">Intelligence is loading...</div>;
   }
@@ -83,13 +91,6 @@ export default function AnalyticsPage() {
     trendData: [],
     botPerformance: []
   };
-
-  const satisfactionScore = useMemo(() => {
-    if (!sentimentData || sentimentData.length === 0) return 0;
-    const positive = sentimentData.find((s: any) => s.name === 'POSITIVE')?.value || 0;
-    const total = sentimentData.reduce((acc: number, curr: any) => acc + curr.value, 0);
-    return total > 0 ? Math.round((positive / total) * 100) : 0;
-  }, [sentimentData]);
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {

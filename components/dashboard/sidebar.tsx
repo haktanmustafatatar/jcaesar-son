@@ -14,6 +14,9 @@ import {
   ChevronLeft,
   ChevronRight,
   Share2,
+  Users,
+  CalendarDays,
+  BookOpen
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
@@ -35,6 +38,11 @@ export function DashboardSidebar() {
     { href: "/dashboard/chatbots", label: t("chatbots"), icon: Bot },
   ];
 
+  const operationItems = [
+    { href: "/dashboard/leads", label: "Müşteriler (CRM)", icon: Users },
+    { href: "/dashboard/calendar", label: "Takvim & Randevu", icon: CalendarDays },
+  ];
+
   const chatbotNavItems = chatbotId && !isNewChatbot ? [
     { href: `/dashboard/chatbots/${chatbotId}`, label: t("overview") || "Overview", icon: BarChart3 },
     { href: `/dashboard/chatbots/${chatbotId}/integrations`, label: t("integrations") || "Integrations", icon: Share2 },
@@ -45,6 +53,7 @@ export function DashboardSidebar() {
   const footerNavItems = [
     { href: "/dashboard/inbox", label: t("conversations"), icon: MessageSquare },
     { href: "/dashboard/analytics", label: t("analytics"), icon: BarChart3 },
+    { href: "/dashboard/docs", label: "Kullanıcı Kılavuzu", icon: BookOpen },
     { href: "/dashboard/settings", label: t("settings"), icon: Settings },
   ];
 
@@ -119,6 +128,30 @@ export function DashboardSidebar() {
           <div className="space-y-1">
             {!collapsed && <p className="px-3 mb-2 text-[10px] font-black uppercase tracking-widest text-zinc-400">Main</p>}
             {navItems.map((item) => {
+              const isActive = pathname === item.href;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href as any}
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-all",
+                    isActive
+                      ? "bg-zinc-950 text-white shadow-lg shadow-black/5"
+                      : "text-zinc-500 hover:bg-zinc-50 hover:text-zinc-950",
+                    collapsed && "justify-center px-1"
+                  )}
+                >
+                  <item.icon className={cn("w-5 h-5 flex-shrink-0", isActive ? "text-white" : "text-zinc-400")} />
+                  {!collapsed && <span>{item.label}</span>}
+                </Link>
+              );
+            })}
+          </div>
+
+          {/* Operations Section */}
+          <div className="space-y-1">
+            {!collapsed && <p className="px-3 mb-2 text-[10px] font-black uppercase tracking-widest text-zinc-400">Operations</p>}
+            {operationItems.map((item) => {
               const isActive = pathname === item.href;
               return (
                 <Link

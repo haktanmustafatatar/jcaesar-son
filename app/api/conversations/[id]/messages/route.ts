@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
+import { addChannelJob } from "@/lib/queue";
 
 export async function GET(
   req: NextRequest,
@@ -57,6 +58,96 @@ export async function GET(
     console.error("Error fetching messages:", error);
     return NextResponse.json(
       { error: "Failed to fetch messages" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id: conversationId } = await params;
+    const { userId: clerkId } = await auth();
+    
+    if (!clerkId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { clerkId }
+    });
+
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    const conversation = await prisma.conversation.findUnique({
+      where: { id: conversationId },
+      include: {
+        chatbot: {
+          select: {
+            id: true,
+            userId: true,
+            organizationId: true
+          }
+        }
+      }
+    });
+
+    if (!conversation) {
+      return NextResponse.json({ error: "Conversation not found" }, { status: 404 });
+    }
+
+    // Verify access
+    const hasAccess = 
+      conversation.chatbot.userId === user.id || 
+      (user.organizationId && conversation.chatbot.organizationId === user.organizationId);
+
+    if (!hasAccess) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const body = await req.json();
+    const { content } = body;
+
+    if (!content || typeof content !== "string" || content.trim() === "") {
+      return NextResponse.json({ error: "Message content cannot be empty" }, { status: 400 });
+    }
+
+    // 1. Save manual agent message to Database with role "ASSISTANT"
+    const message = await prisma.message.create({
+      data: {
+        conversationId,
+        role: "ASSISTANT",
+        content: content.trim()
+      }
+    });
+
+    // 2. If channel is not internal "widget", dispatch the outbound job to the BullMQ worker
+    const channelLower = conversation.channel.toLowerCase();
+    if (["whatsapp", "instagram", "facebook", "telegram", "slack", "email"].includes(channelLower)) {
+      try {
+        await addChannelJob({
+          type: "send-message",
+          channel: channelLower as any,
+          recipientId: conversation.channelUserId || "",
+          message: content.trim(),
+          chatbotId: conversation.chatbotId,
+          conversationId: conversationId
+        });
+        console.log(`[InboxManualMessage] Queued channel worker outbound job for ${conversation.channel}`);
+      } catch (err) {
+        console.error(`[InboxManualMessage] Failed to queue outbound job:`, err);
+      }
+    }
+
+    return NextResponse.json(message);
+  } catch (error) {
+    console.error("Error creating manual agent message:", error);
+    return NextResponse.json(
+      { error: "Failed to send manual message" },
       { status: 500 }
     );
   }

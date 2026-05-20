@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Resolve internal user ID from Clerk ID
-    const user = await prisma.user.findUnique({ where: { clerkId } });
+    const user = await prisma.user.findUnique({ where: { clerkId: clerkId as string } });
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }

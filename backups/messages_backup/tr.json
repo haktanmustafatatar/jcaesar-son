@@ -1,0 +1,512 @@
+{
+  "Common": {
+    "getStarted": "Hemen Başla",
+    "login": "Giriş Yap",
+    "signup": "Kayıt Ol",
+    "demo": "Demoyu İzle",
+    "earlyAccess": "Erken Erişim Al"
+  },
+  "Hero": {
+    "badge": "Yeni Nesil Yapay Zeka Ajanları",
+    "title1": "Build",
+    "titleElite": "Elit",
+    "title2": "Yapay Zeka Zekası İnşa Edin.",
+    "description": "Verilerinizle saniyeler içinde özel yapay zeka ajanları eğitin. Satış, destek ve büyümeyi otonom olarak yöneten yüksek kaliteli bir komuta merkezi kurun.",
+    "trusted": "500+'den Fazla Yenilikçinin Güveniyle",
+    "scaling": "Aylık 10M+ Konuşma Ölçekleme",
+    "performance": "Performans",
+    "intelligence": "Zeka",
+    "resolutions": "Çözümler",
+    "activeAgents": "Aktif Ajanlar",
+    "growthRate": "Büyüme Oranı",
+    "mockChatQ": "Müşteri desteğimi nasıl ölçeklendirebilirim?",
+    "mockChatA": "JCaesar Ajanları sorguların %90'ını otomatik olarak yanıtlar."
+  },
+  "Features": {
+    "badge": "Çekirdek Zeka",
+    "title1": "Redefine",
+    "titleAI": "Yapay Zeka Otonomisi.",
+    "title2": "Yeniden Tanımlayan Yetenekler",
+    "description": "Her özellik hız, doğruluk ve mutlak marka uyumu için tasarlanmıştır.",
+    "explore": "Özelliği Keşfet",
+    "f1Title": "Herhangi Bir Web Sitesinde Eğit",
+    "f1Desc": "Herhangi bir dijital ayak izinden otomatik olarak zeka çıkarın. Yapay zekamız derin bağlamı anlar.",
+    "f2Title": "Sonsuz Bilgi",
+    "f2Desc": "PDF, Dokümanlar ve yapılandırılmış veriler için kesintisiz işleme. Uzmanlaşmış bilgi tabanınız.",
+    "f3Title": "Özel Kişilik",
+    "f3Desc": "Ajanınızın ruhunu tanımlayın. Markanızın sesiyle mutlak hassasiyetle eşleştirin.",
+    "f4Title": "Elit Dağıtım",
+    "f4Desc": "Tek bir kod parçası. Sonsuz erişim. Yüksek sadakatli bir arayüzle platformlar arası dağıtım yapın.",
+    "f5Title": "Pro Analitik",
+    "f5Desc": "Davranış, duygu ve dönüşüm metriklerini izlemek için derin zeka panosu.",
+    "f6Title": "Önce Geliştirici",
+    "f6Desc": "Mimari entegrasyon için tam API yetenekleri. Esneklik talep edenler için tasarlandı."
+  },
+  "Dashboard": {
+    "sidebar": {
+      "newChatbot": "Yeni Chatbot",
+      "dashboard": "Panel",
+      "chatbots": "Chatbotlar",
+      "conversations": "Konuşmalar",
+      "analytics": "Analizler",
+      "settings": "Ayarlar",
+      "overview": "Genel Bakış",
+      "integrations": "Entegrasyonlar",
+      "embed": "Yayınla"
+    },
+    "header": {
+      "freePlan": "Ücretsiz Plan",
+      "search": "Ara...",
+      "notifications": "Bildirimler"
+    },
+    "chatbots": {
+      "new": {
+        "title": "Yeni Chatbot Oluştur",
+        "description": "Hoş geldiniz! Chatbotlarınızla ilgili neler olup bittiğine bir göz atın.",
+        "createButton": "Chatbot Oluştur",
+        "steps": {
+          "intro": "Keşif",
+          "sources": "Bilgi",
+          "ui": "Persona",
+          "personality": "Neural",
+          "deploy": "Yayınla"
+        },
+        "wizard": {
+          "intro": {
+            "title": "Ajanını İnşa Et",
+            "description": "Web sitenizi analiz edelim ve saniyeler içinde özel bir yapay zeka deneyimi oluşturalım.",
+            "urlLabel": "Web Siteniz",
+            "useCaseLabel": "Kullanım Amacı",
+            "useCases": {
+              "general": "Genel Yardımcı",
+              "sales": "Satış Ajanı",
+              "support": "Müşteri Desteği"
+            },
+            "analyzing": "Analiz Ediliyor...",
+            "continue": "Devam Et",
+            "or": "VEYA",
+            "manual": "Manuel Kaynak Ekle",
+            "analysis": {
+              "logo": "Logo getiriliyor",
+              "color": "Marka rengi getiriliyor",
+              "links": "Bağlantılar getiriliyor",
+              "prompt": "Prompt ayarlanıyor"
+            }
+          },
+          "ui": {
+            "title": "Ajanın Arayüzü",
+            "subtitle": "Yapay zeka ajanınızın web sitenizde nasıl görüneceğini ve davranacağını özelleştirin.",
+            "namePlaceholder": "Yapay Zeka Ajanım",
+            "nameLabel": "Chatbot adı",
+            "welcomeLabel": "Karşılama mesajı",
+            "welcomePlaceholder": "Merhaba! Size nasıl yardımcı olabilirim?",
+            "appearanceLabel": "Görünüm",
+            "colorLabel": "Birincil renk",
+            "headerColorLabel": "Başlık için birincil rengi kullan",
+            "livePreview": "Canlı önizleme",
+            "typeMessage": "Mesaj yazın...",
+            "next": "Harika görünüyor",
+            "back": "Geri"
+          },
+          "personality": {
+            "title": "Ajanın Kişiliği",
+            "subtitle": "Yapay zekanızın kullanıcılarla nasıl etkileşime geçtiğini ve hangi modeli kullandığını ince ayarlayın.",
+            "modelLabel": "Model seçimi",
+            "gpt4oDesc": "Gelişmiş akıl yürütme ve yüksek kaliteli yanıtlar.",
+            "gpt4oMiniDesc": "Yüksek hızlı yanıtlar, basit SSS için mükemmel.",
+            "styleLabel": "Ajan stili",
+            "instructionsLabel": "Talimatlar / Hedef",
+            "regenerate": "Yeniden oluştur",
+            "instructionsPlaceholder": "Ajan için ayrıntılı talimatlar yapıştırın veya yazın...",
+            "instructionsHint": "Bu talimatlar, ajanın kişiliğini ve kaynaklarınıza dayalı olarak kullanıcı sorgularını nasıl ele alacağını tanımlar.",
+            "back": "Geri",
+            "confirm": "Ayarları onayla",
+            "launching": "Başlatılıyor..."
+          },
+          "deploy": {
+            "trainingComplete": "Ajanınız tam zekaya ulaştı!",
+            "training": "Ajanınızın zihni keskinleştiriliyor...",
+            "trainingShort": "Eğitiliyor...",
+            "trainingCompleteDesc": "Eğitim tamamlandı. Ajanınız anında yanıt vermeye hazır.",
+            "trainingDesc": "Kaynaklarınızı işliyor ve akıllı gömüler oluşturuyoruz.",
+            "progress": "İlerleme",
+            "chunksIndexed": "{count} Parça Dizine Eklendi",
+            "active": "Aktif ve Hazır",
+            "initializing": "Zeka başlatılıyor...",
+            "dashboardBtn": "Panel",
+            "embedBtn": "Gömme kodu",
+            "timeNote": "Bu işlem, web sitenizin boyutuna bağlı olarak genellikle 2-5 dakika sürer."
+          },
+          "sources": {
+            "title": "Bilgi Kaynakları",
+            "description": "Yapay zeka ajanınızı eğitmek için kullanmak istediğiniz kaynakları seçin.",
+            "types": {
+              "file": "Dosyalar",
+              "text": "Metin",
+              "website": "Web Sitesi",
+              "qa": "Soru & Cevap"
+            },
+            "next": "Eğit ve devam et",
+            "back": "Geri",
+            "summary": "Kaynak Özeti",
+            "totalSize": "Toplam boyut",
+            "noSources": "Henüz kaynak eklenmedi"
+          },
+          "modal": {
+            "websiteTitle": "Web Sitesi Kaynakları",
+            "websiteSubtitle": "Site bilginizi bağlayın",
+            "tabCrawl": "Bağlantıları tara",
+            "tabSitemap": "Site haritası",
+            "tabManual": "Tekil bağlantı",
+            "urlLabel": "Hedef Web Sitesi URL'si",
+            "fetching": "GETİRİLİYOR...",
+            "fetchLinks": "BAĞLANTILARI GETİR",
+            "advancedOptions": "Gelişmiş seçenekler",
+            "maxDepth": "Tarama Derinliği",
+            "pageLimit": "Sayfa Limiti",
+            "crawlSchedule": "Otomatik Tarama Sıklığı",
+            "istanbulTime": "İstanbul Saati",
+            "load": "YÜKLE"
+          }
+        }
+      }
+    },
+    "overview": {
+      "title": "Panel",
+      "welcome": "Hoş geldiniz! Chatbotlarınızla ilgili neler olup bittiğine bir göz atın.",
+      "createChatbot": "Chatbot Oluştur",
+      "stats": {
+        "totalChatbots": "Toplam Chatbotlar",
+        "conversations": "Konuşmalar",
+        "messages": "Mesajlar",
+        "activeUsers": "Aktif Kullanıcılar",
+        "fromLastMonth": "geçen aya göre"
+      },
+      "recentChatbots": {
+        "title": "Son Chatbotlar",
+        "viewAll": "Hepsini Gör",
+        "conversationsLabel": "konuşmalar",
+        "status": {
+          "active": "Aktif",
+          "draft": "Taslak"
+        },
+        "subtitle": "Status of your neural agents",
+        "noData": "No active agents found"
+      },
+      "recentConversations": {
+        "title": "Son Konuşmalar",
+        "viewAll": "Hepsini Gör",
+        "subtitle": "Latest user interactions",
+        "noData": "No recent conversations"
+      },
+      "subtitle": "Overview of your neural agents and performance metrics.",
+      "loading": "Syncing Intelligence...",
+      "noData": "No active agents found. Create your first one to get started."
+    },
+    "channels": {
+      "title": "Çok Kanallı Senkronizasyon",
+      "subtitle": "Yapay zeka ajanınızı sosyal medya mesaj akışlarına bağlayın",
+      "tabLabel": "Kanallar",
+      "connect": "Bağlan",
+      "disconnect": "Bağlantıyı Kes",
+      "configure": "Yapılandır",
+      "status": {
+        "connected": "Bağlı",
+        "disconnected": "Bağlı Değil",
+        "error": "Hata",
+        "pending": "Beklemede"
+      },
+      "setup": {
+        "title": "Webhook Kurulumu",
+        "description": "Mesajları almak için Meta Geliştirici Portalınızda aşağıdaki Webhook URL'sini yapılandırın:",
+        "urlLabel": "Hedef Webhook URL'si",
+        "note": "[type] yerine whatsapp, instagram veya messenger yazın."
+      },
+      "modal": {
+        "whatsappTitle": "WhatsApp Business Bağla",
+        "instagramTitle": "Instagram DM Bağla",
+        "messengerTitle": "Facebook Messenger Bağla",
+        "whatsappDesc": "Meta Cloud API token'larını kullanarak WhatsApp Business numaranızı bağlayın.",
+        "instagramDesc": "Instagram İşletme hesabı DM'lerinizi yapay zeka ajanınıza bağlayın.",
+        "messengerDesc": "Ajanınızın Facebook Sayfası mesajlarına yanıt vermesini sağlayın.",
+        "tokenLabel": "Meta Erişim Token'ı",
+        "phoneLabel": "Telefon Numarası ID",
+        "pageLabel": "Sayfa ID",
+        "verifyTokenTitle": "Doğrulama Token'ı",
+        "verifyTokenDesc": "Bu token'ı Meta Geliştirici Portalı webhook ayarlarında kullanın:",
+        "submit": "Doğrula ve Kanalı Bağla"
+      }
+    },
+    "chatbotDetail": {
+      "status": {
+        "active": "Operasyonel",
+        "training": "Senkronize Ediliyor"
+      },
+      "defaultDescription": "Otonom Yapay Zeka Zeka Birimi",
+      "settings": "Ayarlar",
+      "embedCode": "Gömme Kodu",
+      "liveStatus": "Neural Ağ Canlı",
+      "resetForge": "Demirhaneyi Sıfırla",
+      "placeholder": "{name} Yapay Zekasını test etmek için mesaj yazın...",
+      "poweredBy": "JCaesar Otonom RAG Motoru ile Güçlendirilmiştir",
+      "configTitle": "Neural Yapılandırma",
+      "memoryLabel": "Hafıza",
+      "activeRAG": "aktif (RAG)",
+      "statsTitle": "Bilgi Tabanı İstatistikleri",
+      "sourcesLabel": "Kaynaklar",
+      "chatsLabel": "Sohbetler",
+      "viewAnalytics": "Detaylı Analizleri Görüntüle",
+      "needAPI": "API Erişimi Gerekiyor mu?",
+      "apiDesc": "Ajanınızı yüksek performanslı API altyapımız aracılığıyla üçüncü taraf uygulamalara bağlayın.",
+      "checkDocs": "Dokümanları Kontrol Et",
+      "prompt": "Prompt",
+      "response": "Cevap"
+    },
+    "integrations": {
+      "title": "Entegrasyon Merkezi",
+      "neuralConnect": "Neural Bağlantı",
+      "refreshStatus": "Durumu Yenile",
+      "searchPlaceholder": "Modül ara...",
+      "categories": {
+        "all": "Tümü",
+        "ecommerce": "E-Ticaret",
+        "social": "Sosyal",
+        "productivity": "Üretkenlik"
+      },
+      "status": {
+        "connected": "Bağlı",
+        "disconnected": "Bağlı Değil",
+        "configurable": "Yapılandırılabilir",
+        "ready": "Hazır"
+      },
+      "expertAssistance": {
+        "title": "Global Connectivity",
+        "subtitle": "Without Compromise.",
+        "description": "Our neural agents are designed to flow through every platform. From Shopify checkout to WhatsApp DM, maintain one identity.",
+        "integrity": "Network Integrity",
+        "expertsReady": "Neural Experts Ready",
+        "expertsDesc": "Need a custom integration? Let's talk.",
+        "consultBtn": "Consult Agent"
+      }
+    },
+    "embed": {
+      "title": "Yayınla",
+      "controlCenter": "Kontrol Merkezi",
+      "workerOnline": "Sistem Çevrimiçi",
+      "deploymentHealth": "Dağıtım Sağlığı",
+      "enterpriseVerified": "Kurumsal Doğrulanmış",
+      "nativeWebClient": "Yerel Web İstemcisi",
+      "directScript": "Doğrudan Script",
+      "scriptDescription": "Neural widget tüm modern frameworkler ile uyumludur. Kodu global header kısmına eklemeniz yeterlidir.",
+      "copyCode": "Üretim Kodunu Kopyala",
+      "copySuccess": "Kod Kopyalandı",
+      "cdnAccelerated": "Global CDN Accelerated",
+      "secure": "Secure",
+      "utf8Ready": "UTF-8 Ready",
+      "omnichannelEco": "Omnichannel Ecosystem",
+      "modulesActive": "{count} Modules Active",
+      "liveIntelligence": "Live Intelligence",
+      "knowledgeWeight": "Knowledge Weight",
+      "neuralLatency": "Neural Latency",
+      "systemHealth": "System Health",
+      "memory": "Memory",
+      "ioLoad": "IO Load",
+      "neuralRefresh": "Neural Refresh",
+      "expertSupport": {
+        "title": "Expert Support",
+        "description": "Need help with custom CSS or API integrations?",
+        "chatBtn": "Chat with Specialist"
+      }
+    }
+  },
+  "Widget": {
+    "welcomeDefault": "Merhaba! Size nasıl yardımcı olabilirim?",
+    "assistantTitle": "Yapay Zeka Asistanı",
+    "online": "Çevrimiçi",
+    "you": "Siz",
+    "placeholder": "Mesaj yazın...",
+    "poweredBy": "JCaesar Agent tarafından desteklenmektedir",
+    "aiLabel": "YZ"
+  },
+  "Admin": {
+    "sidebar": {
+      "overview": "Genel Bakış",
+      "users": "Kimlik Yönetimi",
+      "chatbots": "Ajan Denetimi",
+      "plans": "Plan & Ödeme",
+      "tokens": "Kullanım Analizi",
+      "apiKeys": "Neural Anahtarlar",
+      "system": "Altyapı Durumu",
+      "auditLogs": "Aktivite Denetimi",
+      "settings": "Platform Ayarları",
+      "categories": {
+        "core": "Çekirdek",
+        "commerce": "Ticaret",
+        "system": "Sistem"
+      },
+      "status": {
+        "global": "Global Durum",
+        "stable": "STABİL",
+        "dbSync": "DB SEKRON",
+        "load": "Q-YÜKÜ",
+        "low": "DÜŞÜK"
+      },
+      "role": "Süper Admin",
+      "access": "Tam Erişim Yetkisi"
+    }
+  },
+  "Landing": {
+    "Navigation": {
+      "features": "Özellikler",
+      "howItWorks": "Nasıl Çalışır",
+      "pricing": "Fiyatlandırma",
+      "faq": "SSS",
+      "dashboard": "Panel"
+    },
+    "HowItWorks": {
+      "badge": "Basit Süreç",
+      "title": "3 Kolay Adımda Chatbotunuzu Kurun",
+      "steps": {
+        "0": {
+          "title": "Verilerinizi Bağlayın",
+          "description": "Web sitenizin URL'sini girin veya belgelerinizi yükleyin. Yapay zekamız tüm içeriğinizi otomatik olarak tarar ve dizine ekler.",
+          "visual": "{count} sayfa taranıyor..."
+        },
+        "1": {
+          "title": "Botunuzu Eğitin",
+          "description": "Yanıtları özelleştirin, kişiliği belirleyin ve botunuzun soruları nasıl yanıtlayacağını ince ayarlayın.",
+          "visual": "Model eğitiliyor..."
+        },
+        "2": {
+          "title": "Yayınlayın ve Gömün",
+          "description": "Gömme kodunuzu alın ve chatbotu saniyeler içinde web sitenize ekleyin. Kodlama gerektirmez.",
+          "visual": "Yayınlanmaya hazır!"
+        }
+      }
+    },
+    "Testimonials": {
+      "badge": "Müşteri Hikayeleri",
+      "title": "Dünya Çapındaki Ekipler Tarafından Sevildi",
+      "items": {
+        "0": {
+          "quote": "J.Caesar Ajanı müşteri desteğimizi dönüştürdü. Yanıt süreleri %80 düştü ve müşteri memnuniyeti her zamankinden daha yüksek.",
+          "author": "Sarah Chen",
+          "role": "TechFlow CTO'su"
+        },
+        "1": {
+          "quote": "Şimdiye kadar kullandığım en kolay chatbot oluşturucu. 10 dakikada kuruldu ve ürünümüzü gerçekten anlıyor.",
+          "author": "Marcus Johnson",
+          "role": "StartupXYZ Kurucusu"
+        },
+        "2": {
+          "quote": "Tüm dökümantasyonumuz üzerinde eğittik. Şimdi soruların %90'ını insan müdahalesi olmadan yanıtlıyor.",
+          "author": "Emily Rodriguez",
+          "role": "CloudScale Destek Başkanı"
+        }
+      }
+    },
+    "Pricing": {
+      "badge": "Fiyatlandırma ve Planlar",
+      "title": "Esnek Planlar,",
+      "subtitle": "Her Ölçek İçin.",
+      "monthly": "Aylık",
+      "yearly": "Yıllık",
+      "save": "%20 TASARRUF EDİN",
+      "popular": "En Popüler",
+      "perMonth": "/ ay",
+      "contact": "İletişime Geç",
+      "architecture": "Strateji",
+      "everythingIn": "{name} içindeki her şey:",
+      "security": "Kurumsal Güvenlik Dahil",
+      "plans": {
+        "Starter": {
+          "name": "Başlangıç",
+          "description": "Bireysel yenilikçiler için ideal",
+          "cta": "Ücretsiz Denemeyi Başlat",
+          "features": {
+            "0": "1 Yapay Zeka Ajanı",
+            "1": "Aylık 1.000 Mesaj",
+            "2": "Temel URL Tarama",
+            "3": "Standart Analitik",
+            "4": "Topluluk Desteği"
+          }
+        },
+        "Elite": {
+          "name": "Elite",
+          "description": "Hızlı ölçeklenen işletmeler için",
+          "cta": "Elite'e Geç",
+          "features": {
+            "0": "10 Yapay Zeka Ajanı",
+            "1": "Aylık 25.000 Mesaj",
+            "2": "Öncelikli Özyinelemeli Tarama",
+            "3": "Derin Zeka Panosu",
+            "4": "Tam API Erişimi",
+            "5": "WhatsApp ve Widget Kanalları",
+            "6": "24/7 Öncelikli Destek"
+          }
+        },
+        "Enterprise": {
+          "name": "Kurumsal",
+          "description": "Tam kontrol ve otonomi",
+          "cta": "Strateji İle Konuşun",
+          "features": {
+            "0": "Sınırsız Yapay Zeka Ajanı",
+            "1": "Sınırsız Mesaj Verisi",
+            "2": "Özel RAG Hattı",
+            "3": "SLA Garantisi",
+            "4": "Beyaz Etiket (White-label) Widget",
+            "5": "Özel Yapay Zeka Mimarı",
+            "6": "Yerinde (On-premise) Kurulum"
+          }
+        }
+      }
+    },
+    "FAQ": {
+      "badge": "SSS",
+      "title": "Sıkça Sorulan Sorular",
+      "items": {
+        "0": {
+          "question": "Yapay zeka eğitimi nasıl çalışır?",
+          "answer": "Sadece web sitenizin URL'sini sağlayın veya bilgi tabanı belgelerinizi yükleyin. Sistemimiz, içeriğinizi dizine eklemek ve özel bir zeka modeli oluşturmak için gelişmiş RAG (Erişimle Artırılmış Üretim) kullanır."
+        },
+        "1": {
+          "question": "Chatbotun görünümünü özelleştirebilir miyim?",
+          "answer": "Evet, avatarı, renkleri, karşılama mesajını ve yerleşimi marka kimliğinize mükemmel şekilde uyacak şekilde tamamen özelleştirebilirsiniz."
+        },
+        "2": {
+          "question": "Birden fazla dili destekliyor mu?",
+          "answer": "Kesinlikle. J.Caesar, otomatik algılama ile Türkçe, İngilizce, Arapça ve daha fazlası dahil olmak üzere 50'den fazla dili destekler."
+        },
+        "3": {
+          "question": "Siteme nasıl gömerim?",
+          "answer": "Oluşturduktan sonra tek satırlık bir script alacaksınız. Sadece kopyalayıp web sitenizin header bölümüne yapıştırın veya resmi eklentilerimizi kullanın."
+        }
+      }
+    },
+    "CTA": {
+      "title": "İş Zekanızı Otomatikleştirmeye",
+      "subtitle": "Hazır mısınız?",
+      "primary": "Hemen Oluşturmaya Başla",
+      "secondary": "Strateji İle Konuş",
+      "instant": "Anında Dağıtım",
+      "security": "Kurumsal Güvenlik"
+    },
+    "Footer": {
+      "description": "İş dünyasının yeni otonomi çağı için yüksek sadakatli yapay zeka ajanlarına öncülük ediyoruz. Mutlak hassasiyetle eğitin, dağıtın ve ölçeklendirin.",
+      "categories": {
+        "Intelligence": "Zeka",
+        "Architecture": "Mimari",
+        "Security": "Güvenlik",
+        "SystemStatus": "Sistem Durumu"
+      },
+      "status": "Sistemler Aktif",
+      "securityNote": "ISO/IEC 27001 Sertifikalı Güvenlik Protokolü",
+      "copyright": "© {year} J.CAESAR OTONOMİ.",
+      "links": {
+        "privacy": "Gizlilik",
+        "terms": "Şartlar",
+        "sla": "Hizmet Sözleşmesi"
+      }
+    }
+  }
+}

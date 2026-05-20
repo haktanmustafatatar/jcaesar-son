@@ -6,10 +6,11 @@ import { Redis } from "ioredis";
 export async function GET() {
   try {
     const { userId: clerkId } = await auth();
-    
+    if (!clerkId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
     // Check if user is admin (security)
     const user = await prisma.user.findUnique({
-      where: { clerkId },
+      where: { clerkId: clerkId as string },
       select: { role: true }
     });
 

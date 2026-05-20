@@ -317,6 +317,58 @@
         "description": "Need help with custom CSS or API integrations?",
         "chatBtn": "Chat with Specialist"
       }
+    },
+    "Calendar": {
+      "title": "Takvim Yönetimi",
+      "subtitle": "Randevu ve görüşmelerinizi otonom veya manuel olarak yönetin.",
+      "newAppointment": "Yeni Randevu",
+      "today": "Bugün",
+      "scheduledEvents": "Planlanan Etkinlikler",
+      "dailyFlow": "Günlük Akış",
+      "noAppointments": "Bu gün için randevu bulunmuyor.",
+      "edit": "Düzenle",
+      "delete": "Sil",
+      "cancel": "İptal",
+      "save": "Kaydet",
+      "deleteConfirm": "Bu randevuyu silmek istediğinize emin misiniz?",
+      "appointmentTitle": "Randevu Başlığı",
+      "dateAndTime": "Tarih & Saat",
+      "price": "Ücret (₺)",
+      "selectAgent": "Agent (Bot) Seçin",
+      "customerEmail": "Müşteri E-posta",
+      "status": {
+        "paid": "ÖDENDİ",
+        "unpaid": "BEKLEYEN ÖDEME"
+      }
+    },
+    "CRM": {
+      "title": "Müşteri Portföyü",
+      "subtitle": "Chatbotlarınız tarafından otomatik olarak yakalanan ve zenginleştirilen müşteri verileri.",
+      "totalContacts": "Toplam Kişi",
+      "hotLeads": "Sıcak Fırsat",
+      "newLeads": "Yeni Lead",
+      "activeBots": "Aktif Botlar",
+      "searchPlaceholder": "Müşteri ara...",
+      "massCampaign": "Toplu Kampanya",
+      "noData": "Henüz Veri Girişi Yok",
+      "noDataDesc": "Botlarınız henüz bir müşteri bilgisi yakalamadı.",
+      "edit": "Düzenle",
+      "delete": "Sil",
+      "notes": "Notlar",
+      "status": {
+        "new": "YENİ",
+        "qualified": "NİTELİKLİ",
+        "closed": "KAPANDI"
+      },
+      "campaign": {
+        "title": "Toplu Kampanya Gönder",
+        "subtitle": "Seçtiğiniz botun tüm müşterilerine toplu e-posta gönderin.",
+        "targetGroup": "Hedef Chatbot Grubu",
+        "subject": "E-posta Konusu",
+        "message": "Mesaj İçeriği",
+        "send": "Gönderimi Başlat",
+        "cancel": "Vazgeç"
+      }
     }
   },
   "Widget": {
@@ -480,6 +532,22 @@
         "3": {
           "question": "Siteme nasıl gömerim?",
           "answer": "Oluşturduktan sonra tek satırlık bir script alacaksınız. Sadece kopyalayıp web sitenizin header bölümüne yapıştırın veya resmi eklentilerimizi kullanın."
+        },
+        "4": {
+          "question": "Kendi özel API'lerimi entegre edebilir miyim?",
+          "answer": "Evet! JCaesar, Özel API (Webhook) entegrasyonlarını destekler. Yapay zekanın iç sistemlerinizle (örn. sipariş durumu sorgulama, stok çekme) etkileşime girmesini sağlamak için kendi uç noktalarınızı tanımlayabilirsiniz."
+        },
+        "5": {
+          "question": "Verilerim ne kadar güvende?",
+          "answer": "Verileriniz (AES-256) ve ağ trafiğiniz (TLS 1.3) kurumsal standartlarda şifrelenir. Yüklediğiniz dokümanlar ve müşteri verileri tamamen size özel olarak izole edilir."
+        },
+        "6": {
+          "question": "Yerleşik bir CRM sistemi var mı?",
+          "answer": "Evet, JCaesar yerleşik bir CRM ve Takvim sistemine sahiptir. Yapay zeka bir potansiyel müşteri yakaladığında CRM'e otomatik kaydedilir ve randevularınızı kolayca yönetebilirsiniz."
+        },
+        "7": {
+          "question": "Limitlerimi aşarsam ne olur?",
+          "answer": "Limitinize ulaşmadan önce otomatik bir e-posta bildirimi alırsınız. Hizmet kesintisi yaşamamak için faturalandırma panelinden planınızı kolayca yükseltebilirsiniz."
         }
       }
     },
