@@ -251,7 +251,7 @@ export default function UsersPage() {
                               {user.tokenUsage?.reduce((acc: number, curr: any) => acc + curr.tokensUsed, 0).toLocaleString() || 0}
                            </span>
                            <span className="text-[10px] text-emerald-500 font-bold">
-                              ${user.tokenUsage?.reduce((acc: number, curr: any) => acc + curr.cost, 0).toFixed(4) || "0.0000"}
+                              {user.subscriptions?.[0]?.plan?.priceMonthly ? `₺${user.subscriptions[0].plan.priceMonthly}/ay` : "$0.0000"}
                            </span>
                         </div>
                      </TableCell>

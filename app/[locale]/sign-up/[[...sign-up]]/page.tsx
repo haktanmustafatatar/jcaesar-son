@@ -6,12 +6,15 @@ interface PageProps {
 
 export default async function SignUpPage({ params }: PageProps) {
   const { locale } = await params;
+  
+  // Since localePrefix is 'as-needed', the default locale ('tr') doesn't have a path prefix.
+  const actualPath = locale === "tr" ? "/sign-up" : `/${locale}/sign-up`;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-muted/30">
       <div className="w-full max-w-md p-8">
         <SignUp
-          path={`/${locale}/sign-up`}
+          path={actualPath}
           appearance={{
             elements: {
               rootBox: "mx-auto",

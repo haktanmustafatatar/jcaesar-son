@@ -423,6 +423,11 @@
           "title": "Deploy & Embed",
           "description": "Get your embed code and add the chatbot to your website in seconds. No coding required.",
           "visual": "Ready to deploy!"
+        },
+        {
+          "title": "Connect Channels",
+          "description": "Integrate seamlessly with WhatsApp, Instagram, and Shopify to automate your sales.",
+          "visual": "Integration active"
         }
       ]
     },

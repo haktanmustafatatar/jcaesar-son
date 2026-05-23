@@ -16,17 +16,22 @@ export async function GET(
 
     const { id } = await params;
 
+    const user = await prisma.user.findUnique({ where: { clerkId: userId } });
+
     const source = await prisma.knowledgeSource.findUnique({
       where: { id },
       include: {
         documents: {
           select: { id: true, title: true, url: true, createdAt: true },
         },
+        chatbot: {
+          select: { userId: true },
+        },
       },
     });
 
-    if (!source) {
-      return NextResponse.json({ error: "Knowledge source not found" }, { status: 404 });
+    if (!source || source.chatbot.userId !== user?.id) {
+      return NextResponse.json({ error: "Knowledge source not found or unauthorized" }, { status: 404 });
     }
 
     return NextResponse.json(source);
@@ -51,9 +56,15 @@ export async function PUT(
     const body = await req.json();
     const { name, url, recrawl } = body;
 
-    const source = await prisma.knowledgeSource.findUnique({ where: { id } });
-    if (!source) {
-      return NextResponse.json({ error: "Knowledge source not found" }, { status: 404 });
+    const user = await prisma.user.findUnique({ where: { clerkId: userId } });
+
+    const source = await prisma.knowledgeSource.findUnique({ 
+      where: { id },
+      include: { chatbot: { select: { userId: true } } }
+    });
+
+    if (!source || source.chatbot.userId !== user?.id) {
+      return NextResponse.json({ error: "Knowledge source not found or unauthorized" }, { status: 404 });
     }
 
     // Update metadata
@@ -108,9 +119,15 @@ export async function DELETE(
 
     const { id } = await params;
 
-    const source = await prisma.knowledgeSource.findUnique({ where: { id } });
-    if (!source) {
-      return NextResponse.json({ error: "Knowledge source not found" }, { status: 404 });
+    const user = await prisma.user.findUnique({ where: { clerkId: userId } });
+
+    const source = await prisma.knowledgeSource.findUnique({ 
+      where: { id },
+      include: { chatbot: { select: { userId: true } } }
+    });
+
+    if (!source || source.chatbot.userId !== user?.id) {
+      return NextResponse.json({ error: "Knowledge source not found or unauthorized" }, { status: 404 });
     }
 
     // Documents will be cascade deleted due to onDelete: Cascade in schema

@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Link2, Brain, Rocket } from "lucide-react";
+import { Link2, Brain, Rocket, MessageCircle } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 export function HowItWorks() {
@@ -28,6 +28,13 @@ export function HowItWorks() {
       title: t("steps.2.title"),
       description: t("steps.2.description"),
       visual: t("steps.2.visual"),
+    },
+    {
+      number: "04",
+      icon: MessageCircle,
+      title: t("steps.3.title"),
+      description: t("steps.3.description"),
+      visual: t("steps.3.visual"),
     },
   ];
 
@@ -159,6 +166,21 @@ export function HowItWorks() {
                         </div>
                         <div className="flex items-center gap-2">
                           <Rocket className="w-4 h-4 text-primary" />
+                          <span className="text-sm text-muted-foreground">
+                            {step.visual}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                    {index === 3 && (
+                      <div className="space-y-4">
+                        <div className="p-4 bg-muted rounded-xl flex items-center justify-center gap-4">
+                           <div className="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center text-white"><MessageCircle className="w-5 h-5" /></div>
+                           <div className="w-8 h-[2px] bg-border" />
+                           <div className="w-10 h-10 rounded-2xl bg-zinc-900 flex items-center justify-center text-white"><Brain className="w-5 h-5" /></div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <MessageCircle className="w-4 h-4 text-primary" />
                           <span className="text-sm text-muted-foreground">
                             {step.visual}
                           </span>

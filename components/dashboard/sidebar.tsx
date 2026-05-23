@@ -23,7 +23,11 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 
-export function DashboardSidebar() {
+interface DashboardSidebarProps {
+  planName?: string;
+}
+
+export function DashboardSidebar({ planName = "Free Plan" }: DashboardSidebarProps = {}) {
   const pathname = usePathname();
   const { user } = useUser();
   const [collapsed, setCollapsed] = useState(false);
@@ -244,7 +248,7 @@ export function DashboardSidebar() {
                 <p className="text-sm font-bold text-zinc-950 truncate">
                   {user?.fullName || user?.primaryEmailAddress?.emailAddress}
                 </p>
-                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Free Plan</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">{planName}</p>
               </div>
             )}
           </div>

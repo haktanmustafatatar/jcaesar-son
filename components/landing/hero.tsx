@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Play, Sparkles, MessageCircle, BarChart3, ShieldCheck, Zap } from "lucide-react";
+import { ArrowRight, Play, Sparkles, MessageCircle, BarChart3, ShieldCheck, Zap, Instagram, Facebook, ShoppingBag } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { useTranslations } from "next-intl";
@@ -74,21 +74,22 @@ export function Hero() {
               </Button>
             </motion.div>
 
-            {/* Social Proof */}
+            {/* Integration Proof */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 1, delay: 0.5 }}
-              className="pt-4 flex items-center gap-8 border-t border-black/[0.03]"
+              className="pt-4 flex items-center gap-6 border-t border-black/[0.03]"
             >
-               <div className="flex -space-x-3">
-                  {[1,2,3,4].map(i => (
-                    <div key={i} className="w-10 h-10 rounded-full border-2 border-white bg-zinc-200" />
-                  ))}
+               <div className="flex items-center -space-x-2">
+                  <div className="w-10 h-10 rounded-full border-2 border-white bg-green-50 text-green-500 flex items-center justify-center shadow-sm"><MessageCircle className="w-5 h-5" /></div>
+                  <div className="w-10 h-10 rounded-full border-2 border-white bg-pink-50 text-pink-500 flex items-center justify-center shadow-sm"><Instagram className="w-5 h-5" /></div>
+                  <div className="w-10 h-10 rounded-full border-2 border-white bg-blue-50 text-blue-500 flex items-center justify-center shadow-sm"><Facebook className="w-5 h-5" /></div>
+                  <div className="w-10 h-10 rounded-full border-2 border-white bg-emerald-50 text-emerald-500 flex items-center justify-center shadow-sm"><ShoppingBag className="w-5 h-5" /></div>
                </div>
                <div>
-                  <p className="text-sm font-bold text-zinc-800">{t("trusted")}</p>
-                  <p className="text-xs text-zinc-400 font-medium tracking-tight uppercase">{t("scaling")}</p>
+                  <p className="text-sm font-bold text-zinc-800">10+ Entegrasyon</p>
+                  <p className="text-xs text-zinc-400 font-medium tracking-tight uppercase">Saniyeler İçinde Bağlayın</p>
                </div>
             </motion.div>
           </div>

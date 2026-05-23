@@ -60,10 +60,14 @@ export default async function RootLayout({
   const { locale } = await params;
   const messages = await getMessages();
 
+  // Since localePrefix is 'as-needed', the default locale ('tr') doesn't have a path prefix.
+  const signInUrl = locale === "tr" ? "/sign-in" : `/${locale}/sign-in`;
+  const signUpUrl = locale === "tr" ? "/sign-up" : `/${locale}/sign-up`;
+
   return (
     <ClerkProvider
-      signInUrl={`/${locale}/sign-in`}
-      signUpUrl={`/${locale}/sign-up`}
+      signInUrl={signInUrl}
+      signUpUrl={signUpUrl}
       appearance={{
         variables: {
           colorPrimary: "#e25b31",

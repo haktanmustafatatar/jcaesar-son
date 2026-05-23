@@ -37,6 +37,8 @@ export async function POST(req: Request) {
         messageLimit: Number(data.messageLimit),
         chatbotLimit: Number(data.chatbotLimit),
         tokenLimit: Number(data.tokenLimit || 0),
+        extraBotPrice: Number(data.extraBotPrice || 0),
+        crawlLimit: Number(data.crawlLimit || 3),
         features: data.features || [],
         isPopular: !!data.isPopular,
         isEnterprise: !!data.isEnterprise,
@@ -66,6 +68,8 @@ export async function PATCH(req: Request) {
     if (data.messageLimit !== undefined) updateData.messageLimit = Number(data.messageLimit);
     if (data.chatbotLimit !== undefined) updateData.chatbotLimit = Number(data.chatbotLimit);
     if (data.tokenLimit !== undefined) updateData.tokenLimit = Number(data.tokenLimit);
+    if (data.extraBotPrice !== undefined) updateData.extraBotPrice = Number(data.extraBotPrice);
+    if (data.crawlLimit !== undefined) updateData.crawlLimit = Number(data.crawlLimit);
     if (data.features !== undefined) updateData.features = data.features;
     if (data.isPopular !== undefined) updateData.isPopular = data.isPopular;
     if (data.isEnterprise !== undefined) updateData.isEnterprise = data.isEnterprise;

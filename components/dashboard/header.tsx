@@ -57,14 +57,7 @@ export function DashboardHeader() {
 
         {/* Right */}
         <div className="flex items-center gap-3">
-          {/* Search */}
-          <div className="hidden md:flex items-center relative">
-            <Search className="w-4 h-4 absolute left-3 text-zinc-400" />
-            <Input
-              placeholder={t("header.search")}
-              className="pl-10 w-64 bg-zinc-50 border-0 rounded-xl focus-visible:ring-1 focus-visible:ring-black/5"
-            />
-          </div>
+          {/* Search removed as per request */}
 
           <LanguageSwitcher />
 

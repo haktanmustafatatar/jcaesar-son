@@ -38,7 +38,7 @@ export default function ContactPage() {
             <div className="space-y-2">
               <p className="text-xs font-black uppercase tracking-widest text-zinc-400">E-Posta Adresimiz</p>
               <h3 className="text-2xl font-black text-zinc-950 hover:text-indigo-600 transition-colors">
-                <a href="mailto:strategy@jcaesar.com">strategy@jcaesar.com</a>
+                <a href="mailto:kaiser@jcaesars.com">kaiser@jcaesars.com</a>
               </h3>
             </div>
             <p className="text-zinc-400 text-xs font-medium">

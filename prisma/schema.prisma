@@ -63,6 +63,8 @@ model Plan {
   messageLimit  Int
   chatbotLimit  Int
   tokenLimit    Int
+  extraBotPrice Float          @default(0)
+  crawlLimit    Int            @default(3)
   features      Json
   isPopular     Boolean        @default(false)
   isEnterprise  Boolean        @default(false)
@@ -534,16 +536,18 @@ enum ActionType {
 }
 
 model Coupon {
-  id           String   @id @default(cuid())
-  code         String   @unique
-  planId       String
-  durationDays Int      @default(14)
-  maxUses      Int      @default(100)
-  usedCount    Int      @default(0)
-  isActive     Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  plan         Plan     @relation(fields: [planId], references: [id])
+  id              String   @id @default(cuid())
+  code            String   @unique
+  planId          String
+  durationDays    Int      @default(14)
+  maxUses         Int      @default(100)
+  usedCount       Int      @default(0)
+  isActive        Boolean  @default(true)
+  discountPercent Int?     // Percentage off, e.g. 20 for 20%
+  stripeCouponId  String?  // Linked stripe coupon id
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  plan            Plan     @relation(fields: [planId], references: [id])
 }
 
 model Staff {

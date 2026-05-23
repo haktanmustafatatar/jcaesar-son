@@ -433,6 +433,11 @@
           "title": "Yayınlayın ve Gömün",
           "description": "Gömme kodunuzu alın ve chatbotu saniyeler içinde web sitenize ekleyin. Kodlama gerektirmez.",
           "visual": "Yayınlanmaya hazır!"
+        },
+        "3": {
+          "title": "Kanallara Bağlayın",
+          "description": "WhatsApp, Instagram ve Shopify gibi kanallarla entegre edin, satışları otomatikleştirin.",
+          "visual": "Entegrasyon aktif"
         }
       }
     },

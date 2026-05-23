@@ -67,6 +67,9 @@ export async function POST(req: NextRequest) {
             user: smtpUser,
             pass: smtpPass,
           },
+          connectionTimeout: 4000,
+          greetingTimeout: 4000,
+          socketTimeout: 4000,
         });
         
         const recipientList = [

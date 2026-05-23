@@ -39,6 +39,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Coupon has reached its maximum usage limit." }, { status: 400 });
     }
 
+    // If it's a percentage discount coupon, do not activate a trial subscription.
+    // Instead, return coupon validation details so it can be passed to Stripe Checkout.
+    if (coupon.discountPercent !== null && coupon.discountPercent > 0) {
+      return NextResponse.json({
+        message: `Kupon başarıyla uygulandı! ${coupon.plan.name} planında %${coupon.discountPercent} indirim kazandınız.`,
+        discountPercent: coupon.discountPercent,
+        code: coupon.code,
+        planId: coupon.planId
+      });
+    }
+
     // Check if user already has an active subscription to avoid abuse
     const existingActiveSub = await prisma.subscription.findFirst({
       where: {

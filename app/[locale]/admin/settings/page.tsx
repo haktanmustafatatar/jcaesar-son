@@ -104,10 +104,7 @@ export default function AdminSettingsPage() {
                   <Label className="text-white">Global Rate Limit</Label>
                   <Input defaultValue="1000/hour" className="bg-zinc-950 border-white/10" />
                 </div>
-                <div className="space-y-1">
-                  <Label className="text-white">Default Model</Label>
-                  <Input defaultValue="gpt-4o-mini" className="bg-zinc-950 border-white/10" />
-                </div>
+
               </div>
             </CardContent>
           </Card>

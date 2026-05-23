@@ -16,6 +16,8 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const user = await prisma.user.findUnique({ where: { clerkId: clerkId as string } });
+
     const chatbot = await prisma.chatbot.findUnique({
       where: { id },
       include: {
@@ -29,8 +31,8 @@ export async function GET(
       },
     });
 
-    if (!chatbot) {
-      return NextResponse.json({ error: "Chatbot not found" }, { status: 404 });
+    if (!chatbot || chatbot.userId !== user?.id) {
+      return NextResponse.json({ error: "Chatbot not found or unauthorized" }, { status: 404 });
     }
 
     return NextResponse.json(chatbot);

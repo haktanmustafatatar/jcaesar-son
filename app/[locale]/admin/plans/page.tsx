@@ -84,6 +84,8 @@ export default function AdminPlansPage() {
       messageLimit: formData.get("messageLimit"),
       chatbotLimit: formData.get("chatbotLimit"),
       tokenLimit: formData.get("tokenLimit"),
+      extraBotPrice: formData.get("extraBotPrice"),
+      crawlLimit: formData.get("crawlLimit"),
       stripePriceId: formData.get("stripePriceId"),
       isPopular: editingPlan?.isPopular || false,
       isEnterprise: editingPlan?.isEnterprise || false,
@@ -287,6 +289,21 @@ export default function AdminPlansPage() {
               <div className="space-y-2">
                 <Label className="text-xs font-black uppercase tracking-widest text-zinc-500">Chatbot Limit</Label>
                 <Input name="chatbotLimit" type="number" defaultValue={editingPlan?.chatbotLimit} className="h-12 rounded-xl bg-white/5 border-white/10 font-bold" required />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-xs font-black uppercase tracking-widest text-zinc-500">Token Limit</Label>
+                <Input name="tokenLimit" type="number" defaultValue={editingPlan?.tokenLimit} className="h-12 rounded-xl bg-white/5 border-white/10 font-bold" required />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-xs font-black uppercase tracking-widest text-zinc-500">Ekstra Bot Fiyatı (₺)</Label>
+                <Input name="extraBotPrice" type="number" step="0.01" defaultValue={editingPlan?.extraBotPrice} placeholder="Örn: 99.99" className="h-12 rounded-xl bg-white/5 border-white/10 font-bold" required />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-xs font-black uppercase tracking-widest text-zinc-500">Aylık Crawl Limiti</Label>
+                <Input name="crawlLimit" type="number" defaultValue={editingPlan?.crawlLimit} placeholder="Örn: 3" className="h-12 rounded-xl bg-white/5 border-white/10 font-bold" required />
               </div>
 
               <div className="space-y-2 col-span-2">

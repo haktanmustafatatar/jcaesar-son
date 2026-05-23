@@ -347,7 +347,7 @@ function SettingsPage() {
                       setFormData((prev: any) => ({ ...prev, name: val }));
                     }}
                     className="h-14 rounded-2xl bg-zinc-50 border-zinc-100 focus:bg-white transition-all font-medium"
-                    placeholder={chatbot?.name || "e.g., JCaesar Sales Lead"}
+                    placeholder={chatbot?.name || ""}
                   />
                 </div>
                 <div className="space-y-3">
@@ -375,7 +375,7 @@ function SettingsPage() {
                     setFormData((prev: any) => ({ ...prev, description: val }));
                   }}
                   className="min-h-[120px] rounded-2xl bg-zinc-50 border-zinc-100 focus:bg-white transition-all font-medium resize-none p-6"
-                  placeholder={chatbot?.description || "What is the purpose of this agent?"}
+                  placeholder={chatbot?.description || ""}
                 />
               </div>
             </CardContent>
@@ -500,10 +500,7 @@ function SettingsPage() {
                     <span className="text-sm font-bold text-zinc-600">Total Pages</span>
                     <span className="text-xs font-bold text-zinc-900">{dataSources.reduce((acc, ds) => acc + (ds.pagesCount || 0), 0)}</span>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-bold text-zinc-600">Model</span>
-                    <span className="text-xs font-bold text-zinc-400 uppercase">{chatbot?.model || 'gpt-4o-mini'}</span>
-                  </div>
+
                 </div>
               </Card>
 
@@ -565,7 +562,7 @@ function SettingsPage() {
                     setFormData((prev: any) => ({ ...prev, systemPrompt: val }));
                   }}
                   className="min-h-[300px] rounded-3xl bg-zinc-50 border-zinc-100 focus:bg-white transition-all font-mono text-sm leading-relaxed p-8 shadow-inner"
-                  placeholder="You are a helpful assistant..."
+                  placeholder=""
                 />
               </div>
 
@@ -733,7 +730,7 @@ function SettingsPage() {
                         setFormData((prev: any) => ({ ...prev, welcomeMessage: val }));
                       }}
                       className="h-14 rounded-2xl bg-zinc-50 border-zinc-100 focus:bg-white transition-all font-medium"
-                      placeholder={chatbot?.welcomeMessage || "e.g., Hi! How can we assist you today?"}
+                      placeholder={chatbot?.welcomeMessage || ""}
                     />
                   </div>
 

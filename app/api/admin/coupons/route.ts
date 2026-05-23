@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 
+import Stripe from "stripe";
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "sk_test_dummyForBuild", {
+  apiVersion: "2024-12-18.acacia" as any,
+});
+
 // Validate admin session
 async function isAdmin() {
   const { userId: clerkId } = await auth();
@@ -39,7 +45,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { code, planId, durationDays, maxUses } = body;
+    const { code, planId, durationDays, maxUses, discountPercent } = body;
 
     if (!code || !planId) {
       return NextResponse.json({ error: "Code and Plan are required" }, { status: 400 });
@@ -56,12 +62,41 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "A coupon with this code already exists" }, { status: 400 });
     }
 
+    let stripeCouponId: string | undefined = undefined;
+    const pct = discountPercent !== undefined && discountPercent !== "" && discountPercent !== null ? Number(discountPercent) : null;
+
+    if (pct !== null) {
+      if (isNaN(pct) || pct < 1 || pct > 100) {
+        return NextResponse.json({ error: "Discount percent must be between 1 and 100" }, { status: 400 });
+      }
+
+      // Sync coupon with Stripe dynamically!
+      try {
+        const stripeCoupon = await stripe.coupons.create({
+          percent_off: pct,
+          duration: "forever",
+          name: `${uppercaseCode} - ${pct}% Off`,
+          id: uppercaseCode, // Use the code itself as Stripe's Coupon ID
+        }).catch(async (err) => {
+          // If already exists, retrieve it
+          return await stripe.coupons.retrieve(uppercaseCode);
+        });
+        stripeCouponId = stripeCoupon.id;
+      } catch (stripeErr: any) {
+        console.error("Stripe Coupon Sync Error:", stripeErr);
+        // Fallback to uppercaseCode if Stripe is offline or key is dummy
+        stripeCouponId = uppercaseCode;
+      }
+    }
+
     const coupon = await prisma.coupon.create({
       data: {
         code: uppercaseCode,
         planId,
         durationDays: Number(durationDays) || 14,
         maxUses: Number(maxUses) || 100,
+        discountPercent: pct,
+        stripeCouponId,
         isActive: true
       },
       include: {

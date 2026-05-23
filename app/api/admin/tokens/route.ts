@@ -23,7 +23,6 @@ export async function GET(req: NextRequest) {
     });
 
     const firecrawlLogs = await prisma.dataSourceUrl.findMany({
-      where: { status: "COMPLETED" },
       orderBy: { lastCrawledAt: "desc" },
       take: 100,
       include: {

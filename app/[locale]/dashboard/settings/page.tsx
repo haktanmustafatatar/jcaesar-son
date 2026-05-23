@@ -27,9 +27,17 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { useClerk } from "@clerk/nextjs";
+import { toast } from "sonner";
 
 export default function UserSettingsPage() {
   const [activeTab, setActiveTab] = useState("profile");
+  const { signOut } = useClerk();
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isOtpSent, setIsOtpSent] = useState(false);
+  const [otpValue, setOtpValue] = useState("");
 
   const tabs = [
     { id: "profile", label: "Profile", icon: User, description: "Personal info & accounts" },
@@ -37,6 +45,49 @@ export default function UserSettingsPage() {
     { id: "security", label: "Security", icon: Shield, description: "Password & safety" },
     { id: "billing", label: "Billing", icon: CreditCard, description: "Plans & usage" },
   ];
+
+  const handleSendOtp = async () => {
+    setIsDeleting(true);
+    try {
+      const res = await fetch("/api/user/delete-otp", { method: "POST" });
+      const data = await res.json();
+      if (res.ok) {
+        setIsOtpSent(true);
+        toast.success("Doğrulama kodu e-posta adresinize gönderildi.");
+      } else {
+        toast.error(data.error || "Kod gönderilemedi.");
+      }
+    } catch (e) {
+      toast.error("Bağlantı hatası.");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (otpValue.length < 6) return toast.error("Geçerli bir kod girin.");
+    setIsDeleting(true);
+    try {
+      const res = await fetch("/api/user/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ otp: otpValue }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success("Hesabınız başarıyla silindi.");
+        setShowDeleteDialog(false);
+        await signOut();
+        window.location.href = "/";
+      } else {
+        toast.error(data.error || "Hesap silinemedi.");
+      }
+    } catch (e) {
+      toast.error("Bağlantı hatası.");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   return (
     <div className="max-w-6xl mx-auto space-y-8 pb-12">
@@ -199,7 +250,7 @@ export default function UserSettingsPage() {
                             Permanently delete your account and all associated chatbots. This action cannot be undone.
                          </p>
                       </div>
-                      <Button variant="destructive" className="rounded-xl px-6 h-10 font-bold opacity-80 hover:opacity-100 shadow-lg shadow-destructive/20">
+                      <Button variant="destructive" onClick={() => setShowDeleteDialog(true)} className="rounded-xl px-6 h-10 font-bold opacity-80 hover:opacity-100 shadow-lg shadow-destructive/20">
                          Delete
                       </Button>
                    </CardContent>
@@ -425,6 +476,44 @@ export default function UserSettingsPage() {
           </motion.div>
         </AnimatePresence>
       </div>
+
+      <Dialog open={showDeleteDialog} onOpenChange={(open) => !isDeleting && setShowDeleteDialog(open)}>
+        <DialogContent className="sm:max-w-md rounded-[24px]">
+          <DialogHeader>
+            <DialogTitle>Hesabı Sil</DialogTitle>
+            <DialogDescription>
+              Bu işlem geri alınamaz. Devam etmek için e-posta adresinize gönderilen 6 haneli onay kodunu girin.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            {!isOtpSent ? (
+               <div className="space-y-4 text-sm text-muted-foreground">
+                 <p>Hesabınızı silmek için e-posta adresinize bir doğrulama kodu göndereceğiz.</p>
+                 <Button onClick={handleSendOtp} disabled={isDeleting} className="w-full h-11 rounded-xl">
+                   {isDeleting ? "Gönderiliyor..." : "Doğrulama Kodu Gönder"}
+                 </Button>
+               </div>
+            ) : (
+               <div className="space-y-4">
+                 <div className="space-y-2">
+                   <Label>Doğrulama Kodu</Label>
+                   <Input 
+                     value={otpValue} 
+                     onChange={e => setOtpValue(e.target.value)} 
+                     placeholder="123456" 
+                     maxLength={6}
+                     className="text-center text-2xl tracking-[0.5em] h-14 font-mono"
+                   />
+                 </div>
+                 <Button onClick={handleConfirmDelete} disabled={isDeleting || otpValue.length < 6} variant="destructive" className="w-full h-11 rounded-xl">
+                   {isDeleting ? "Siliniyor..." : "Hesabımı Kalıcı Olarak Sil"}
+                 </Button>
+               </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

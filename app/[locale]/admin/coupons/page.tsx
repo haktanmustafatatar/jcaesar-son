@@ -49,7 +49,8 @@ export default function AdminCouponsPage() {
     code: "",
     planId: "",
     durationDays: 14,
-    maxUses: 100
+    maxUses: 100,
+    discountPercent: ""
   });
 
   const fetchData = async () => {
@@ -88,13 +89,16 @@ export default function AdminCouponsPage() {
       const res = await fetch("/api/admin/coupons", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newCoupon)
+        body: JSON.stringify({
+          ...newCoupon,
+          discountPercent: newCoupon.discountPercent !== "" ? Number(newCoupon.discountPercent) : null
+        })
       });
 
       if (res.ok) {
         toast.success("Coupon code successfully forged!");
         setIsModalOpen(false);
-        setNewCoupon({ code: "", planId: "", durationDays: 14, maxUses: 100 });
+        setNewCoupon({ code: "", planId: "", durationDays: 14, maxUses: 100, discountPercent: "" });
         fetchData();
       } else {
         const err = await res.json();
@@ -249,9 +253,20 @@ export default function AdminCouponsPage() {
                       </div>
                     </TableCell>
                     <TableCell className="py-6 text-zinc-300 font-bold text-sm">
-                      <Badge className="bg-primary/10 text-primary border-none font-black text-[10px] px-3 py-0.5">
-                        {coupon.plan.name}
-                      </Badge>
+                      <div className="flex flex-col gap-1.5 items-start">
+                        <Badge className="bg-primary/10 text-primary border-none font-black text-[10px] px-3 py-0.5">
+                          {coupon.plan.name}
+                        </Badge>
+                        {coupon.discountPercent ? (
+                          <Badge className="bg-emerald-500/10 text-emerald-400 border-none font-black text-[10px] px-3 py-0.5">
+                            %{coupon.discountPercent} Discount
+                          </Badge>
+                        ) : (
+                          <Badge className="bg-blue-500/10 text-blue-400 border-none font-black text-[10px] px-3 py-0.5">
+                            Free Trial
+                          </Badge>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className="py-6 text-center text-zinc-300 font-bold text-sm">
                       {coupon.durationDays} Days
@@ -325,7 +340,7 @@ export default function AdminCouponsPage() {
               </Select>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
                 <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-1">Trial Days</label>
                 <Input 
@@ -341,6 +356,16 @@ export default function AdminCouponsPage() {
                   type="number"
                   value={newCoupon.maxUses}
                   onChange={(e) => setNewCoupon({...newCoupon, maxUses: Number(e.target.value)})}
+                  className="h-12 rounded-2xl bg-zinc-900 border-zinc-800 text-white font-bold"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-1">Discount %</label>
+                <Input 
+                  type="number"
+                  placeholder="e.g. 20"
+                  value={newCoupon.discountPercent}
+                  onChange={(e) => setNewCoupon({...newCoupon, discountPercent: e.target.value})}
                   className="h-12 rounded-2xl bg-zinc-900 border-zinc-800 text-white font-bold"
                 />
               </div>

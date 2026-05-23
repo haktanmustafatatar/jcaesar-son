@@ -98,6 +98,11 @@ export async function DELETE(req: NextRequest) {
     const user = await prisma.user.findUnique({ where: { clerkId: userId } });
     if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
+    const chatbot = await prisma.chatbot.findUnique({ where: { id: chatbotId } });
+    if (!chatbot || chatbot.userId !== user.id) {
+      return NextResponse.json({ error: "Chatbot not found or unauthorized" }, { status: 404 });
+    }
+
     await prisma.channel.deleteMany({
       where: { chatbotId, type: "SHOPIFY" },
     });

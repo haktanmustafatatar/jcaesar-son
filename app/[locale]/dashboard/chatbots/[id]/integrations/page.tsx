@@ -385,48 +385,7 @@ export default function IntegrationsPage() {
         onSuccess={fetchChannels}
       />
 
-      {/* Expert Assistance Banner */}
-      <div className="relative rounded-[60px] bg-zinc-950 p-12 overflow-hidden shadow-2xl shadow-black/20 group">
-        <div className="absolute top-0 right-0 w-1/2 h-full bg-[radial-gradient(circle_at_70%_20%,rgba(226,91,49,0.15),transparent)] pointer-events-none" />
-        <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-          <div className="space-y-6">
-            <div className="w-16 h-16 rounded-3xl bg-white/10 flex items-center justify-center shadow-2xl border border-white/10 group-hover:scale-110 transition-transform">
-              <Globe className="w-8 h-8 text-primary" />
-            </div>
-            <h2 className="text-3xl font-black text-white leading-tight">{t("expertAssistance.title")} <br/><span className="text-zinc-500">{t("expertAssistance.subtitle")}</span></h2>
-            <p className="text-zinc-400 font-medium leading-relaxed max-w-sm">
-              {t("expertAssistance.description")}
-            </p>
-          </div>
-          <div className="bg-white/5 p-8 rounded-[48px] border border-white/5 flex flex-col gap-6">
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-[10px] font-black text-zinc-500 uppercase tracking-widest">
-                <span>{t("expertAssistance.integrity")}</span>
-                <span className="text-primary">99.9%</span>
-              </div>
-              <div className="h-1 w-full bg-white/10 rounded-full overflow-hidden">
-                <div className="h-full w-[99%] bg-primary rounded-full" />
-              </div>
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="flex -space-x-3">
-                {[1,2,3].map(i => (
-                  <div key={i} className="w-12 h-12 rounded-full border-2 border-zinc-900 bg-zinc-800 overflow-hidden shadow-xl">
-                    <img src={`https://i.pravatar.cc/100?u=${i+10}`} alt="Expert" className="w-full h-full object-cover grayscale" />
-                  </div>
-                ))}
-              </div>
-              <div>
-                <p className="text-sm font-bold text-white">{t("expertAssistance.expertsReady")}</p>
-                <p className="text-xs text-zinc-500 font-medium tracking-tight">{t("expertAssistance.expertsDesc")}</p>
-              </div>
-              <Button className="ml-auto rounded-2xl bg-white text-zinc-950 hover:bg-zinc-200 font-bold h-12 px-8">
-                {t("expertAssistance.consultBtn")}
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* Expert Assistance Banner removed */}
     </div>
   );
 }

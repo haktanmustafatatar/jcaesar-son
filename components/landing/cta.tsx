@@ -50,7 +50,7 @@ export function CTA() {
             <Button
               variant="outline"
               size="lg"
-              className="h-16 px-10 rounded-[24px] font-black text-sm uppercase tracking-widest border-white/10 text-white hover:bg-white/10 transition-all active:scale-95 translate-y-0.5"
+              className="h-16 px-10 rounded-[24px] font-black text-sm uppercase tracking-widest border-white/10 bg-transparent text-white hover:bg-white/10 transition-all active:scale-95 translate-y-0.5"
             >
               {t("secondary")}
             </Button>

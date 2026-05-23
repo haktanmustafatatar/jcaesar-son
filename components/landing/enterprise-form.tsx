@@ -85,8 +85,12 @@ export function EnterpriseForm({ open, onOpenChange }: EnterpriseFormProps) {
           setIsSuccess(false);
         }, 3000);
       } else {
-        const err = await res.json();
-        toast.error(err.error || "Bir hata oluştu, lütfen tekrar deneyin.");
+        try {
+          const err = await res.json();
+          toast.error(err.error || "Bir hata oluştu, lütfen tekrar deneyin.");
+        } catch (jsonErr) {
+          toast.error("İşlem yoğunluğu sebebiyle gecikme yaşandı, talebiniz ulaşmış olabilir.");
+        }
       }
     } catch (error) {
       toast.error("Sunucu bağlantı hatası.");

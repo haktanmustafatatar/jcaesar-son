@@ -14,9 +14,9 @@ export const LLM_MODELS = {
     tokenMultiplier: 5,
     maxTokens: 4096,
   },
-  "gpt-4o-mini": {
+  "gpt-4.1-nano": {
     provider: openai("gpt-4o-mini"),
-    name: "GPT-4o Mini",
+    name: "gpt-4.1-nano",
     tokenMultiplier: 1,
     maxTokens: 4096,
   },
@@ -248,12 +248,12 @@ export async function logTokenUsage({
 
   // Token maliyetini hesapla (örnek fiyatlandırma)
   const costPer1K = model.includes("gpt-4o")
-    ? model.includes("mini")
+    ? 2.5
+    : model.includes("nano") || model.includes("mini")
       ? 0.15
-      : 2.5
-    : model.includes("haiku")
-      ? 0.25
-      : 3.0;
+      : model.includes("haiku")
+        ? 0.25
+        : 3.0;
 
   const cost = (totalTokens / 1000) * costPer1K;
 
@@ -341,7 +341,7 @@ export async function performRAGSearch({
       const conversationContext = lastMessages.map(m => `${m.role}: ${m.content}`).join("\n");
       
       const { text } = await generateText({
-        model: LLM_MODELS["gpt-4o-mini"].provider,
+        model: LLM_MODELS["gpt-4.1-nano"].provider,
         prompt: `Based on the following conversation history and the current user query, rewrite the query into a better search term for a product database. 
         Focus on identifying the specific product or category the user is likely referring to.
         
@@ -366,7 +366,7 @@ export async function performRAGSearch({
   let intentData: { isProductSearch: boolean; brand: string | null } = { isProductSearch: false, brand: null };
   try {
     const { object } = await generateObject({
-      model: LLM_MODELS["gpt-4o-mini"].provider,
+      model: LLM_MODELS["gpt-4.1-nano"].provider,
       schema: z.object({
         isProductSearch: z.boolean(),
         brand: z.string().nullable().optional(),
@@ -500,7 +500,7 @@ export async function analyzeConversationSentiment(conversationId: string) {
       .join("\n");
 
     const { text } = await generateText({
-      model: LLM_MODELS["gpt-4o-mini"].provider,
+      model: LLM_MODELS["gpt-4.1-nano"].provider,
       prompt: `Analyze the sentiment of the following conversation between a user and an AI assistant. 
       Categorize it as one of the following: POSITIVE, NEUTRAL, NEGATIVE, or FRUSTRATED.
       Only return the category name in uppercase.

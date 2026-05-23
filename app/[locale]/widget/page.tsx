@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useChat } from "ai/react";
+import { useSearchParams } from "next/navigation";
 import { 
   Send, 
   Bot, 
@@ -29,7 +30,8 @@ interface Citation {
 }
 
 export default function WidgetPage() {
-  const chatbotSlug = "demo";
+  const searchParams = useSearchParams();
+  const chatbotSlug = searchParams.get("id") || "demo";
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [showLeadForm, setShowLeadForm] = useState(false);
