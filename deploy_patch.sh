@@ -31,4 +31,4 @@ rm -f chunk_*
 echo "🔄 [4/6] Connecting to remote server to execute deployment..."
 echo "🔒 (Please enter your droplet password if prompted)"
 # Execute the remote deployment script cleanly (no interactive shell warnings)
-ssh root@$DROPLET_IP "bash /app/deploy_remote.sh"
+ssh -o ServerAliveInterval=60 -o ServerAliveCountMax=10 root@$DROPLET_IP "bash /app/deploy_remote.sh"

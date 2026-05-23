@@ -19,7 +19,7 @@ rm -f jcaesar_patch_v4.tar.gz
 cd /app/app
 
 echo "🏗️ [4/5] Rebuilding Docker images..."
-docker-compose build --no-cache app migration
+docker-compose build app migration
 
 echo "🗄️ [5/5] Synchronizing Prisma Database Schema..."
 docker-compose run --rm migration
