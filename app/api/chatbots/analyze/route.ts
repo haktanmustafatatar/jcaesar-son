@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
 
       // 2. Generate Rich Business Context & Name via LLM
       const { text: aiAnalysis } = await generateText({
-        model: LLM_MODELS["gpt-4o-mini"].provider,
+        model: LLM_MODELS["gpt-4.1-nano"].provider,
         prompt: `Analyze the following ${url ? "website" : "document"} content carefully. 
         Extract/suggest a professional name for an AI chatbot based on this business (e.g., the company name or brand).
         Then, create a "Business Context" (3-4 professional sentences).
