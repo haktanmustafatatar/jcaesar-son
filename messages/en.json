@@ -147,7 +147,9 @@
             "trainingComplete": "Synthesis Complete",
             "trainingCompleteDesc": "Your neural agent is now fully synchronized and ready for deployment.",
             "dashboardBtn": "Go to Dashboard",
-            "initializing": "Preparing Infrastructure..."
+            "initializing": "Preparing Infrastructure...",
+            "chunksIndexed": "{count} Chunks Indexed",
+            "embedBtn": "Embed Code"
           },
           "modal": {
             "websiteTitle": "Website Crawl",
@@ -158,9 +160,17 @@
             "tabManual": "Manual List",
             "fetching": "Discovering Links...",
             "fetchLinks": "Discover Links",
-            "advancedOptions": "Advanced Crawl Engine"
+            "advancedOptions": "Advanced Crawl Engine",
+            "maxDepth": "Crawl Depth",
+            "pageLimit": "Page Limit",
+            "crawlSchedule": "Auto Crawl Frequency",
+            "istanbulTime": "Istanbul Time",
+            "load": "LOAD"
           }
-        }
+        },
+        "title": "Create New Chatbot",
+        "description": "Welcome! Check out what is happening with your chatbots.",
+        "createButton": "Create Chatbot"
       }
     },
     "overview": {

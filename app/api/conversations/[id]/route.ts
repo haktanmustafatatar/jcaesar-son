@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
+import { triggerWebhook } from "@/lib/webhook";
 
 /**
  * PATCH /api/conversations/[id]
@@ -53,6 +54,9 @@ export async function PATCH(
         ...(tags !== undefined && { tags })
       }
     });
+
+    // Trigger conversation.updated webhook event
+    triggerWebhook(updated.chatbotId, "conversation.updated", updated);
 
     // Create note if provided
     if (note && typeof note === "string" && note.trim() !== "") {

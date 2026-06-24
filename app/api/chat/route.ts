@@ -42,9 +42,8 @@ export async function POST(req: NextRequest) {
     const { allowed, reason, limit } = await checkPlanLimits(chatbotId);
     if (!allowed) {
       return new Response(JSON.stringify({ 
-        error: "Usage limit reached", 
-        code: reason,
-        limit 
+        error: "MESSAGE_LIMIT_REACHED", 
+        upgradeUrl: "/pricing"
       }), { status: 403, headers: { "Content-Type": "application/json" } });
     }
 

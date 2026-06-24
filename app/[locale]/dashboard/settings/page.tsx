@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   User, 
@@ -20,7 +20,8 @@ import {
   Bot,
   MessageSquare,
   Lock,
-  LogOut
+  LogOut,
+  Loader2
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -40,6 +41,89 @@ export default function UserSettingsPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isOtpSent, setIsOtpSent] = useState(false);
   const [otpValue, setOtpValue] = useState("");
+
+  // Edit states for user profile
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+
+  // Password update states
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      setFirstName(user.firstName || "");
+      setLastName(user.lastName || "");
+    }
+  }, [user]);
+
+  const handleSaveProfile = async () => {
+    if (!user) return;
+    setIsSavingProfile(true);
+    try {
+      await user.update({
+        firstName,
+        lastName
+      });
+      toast.success("Profil başarıyla güncellendi.");
+    } catch (err: any) {
+      toast.error(err.message || "Profil güncellenemedi.");
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
+
+  const handleSaveAll = async () => {
+    if (activeTab === "profile") {
+      await handleSaveProfile();
+    } else {
+      toast.info("Bu sekmede kaydedilecek değişiklik yok.");
+    }
+  };
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      toast.loading("Avatar yükleniyor...");
+      await user?.setProfileImage({ file });
+      toast.dismiss();
+      toast.success("Avatar başarıyla güncellendi.");
+    } catch (err: any) {
+      toast.dismiss();
+      toast.error(err.message || "Avatar güncellenemedi.");
+    }
+  };
+
+  const triggerAvatarUpload = () => {
+    document.getElementById("avatar-upload")?.click();
+  };
+
+  const handleUpdatePassword = async () => {
+    if (!user) return;
+    if (!currentPassword || !newPassword) {
+      toast.error("Lütfen tüm alanları doldurun.");
+      return;
+    }
+    setIsUpdatingPassword(true);
+    try {
+      await user.updatePassword({
+        currentPassword,
+        newPassword
+      });
+      toast.success("Şifre başarıyla güncellendi.");
+      setShowPasswordDialog(false);
+      setCurrentPassword("");
+      setNewPassword("");
+    } catch (err: any) {
+      toast.error(err.errors?.[0]?.message || err.message || "Şifre güncellenemedi.");
+    } finally {
+      setIsUpdatingPassword(false);
+    }
+  };
 
   const tabs = [
     { id: "profile", label: "Profile", icon: User, description: "Personal info & accounts" },
@@ -93,6 +177,15 @@ export default function UserSettingsPage() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-8 pb-12">
+      {/* Hidden File Input for Avatar */}
+      <input
+        type="file"
+        id="avatar-upload"
+        className="hidden"
+        accept="image/*"
+        onChange={handleAvatarChange}
+      />
+
       {/* Header Area */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between px-2">
         <div className="space-y-1">
@@ -100,11 +193,24 @@ export default function UserSettingsPage() {
           <p className="text-muted-foreground font-medium text-sm">Manage your J.Caesar experience and account preferences.</p>
         </div>
         <div className="flex gap-3">
-           <Button variant="outline" className="rounded-xl h-11 px-6 font-semibold border-muted-foreground/10">
+           <Button variant="outline" className="rounded-xl h-11 px-6 font-semibold border-muted-foreground/10" onClick={() => {
+             if (user) {
+               setFirstName(user.firstName || "");
+               setLastName(user.lastName || "");
+             }
+           }}>
               Discard
            </Button>
-           <Button className="bg-primary hover:bg-primary/90 text-white rounded-xl h-11 px-8 font-bold shadow-lg shadow-primary/20">
-             <Save className="mr-2 h-4 w-4" />
+           <Button 
+             className="bg-primary hover:bg-primary/90 text-white rounded-xl h-11 px-8 font-bold shadow-lg shadow-primary/20"
+             onClick={handleSaveAll}
+             disabled={isSavingProfile}
+           >
+             {isSavingProfile ? (
+               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+             ) : (
+               <Save className="mr-2 h-4 w-4" />
+             )}
              Save All Changes
            </Button>
         </div>
@@ -154,9 +260,9 @@ export default function UserSettingsPage() {
                   </div>
                   <div className="space-y-1">
                      <h3 className="text-sm font-bold">Planınız Aktif</h3>
-                     <p className="text-[10px] text-zinc-400 font-medium leading-relaxed">Bir sonraki yenileme tarihiniz Mayıs 12, 2024.</p>
+                     <p className="text-[10px] text-zinc-400 font-medium leading-relaxed font-mono">Bir sonraki yenileme tarihiniz Mayıs 12, 2024.</p>
                   </div>
-                  <Button size="sm" className="w-full bg-white text-zinc-950 hover:bg-zinc-200 text-[11px] font-bold h-9 rounded-xl">
+                  <Button size="sm" className="w-full bg-white text-zinc-950 hover:bg-zinc-200 text-[11px] font-bold h-9 rounded-xl" onClick={() => setActiveTab("billing")}>
                     View Billing
                   </Button>
                 </div>
@@ -181,10 +287,10 @@ export default function UserSettingsPage() {
                    <div className="h-32 bg-gradient-to-r from-primary/10 via-primary/5 to-zinc-100" />
                    <CardContent className="px-8 pb-10 -mt-12 relative z-10">
                       <div className="flex flex-col items-center md:flex-row md:items-end gap-6 text-center md:text-left">
-                         <div className="relative group cursor-pointer">
+                         <div className="relative group cursor-pointer" onClick={triggerAvatarUpload}>
                             <div className="w-32 h-32 rounded-[40px] bg-white p-2 shadow-2xl overflow-hidden ring-4 ring-white">
                                <img 
-                                 src={user?.imageUrl || "https://api.dicebear.com/7.x/avataaars/svg?seed=JCaesar"} 
+                                 src={user?.imageUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.firstName || "JCaesar"}`} 
                                  alt="Avatar" 
                                  className="w-full h-full object-cover rounded-[32px]"
                                />
@@ -200,7 +306,7 @@ export default function UserSettingsPage() {
                                {user?.primaryEmailAddress?.emailAddress}
                             </p>
                          </div>
-                         <Button variant="outline" className="mb-2 rounded-xl h-10 px-6 font-bold border-muted-foreground/10">
+                         <Button variant="outline" className="mb-2 rounded-xl h-10 px-6 font-bold border-muted-foreground/10" onClick={triggerAvatarUpload}>
                             Upload New
                          </Button>
                       </div>
@@ -213,11 +319,11 @@ export default function UserSettingsPage() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                          <div className="space-y-2">
                             <Label className="text-xs font-bold text-muted-foreground uppercase tracking-widest px-1">First Name</Label>
-                            <Input placeholder="First Name" value={user?.firstName || ""} readOnly className="h-12 rounded-xl bg-muted/50 cursor-not-allowed focus-visible:ring-primary/20 transition-all" />
+                            <Input placeholder="First Name" value={firstName} onChange={e => setFirstName(e.target.value)} className="h-12 rounded-xl focus-visible:ring-primary/20 transition-all" />
                          </div>
                          <div className="space-y-2">
                             <Label className="text-xs font-bold text-muted-foreground uppercase tracking-widest px-1">Last Name</Label>
-                            <Input placeholder="Last Name" value={user?.lastName || ""} readOnly className="h-12 rounded-xl bg-muted/50 cursor-not-allowed focus-visible:ring-primary/20 transition-all" />
+                            <Input placeholder="Last Name" value={lastName} onChange={e => setLastName(e.target.value)} className="h-12 rounded-xl focus-visible:ring-primary/20 transition-all" />
                          </div>
                          <div className="space-y-2">
                             <Label className="text-xs font-bold text-muted-foreground uppercase tracking-widest px-1">Email Address</Label>
@@ -337,7 +443,7 @@ export default function UserSettingsPage() {
                                    animate={{ width: "82%" }}
                                    transition={{ duration: 1.5, ease: "easeOut" }}
                                    className="h-full bg-emerald-500 rounded-full" 
-                                 />
+                                  />
                               </div>
                               <p className="text-[11px] text-muted-foreground font-medium px-1">Resets in 14 days.</p>
                            </div>
@@ -363,7 +469,7 @@ export default function UserSettingsPage() {
                                    animate={{ width: "40%" }}
                                    transition={{ duration: 1.5, ease: "easeOut", delay: 0.2 }}
                                    className="h-full bg-blue-500 rounded-full" 
-                                 />
+                                  />
                               </div>
                               <Link href="/pricing">
                                 <p className="text-[11px] text-muted-foreground font-medium px-1 underline cursor-pointer hover:text-primary pt-1">Upgrade limit →</p>
@@ -406,7 +512,7 @@ export default function UserSettingsPage() {
                               <p className="text-3xl font-bold">Aylık</p>
                               <div className="w-full h-px bg-white/10 my-6" />
                               <span className="text-sm font-bold text-primary mb-1">Sonraki Ödeme</span>
-                              <p className="text-xl font-bold">12 Mayıs 2024</p>
+                              <p className="text-xl font-bold font-mono">12 Mayıs 2024</p>
                            </div>
                         </div>
                      </CardContent>
@@ -428,7 +534,10 @@ export default function UserSettingsPage() {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-6">
-                       <div className="p-8 rounded-[32px] bg-muted/20 border border-black/[0.03] space-y-4 hover:bg-muted/30 transition-all cursor-pointer group">
+                       <div 
+                         onClick={() => setShowPasswordDialog(true)}
+                         className="p-8 rounded-[32px] bg-muted/20 border border-black/[0.03] space-y-4 hover:bg-muted/30 transition-all cursor-pointer group"
+                       >
                           <div className="w-12 h-12 rounded-2xl bg-white shadow-sm flex items-center justify-center group-hover:scale-110 transition-transform">
                              <Lock className="w-5 h-5 text-zinc-600" />
                           </div>
@@ -481,6 +590,7 @@ export default function UserSettingsPage() {
         </AnimatePresence>
       </div>
 
+      {/* Delete Account Dialog */}
       <Dialog open={showDeleteDialog} onOpenChange={(open) => !isDeleting && setShowDeleteDialog(open)}>
         <DialogContent className="sm:max-w-md rounded-[24px]">
           <DialogHeader>
@@ -515,6 +625,47 @@ export default function UserSettingsPage() {
                  </Button>
                </div>
             )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Change Password Dialog */}
+      <Dialog open={showPasswordDialog} onOpenChange={(open) => !isUpdatingPassword && setShowPasswordDialog(open)}>
+        <DialogContent className="sm:max-w-md rounded-[24px]">
+          <DialogHeader>
+            <DialogTitle>Şifre Değiştir</DialogTitle>
+            <DialogDescription>
+              Güvenliğiniz için mevcut şifrenizi ve yeni şifrenizi girin.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Mevcut Şifre</Label>
+              <Input
+                type="password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                placeholder="••••••••"
+                className="h-12 rounded-xl"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Yeni Şifre</Label>
+              <Input
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="••••••••"
+                className="h-12 rounded-xl"
+              />
+            </div>
+            <Button 
+              onClick={handleUpdatePassword} 
+              disabled={isUpdatingPassword || !currentPassword || !newPassword}
+              className="w-full h-11 rounded-xl font-bold bg-primary hover:bg-primary/90 text-white"
+            >
+              {isUpdatingPassword ? "Güncelleniyor..." : "Şifreyi Güncelle"}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

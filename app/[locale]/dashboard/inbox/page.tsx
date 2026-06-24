@@ -80,6 +80,7 @@ export default function InboxPage() {
   const [mobileView, setMobileView] = useState<"list" | "chat">("list");
   
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Status Filter Tab & CRM Form states
   const [activeTab, setActiveTab] = useState<"active" | "closed">("active");
@@ -166,12 +167,9 @@ export default function InboxPage() {
 
   // Auto-scroll to bottom of chat logs when new messages arrive
   useEffect(() => {
-    if (scrollContainerRef.current) {
-      const scrollArea = scrollContainerRef.current.querySelector('[data-radix-scroll-area-viewport]');
-      if (scrollArea) {
-        scrollArea.scrollTop = scrollArea.scrollHeight;
-      }
-    }
+    setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, 50);
   }, [messages, isTyping]);
 
   const fetchConversations = async (silent = false) => {
@@ -374,6 +372,13 @@ export default function InboxPage() {
       if (res.ok) {
         alert("Kişi CRM'e başarıyla kaydedildi!");
         setIsCrmFormOpen(false);
+        setConversations(prev => prev.map(c => c.id === selectedId ? {
+          ...c,
+          contactName: crmName,
+          contactEmail: crmEmail || null,
+          contactPhone: crmPhone || null,
+          contactNotes: crmNotes
+        } : c));
       } else {
         const err = await res.json();
         alert(`Hata: ${err.error || "Kişi kaydedilemedi"}`);
@@ -712,7 +717,7 @@ export default function InboxPage() {
             </div>
 
             {/* Chat Messages Logs */}
-            <ScrollArea ref={scrollContainerRef} className="flex-1 p-6 lg:p-8 bg-zinc-50/50 relative overflow-hidden">
+            <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-6 lg:p-8 bg-zinc-50/50 relative">
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_-20%,rgba(59,130,246,0.03),transparent)]" />
               
               <div className="space-y-10 relative z-10 max-w-4xl mx-auto pb-8">
@@ -810,8 +815,9 @@ export default function InboxPage() {
                      </div>
                   </div>
                 )}
+                <div ref={messagesEndRef} />
               </div>
-            </ScrollArea>
+            </div>
 
             {/* Input Action Panel */}
             <div className="p-4 lg:p-6 bg-white/80 backdrop-blur-md border-t border-black/5 relative z-20">
@@ -1007,6 +1013,10 @@ export default function InboxPage() {
                        <div className="flex justify-between items-center">
                           <span className="text-[10px] font-bold opacity-60">Kanal</span>
                           <span className="text-xs font-black uppercase">{selectedConv.channel === "widget" ? "Web Sitesi" : selectedConv.channel}</span>
+                       </div>
+                       <div className="flex justify-between items-center">
+                          <span className="text-[10px] font-bold opacity-60">Platform ID</span>
+                          <span className="text-xs font-black select-all truncate max-w-[120px]">{selectedConv.channelUserId || "Bilinmiyor"}</span>
                        </div>
                     </div>
                  </div>

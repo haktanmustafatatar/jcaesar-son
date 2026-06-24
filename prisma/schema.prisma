@@ -105,6 +105,7 @@ model Chatbot {
   businessContext          String?
   systemPrompt             String              @default("You are a helpful assistant.")
   welcomeMessage           String              @default("Hi! How can I help you today?")
+  placeholderText          String              @default("Bir mesaj yazın...")
   primaryColor             String              @default("#e25b31")
   position                 String              @default("bottom-right")
   showBranding             Boolean             @default(true)
@@ -136,6 +137,7 @@ model Chatbot {
   suggestedQuestions       SuggestedQuestion[]
   tokenUsages              TokenUsage[]
   messageTemplates         MessageTemplate[]
+  webhookEndpoints         WebhookEndpoint[]
 }
 
 model SuggestedQuestion {
@@ -597,4 +599,17 @@ model MessageTemplate {
 
   @@index([chatbotId])
   @@index([status])
+}
+
+model WebhookEndpoint {
+  id        String   @id @default(cuid())
+  chatbotId String
+  url       String
+  secret    String
+  events    String[] // ["conversation.created", "conversation.updated", "lead.created", "message.received"]
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  chatbot   Chatbot  @relation(fields: [chatbotId], references: [id], onDelete: Cascade)
+
+  @@index([chatbotId])
 }

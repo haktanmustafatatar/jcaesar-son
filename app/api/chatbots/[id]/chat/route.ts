@@ -3,6 +3,7 @@ import { StreamData } from "ai";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { performRAGSearch, streamRAGResponse, logTokenUsage, LLMModel } from "@/lib/ai";
+import { checkPlanLimits } from "@/lib/plan-guard";
 
 export async function POST(
   req: NextRequest,
@@ -50,6 +51,15 @@ export async function POST(
 
     if (!chatbot || (chatbot.userId !== user?.id)) {
       return NextResponse.json({ error: "Chatbot not found" }, { status: 404 });
+    }
+
+    // Check Plan Limits
+    const limitCheck = await checkPlanLimits(chatbotId);
+    if (!limitCheck.allowed) {
+      return NextResponse.json(
+        { error: "MESSAGE_LIMIT_REACHED", upgradeUrl: "/pricing" },
+        { status: 403 }
+      );
     }
 
     // 2. Perform RAG Search

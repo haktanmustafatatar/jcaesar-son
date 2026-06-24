@@ -30,6 +30,20 @@ export default function WidgetPage() {
     initialMessages: [],
     onError: (err) => {
       console.error("Widget Chat Error:", err);
+      const isLimit = err.message?.includes("MESSAGE_LIMIT_REACHED") || err.message?.includes("403");
+      const errorMsg = isLimit 
+        ? "Bu botun aylık mesaj limiti dolduğu için şu an yanıt veremiyor."
+        : "Bir hata oluştu. Lütfen daha sonra tekrar deneyin.";
+      
+      setMessages(prev => [
+        ...prev,
+        {
+          id: `error-${Date.now()}`,
+          role: "assistant",
+          content: errorMsg,
+          createdAt: new Date()
+        }
+      ]);
     }
   });
 
@@ -170,7 +184,7 @@ export default function WidgetPage() {
           <Input 
             className="h-12 bg-zinc-50 border-zinc-200 focus:bg-white transition-all pr-12 focus:ring-0 focus:border-zinc-300"
             style={{ borderRadius: `calc(${borderRadius} / 2)` }}
-            placeholder="Write a message..."
+            placeholder={chatbot?.placeholderText || "Write a message..."}
             value={input}
             onChange={handleInputChange}
           />

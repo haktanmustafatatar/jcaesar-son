@@ -22,6 +22,53 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const { searchParams } = new URL(req.url);
+    const purpose = searchParams.get("purpose");
+
+    if (purpose === "avatar") {
+      if (!file.type.startsWith("image/")) {
+        return NextResponse.json({ error: "Only image uploads are allowed for avatars" }, { status: 400 });
+      }
+
+      // Resolve user
+      const user = await prisma.user.findUnique({ where: { clerkId: clerkId as string } });
+      if (!user) {
+        return NextResponse.json({ error: "User not found" }, { status: 404 });
+      }
+
+      // Check chatbot
+      const chatbot = await prisma.chatbot.findFirst({
+        where: { id: chatbotId, userId: user.id },
+      });
+
+      if (!chatbot) {
+        return NextResponse.json({ error: "Chatbot not found" }, { status: 404 });
+      }
+
+      const bytes = await file.arrayBuffer();
+      const buffer = Buffer.from(bytes);
+      
+      const fileName = `avatar-${Date.now()}-${file.name.replace(/\s+/g, "-")}`;
+      const filePath = `public/uploads/${fileName}`;
+      const publicPath = `/uploads/${fileName}`;
+      
+      const fs = require("fs");
+      const path = require("path");
+      
+      const dirPath = path.join(process.cwd(), "public/uploads");
+      if (!fs.existsSync(dirPath)) {
+        fs.mkdirSync(dirPath, { recursive: true });
+      }
+      
+      const absolutePath = path.join(process.cwd(), filePath);
+      fs.writeFileSync(absolutePath, buffer);
+      
+      return NextResponse.json({
+        success: true,
+        url: publicPath
+      });
+    }
+
     // Dosya tipini kontrol et
     const allowedTypes = [
       "application/pdf",

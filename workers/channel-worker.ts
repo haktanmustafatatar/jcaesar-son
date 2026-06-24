@@ -3,6 +3,7 @@ import IORedis from "ioredis";
 import { prisma } from "@/lib/prisma";
 import { performRAGSearch, generateRAGResponse, logTokenUsage, LLMModel } from "@/lib/ai";
 import { downloadImageAsBase64, downloadWhatsAppImageAsBase64 } from "@/lib/media";
+import { triggerWebhook } from "@/lib/webhook";
 
 const redisConnection = new IORedis(process.env.REDIS_URL || "redis://localhost:6379", {
   maxRetriesPerRequest: null,
@@ -270,6 +271,8 @@ export const channelWorker = new Worker(
               contactPhone: contactInfo?.contactPhone || null,
             }
           });
+          // Trigger conversation.created webhook event
+          triggerWebhook(chatbotId, "conversation.created", conversation);
         } else if (contactInfo?.contactName && !conversation.contactName) {
           // Update contact info if missing
           await prisma.conversation.update({

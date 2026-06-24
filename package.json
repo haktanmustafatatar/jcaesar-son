@@ -14,7 +14,8 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
-    "db:seed": "tsx prisma/seed.ts"
+    "db:seed": "tsx prisma/seed.ts",
+    "create-indices": "tsx prisma/create-indices.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^1.0.0",

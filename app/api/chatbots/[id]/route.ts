@@ -125,7 +125,7 @@ export async function PATCH(
       "name", "description", "systemPrompt", "welcomeMessage", "avatar", 
       "primaryColor", "model", "temperature", "maxTokens", "isPublic", "showBranding",
       "widgetMode", "position", "fontFamily", "fontSize", "borderRadius", "widgetShadow",
-      "userMessageColor", "assistantMessageColor"
+      "userMessageColor", "assistantMessageColor", "placeholderText"
     ];
     
     const data: any = {};

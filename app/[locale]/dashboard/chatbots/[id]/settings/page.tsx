@@ -566,7 +566,25 @@ function SettingsPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+              <div className="space-y-4 pt-6 border-t border-zinc-150">
+                <Label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest pl-1">Base Intelligence Model</Label>
+                <Select 
+                  value={formData.model || "gpt-4o"} 
+                  onValueChange={(v) => setFormData({ ...formData, model: v })}
+                >
+                  <SelectTrigger className="h-14 rounded-2xl bg-zinc-50 border-zinc-100 focus:bg-white transition-all font-medium">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-2xl border-zinc-200">
+                    <SelectItem value="gpt-4o">GPT-4o (High Performance)</SelectItem>
+                    <SelectItem value="gpt-4.1-nano">gpt-4.1-nano (Fast Response)</SelectItem>
+                    <SelectItem value="claude-3-5-sonnet">Claude 3.5 Sonnet (Advanced Reasoning)</SelectItem>
+                    <SelectItem value="claude-3-haiku">Claude 3 Haiku (Lightweight & Quick)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-12 pt-6">
                 <div className="space-y-6">
                   <div className="flex items-center justify-between">
                     <Label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Temperature</Label>
@@ -637,9 +655,9 @@ function SettingsPage() {
                   </div>
 
                   <div className="space-y-4">
-                    <Label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest pl-1">Agent Avatar URL</Label>
+                    <Label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest pl-1">Agent Avatar</Label>
                     <div className="flex items-center gap-4">
-                      <div className="w-14 h-14 rounded-2xl bg-zinc-50 border border-zinc-100 flex items-center justify-center overflow-hidden">
+                      <div className="w-14 h-14 rounded-2xl bg-zinc-50 border border-zinc-100 flex items-center justify-center overflow-hidden shrink-0">
                         {formData.avatar ? <img src={formData.avatar} className="w-full h-full object-cover" /> : <Bot className="w-6 h-6 text-zinc-400" />}
                       </div>
                       <Input 
@@ -648,6 +666,48 @@ function SettingsPage() {
                         className="h-14 flex-1 rounded-2xl bg-zinc-50 border-zinc-100 focus:bg-white transition-all font-medium"
                         placeholder="https://..."
                       />
+                      <input
+                        type="file"
+                        id="bot-avatar-upload"
+                        className="hidden"
+                        accept="image/*"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          
+                          const uploadData = new FormData();
+                          uploadData.append("file", file);
+                          uploadData.append("chatbotId", id);
+                          
+                          try {
+                            toast.loading("Uploading avatar...");
+                            const res = await fetch(`/api/upload?purpose=avatar`, {
+                              method: "POST",
+                              body: uploadData,
+                            });
+                            toast.dismiss();
+                            if (res.ok) {
+                              const data = await res.json();
+                              setFormData((prev: any) => ({ ...prev, avatar: data.url }));
+                              toast.success("Avatar uploaded successfully!");
+                            } else {
+                              const err = await res.json();
+                              toast.error(err.error || "Failed to upload avatar");
+                            }
+                          } catch (err) {
+                            toast.dismiss();
+                            toast.error("An error occurred during upload");
+                          }
+                        }}
+                      />
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        className="h-14 rounded-2xl px-6 border-zinc-200 font-bold hover:bg-zinc-50 shrink-0"
+                        onClick={() => document.getElementById("bot-avatar-upload")?.click()}
+                      >
+                        Upload
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -735,6 +795,21 @@ function SettingsPage() {
                   </div>
 
                   <div className="space-y-4">
+                    <Label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest pl-1">Placeholder Text</Label>
+                    <Input 
+                      value={formData.placeholderText ?? ""} 
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setFormData((prev: any) => ({ ...prev, placeholderText: val }));
+                      }}
+                      className="h-14 rounded-2xl bg-zinc-50 border-zinc-100 focus:bg-white transition-all font-medium"
+                      placeholder={chatbot?.placeholderText || "Bir mesaj yazın..."}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-6 border-t border-zinc-100">
+                  <div className="space-y-4">
                     <Label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest pl-1">Widget Position</Label>
                     <Select value={formData.position} onValueChange={(v) => setFormData({ ...formData, position: v })}>
                       <SelectTrigger className="h-14 rounded-2xl bg-zinc-50 border-zinc-100 focus:bg-white transition-all font-medium">
@@ -786,7 +861,9 @@ function SettingsPage() {
                          </div>
                       </div>
                       <div className="p-4 border-t border-zinc-100 flex items-center gap-3">
-                         <div className="w-full h-10 bg-zinc-50 rounded-xl" />
+                         <div className="w-full h-10 bg-zinc-50 rounded-xl px-3 flex items-center text-[10px] text-zinc-400 overflow-hidden font-medium">
+                            {formData.placeholderText || "Bir mesaj yazın..."}
+                         </div>
                          <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white shrink-0 shadow-lg" style={{ backgroundColor: formData.primaryColor }}>
                             <Send className="w-4 h-4" />
                          </div>

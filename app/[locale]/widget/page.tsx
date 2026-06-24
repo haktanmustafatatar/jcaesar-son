@@ -51,7 +51,7 @@ export default function WidgetPage() {
   }, [chatbotSlug]);
 
   // Vercel AI SDK useChat
-  const { messages, input, handleInputChange, handleSubmit, isLoading, data } = useChat({
+  const { messages, input, handleInputChange, handleSubmit, isLoading, data, setMessages } = useChat({
     api: `/api/embed/${chatbotSlug}`,
     body: {
       name: leadData.name,
@@ -64,6 +64,23 @@ export default function WidgetPage() {
         content: chatbotConfig?.welcomeMessage || "Merhaba! Size nasıl yardımcı olabilirim?",
       },
     ],
+    onError: (err) => {
+      console.error("Widget Chat Error:", err);
+      const isLimit = err.message?.includes("MESSAGE_LIMIT_REACHED") || err.message?.includes("403");
+      const errorMsg = isLimit 
+        ? "Bu botun aylık mesaj limiti dolduğu için şu an yanıt veremiyor."
+        : "Bir hata oluştu. Lütfen daha sonra tekrar deneyin.";
+      
+      setMessages(prev => [
+        ...prev,
+        {
+          id: `error-${Date.now()}`,
+          role: "assistant",
+          content: errorMsg,
+          createdAt: new Date()
+        }
+      ]);
+    }
   });
 
   const scrollToBottom = () => {
