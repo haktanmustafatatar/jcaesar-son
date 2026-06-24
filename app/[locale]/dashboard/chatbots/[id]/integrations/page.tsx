@@ -61,11 +61,8 @@ export default function IntegrationsPage() {
     
     // Handle Meta OAuth returns
     const session = searchParams.get("meta_session");
-    const metaConnected = searchParams.get("meta_connected");
     if (session) {
       setMetaSessionId(session);
-      setMetaSelectorOpen(true);
-    } else if (metaConnected === "true") {
       setMetaSelectorOpen(true);
     }
   }, [id]);
@@ -89,6 +86,20 @@ export default function IntegrationsPage() {
       if (res.ok) {
         const data = await res.json();
         setChannels(data);
+
+        // Check if returning from Meta OAuth connection
+        const metaConnected = searchParams.get("meta_connected");
+        if (metaConnected === "true") {
+          const hasPending = data.some((c: any) => 
+            c.status === "PENDING" && 
+            ["WHATSAPP", "INSTAGRAM", "FACEBOOK"].includes(c.type)
+          );
+          if (hasPending) {
+            setMetaSelectorOpen(true);
+          } else {
+            toast.success("Meta integration completed successfully!");
+          }
+        }
       }
     } catch (error) {
       console.error("Error fetching channels:", error);
@@ -181,6 +192,28 @@ export default function IntegrationsPage() {
       complexity: "OAuth",
       color: "from-amber-500/20 to-orange-500/20",
       accent: "amber"
+    },
+    {
+      id: "TELEGRAM",
+      title: "Telegram Bot",
+      subtitle: "BotFather API",
+      category: "social",
+      description: "Connect your Telegram bot to enable AI-powered responses for your Telegram users.",
+      icons: [<Bot className="w-5 h-5 text-[#229ED9]" />],
+      complexity: "Easy",
+      color: "from-sky-500/20 to-blue-500/20",
+      accent: "sky"
+    },
+    {
+      id: "SLACK",
+      title: "Slack",
+      subtitle: "Workspace Messaging",
+      category: "productivity",
+      description: "Let your AI agent handle incoming Slack messages and respond in real-time.",
+      icons: [<MessageCircle className="w-5 h-5 text-[#4A154B]" />],
+      complexity: "Token",
+      color: "from-purple-500/20 to-fuchsia-500/20",
+      accent: "purple"
     },
     {
       id: "CUSTOM_API",

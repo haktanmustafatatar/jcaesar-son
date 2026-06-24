@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useClerk } from "@clerk/nextjs";
 import {
   Users,
   Search,
@@ -45,6 +46,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 
 export default function UsersPage() {
+  const { signOut } = useClerk();
   const [users, setUsers] = useState<any[]>([]);
   const [plans, setPlans] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -123,7 +125,7 @@ export default function UsersPage() {
       const data = await res.json();
       if (res.ok && data.url) {
         toast.success("Bağlantı kuruldu! Yönlendiriliyorsunuz...", { id: "impersonate" });
-        window.location.href = data.url;
+        await signOut({ redirectUrl: data.url });
       } else {
         toast.error(data.error || "Giriş başarısız oldu", { id: "impersonate" });
       }

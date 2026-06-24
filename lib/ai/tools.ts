@@ -2,6 +2,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { tool } from "ai";
 import { searchShopifyProducts, getShopifyOrdersByEmail, ShopifyConfig } from "../integrations/shopify";
+import { decrypt } from "@/lib/crypto";
 import { searchWooProducts, WooCommerceConfig } from "../integrations/woocommerce";
 import { createCalendarEvent, GoogleCalendarConfig } from "../integrations/google-calendar";
 import { addNotificationJob } from "@/lib/queue";
@@ -17,10 +18,15 @@ export async function getChatbotTools(chatbotId: string, conversationId?: string
 
   if (!chatbot) return {};
 
+  const decryptedChannels = chatbot.channels.map(channel => ({
+    ...channel,
+    config: typeof channel.config === 'string' ? JSON.parse(decrypt(channel.config)) : channel.config
+  }));
+
   const tools: any = {};
 
   // 1. Shopify Tool
-  const shopifyChannel = chatbot.channels.find(c => c.type === "SHOPIFY" && c.status === "CONNECTED");
+  const shopifyChannel = decryptedChannels.find(c => c.type === "SHOPIFY" && c.status === "CONNECTED");
   if (shopifyChannel) {
     const config = shopifyChannel.config as any as ShopifyConfig;
     tools.search_shopify_products = tool({
@@ -47,7 +53,7 @@ export async function getChatbotTools(chatbotId: string, conversationId?: string
   }
 
   // 2. WooCommerce Tool
-  const wooChannel = chatbot.channels.find(c => c.type === "WOOCOMMERCE" && c.status === "CONNECTED");
+  const wooChannel = decryptedChannels.find(c => c.type === "WOOCOMMERCE" && c.status === "CONNECTED");
   if (wooChannel) {
     const config = wooChannel.config as any as WooCommerceConfig;
     tools.search_woocommerce_products = tool({
@@ -63,7 +69,7 @@ export async function getChatbotTools(chatbotId: string, conversationId?: string
   }
 
   // 3. Google Calendar Tool
-  const calendarChannel = chatbot.channels.find(c => c.type === "GOOGLE_CALENDAR" && c.status === "CONNECTED");
+  const calendarChannel = decryptedChannels.find(c => c.type === "GOOGLE_CALENDAR" && c.status === "CONNECTED");
   if (calendarChannel) {
     const config = calendarChannel.config as any as GoogleCalendarConfig;
     tools.book_appointment = tool({

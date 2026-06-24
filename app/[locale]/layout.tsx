@@ -38,6 +38,11 @@ export const metadata: Metadata = {
       "Build AI chatbots trained on your website content, documents, and knowledge base.",
     type: "website",
   },
+  verification: {
+    other: {
+      "facebook-domain-verification": "8y2kqjrcnj4nx8ngpbxudx96umxn19",
+    },
+  },
 };
 
 export const viewport: Viewport = {
@@ -78,6 +83,7 @@ export default async function RootLayout({
     >
       <html lang={locale} dir={locale === 'ar' ? 'rtl' : 'ltr'} suppressHydrationWarning>
         <head>
+          <meta name="facebook-domain-verification" content="8y2kqjrcnj4nx8ngpbxudx96umxn19" />
           <script
             type="application/ld+json"
             dangerouslySetInnerHTML={{

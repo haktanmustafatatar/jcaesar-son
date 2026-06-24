@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import Redis from "ioredis";
-
-const redis = new Redis(process.env.REDIS_URL || "redis://localhost:6379");
+import { redis } from "@/lib/ratelimit";
 
 export async function GET() {
   try {

@@ -8,6 +8,13 @@ export async function GET() {
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    // Verify admin role in DB (Privilege Escalation Remedy)
+    const adminUser = await prisma.user.findUnique({ where: { clerkId: userId } });
+    if (!adminUser || (adminUser.role !== "ADMIN" && adminUser.role !== "SUPERADMIN")) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const users = await prisma.user.findMany({
       include: {
         chatbots: { select: { id: true } },
@@ -27,9 +34,25 @@ export async function GET() {
 // Update user role or organization plan
 export async function PATCH(req: Request) {
   try {
+    const { userId: adminClerkId } = await auth();
+    if (!adminClerkId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Verify admin role in DB (Privilege Escalation Remedy)
+    const adminUser = await prisma.user.findUnique({ where: { clerkId: adminClerkId } });
+    if (!adminUser || (adminUser.role !== "ADMIN" && adminUser.role !== "SUPERADMIN")) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const { userId, role, planId } = await req.json();
 
     if (role) {
+      // Validate that only SUPERADMIN can assign SUPERADMIN role
+      if (role === "SUPERADMIN" && adminUser.role !== "SUPERADMIN") {
+        return NextResponse.json({ error: "Only SUPERADMIN can promote other users to SUPERADMIN" }, { status: 403 });
+      }
+
       await prisma.user.update({
         where: { id: userId },
         data: { role }

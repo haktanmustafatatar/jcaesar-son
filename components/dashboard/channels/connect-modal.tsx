@@ -31,7 +31,7 @@ import { toast } from "sonner";
 interface ConnectModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  type: "WHATSAPP" | "INSTAGRAM" | "FACEBOOK" | "SHOPIFY" | "WOOCOMMERCE" | "GOOGLE_CALENDAR" | null;
+  type: "WHATSAPP" | "INSTAGRAM" | "FACEBOOK" | "SHOPIFY" | "WOOCOMMERCE" | "GOOGLE_CALENDAR" | "TELEGRAM" | "SLACK" | null;
   chatbotId: string;
   onSuccess: () => void;
 }
@@ -45,6 +45,10 @@ export function ConnectModal({
 }: ConnectModalProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Bird channel fields
+  const [birdChannelId, setBirdChannelId] = useState("");
+  const [birdChannelName, setBirdChannelName] = useState("");
 
   // Shopify fields
   const [shopDomain, setShopDomain] = useState("");
@@ -60,13 +64,23 @@ export function ConnectModal({
   const [calClientSecret, setCalClientSecret] = useState("");
   const [calRefreshToken, setCalRefreshToken] = useState("");
 
+  // Telegram fields
+  const [telegramBotToken, setTelegramBotToken] = useState("");
+
+  // Slack fields
+  const [slackBotToken, setSlackBotToken] = useState("");
+  const [slackChannelId, setSlackChannelId] = useState("");
+  const [slackChannelName, setSlackChannelName] = useState("");
+
   const titles: Record<string, string> = {
     WHATSAPP: "Connect WhatsApp Business",
     INSTAGRAM: "Connect Instagram DM",
     FACEBOOK: "Connect Facebook Messenger",
     SHOPIFY: "Connect Shopify Store",
     WOOCOMMERCE: "Connect WooCommerce",
-    GOOGLE_CALENDAR: "Google Calendar Booking"
+    GOOGLE_CALENDAR: "Google Calendar Booking",
+    TELEGRAM: "Connect Telegram Bot",
+    SLACK: "Connect Slack Workspace",
   };
 
   const descriptions: Record<string, string> = {
@@ -75,7 +89,9 @@ export function ConnectModal({
     FACEBOOK: "Allow your agent to respond to Facebook Page messages automatically.",
     SHOPIFY: "Integrate your Shopify store so the AI can search products, check stock, and answer customer questions in real-time.",
     WOOCOMMERCE: "Connect your WooCommerce store to sync your product catalog and enable intelligent inventory lookups.",
-    GOOGLE_CALENDAR: "Allow the AI to book appointments directly to your primary calendar."
+    GOOGLE_CALENDAR: "Allow the AI to book appointments directly to your primary calendar.",
+    TELEGRAM: "Connect your Telegram bot created via BotFather to enable AI-powered messaging.",
+    SLACK: "Connect a Slack channel so your AI agent can respond to workspace messages.",
   };
 
   const isMetaType = type === "WHATSAPP" || type === "INSTAGRAM" || type === "FACEBOOK";
@@ -89,7 +105,51 @@ export function ConnectModal({
     setCalClientId("");
     setCalClientSecret("");
     setCalRefreshToken("");
+    setTelegramBotToken("");
+    setSlackBotToken("");
+    setSlackChannelId("");
+    setSlackChannelName("");
     setError(null);
+  };
+
+  const handleTelegramConnect = async () => {
+    if (!telegramBotToken) { setError("Bot token is required"); return; }
+    setIsLoading(true); setError(null);
+    try {
+      const res = await fetch("/api/channels/telegram", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chatbotId, botToken: telegramBotToken }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success(`Telegram @${data.botUsername} connected!`);
+        onSuccess(); onOpenChange(false); resetForm();
+      } else {
+        setError(data.error || "Failed to connect Telegram.");
+      }
+    } catch { setError("Connection failed."); }
+    finally { setIsLoading(false); }
+  };
+
+  const handleSlackConnect = async () => {
+    if (!slackBotToken || !slackChannelId) { setError("Bot token and channel ID are required"); return; }
+    setIsLoading(true); setError(null);
+    try {
+      const res = await fetch("/api/channels/slack", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chatbotId, botToken: slackBotToken, channelId: slackChannelId, channelName: slackChannelName }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success(`Slack connected to ${data.workspace}!`);
+        onSuccess(); onOpenChange(false); resetForm();
+      } else {
+        setError(data.error || "Failed to connect Slack.");
+      }
+    } catch { setError("Connection failed."); }
+    finally { setIsLoading(false); }
   };
 
   const handleMetaConnect = async () => {
@@ -97,7 +157,19 @@ export function ConnectModal({
     setError(null);
     try {
       const platform = type?.toLowerCase() || "whatsapp";
-      const res = await fetch(`/api/auth/meta?chatbotId=${chatbotId}&platform=${platform}`);
+      let endpoint: string;
+      if (platform === "instagram") {
+        endpoint = `/api/auth/meta/instagram/authorize?chatbotId=${chatbotId}`;
+      } else if (platform === "facebook") {
+        // Use dedicated Messenger authorize route
+        endpoint = `/api/auth/meta/messenger/authorize?chatbotId=${chatbotId}`;
+      } else if (platform === "whatsapp") {
+        // Dedicated WhatsApp Embedded Signup authorize route
+        endpoint = `/api/auth/meta/whatsapp/authorize?chatbotId=${chatbotId}`;
+      } else {
+        endpoint = `/api/auth/meta?chatbotId=${chatbotId}&platform=${platform}`;
+      }
+      const res = await fetch(endpoint);
       if (res.ok) {
         const data = await res.json();
         if (data.authUrl) {
@@ -208,6 +280,8 @@ export function ConnectModal({
     if (type === "SHOPIFY") return handleShopifyConnect();
     if (type === "WOOCOMMERCE") return handleWooConnect();
     if (type === "GOOGLE_CALENDAR") return handleCalendarConnect();
+    if (type === "TELEGRAM") return handleTelegramConnect();
+    if (type === "SLACK") return handleSlackConnect();
   };
 
   const iconMap: Record<string, React.ReactNode> = {
@@ -217,6 +291,8 @@ export function ConnectModal({
     SHOPIFY: <ShoppingBag className="w-8 h-8 text-white" />,
     WOOCOMMERCE: <ShoppingCart className="w-8 h-8 text-white" />,
     GOOGLE_CALENDAR: <ShieldCheck className="w-8 h-8 text-white" />,
+    TELEGRAM: <Key className="w-8 h-8 text-white" />,
+    SLACK: <Link2 className="w-8 h-8 text-white" />,
   };
 
   const iconBgMap: Record<string, string> = {
@@ -226,6 +302,8 @@ export function ConnectModal({
     SHOPIFY: "bg-[#95bf47]",
     WOOCOMMERCE: "bg-[#96588a]",
     GOOGLE_CALENDAR: "bg-[#4285F4]",
+    TELEGRAM: "bg-[#229ED9]",
+    SLACK: "bg-[#4A154B]",
   };
 
   return (
@@ -393,6 +471,93 @@ export function ConnectModal({
                     <Link2 className="w-5 h-5 mr-2" />
                     Connect WooCommerce
                   </>
+                )}
+              </Button>
+            </div>
+          )}
+
+          {/* Telegram */}
+          {type === "TELEGRAM" && (
+            <div className="space-y-5">
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 pl-1">Bot Token</Label>
+                <div className="relative">
+                  <Input
+                    value={telegramBotToken}
+                    onChange={(e) => setTelegramBotToken(e.target.value)}
+                    type="password"
+                    className="h-14 rounded-2xl bg-zinc-50 border-zinc-100 pl-12 font-mono text-xs focus:bg-white transition-all shadow-none"
+                    placeholder="1234567890:ABCDEFGhijklmnopqrstuvwxyz"
+                  />
+                  <Key className="w-4 h-4 text-zinc-400 absolute left-4 top-1/2 -translate-y-1/2" />
+                </div>
+              </div>
+              <div className="bg-sky-50 border border-sky-100 rounded-2xl p-4">
+                <p className="text-[11px] text-sky-800 font-medium leading-relaxed">
+                  <strong>How to get your token:</strong> Open Telegram → search <strong>@BotFather</strong> → /newbot → follow the steps → copy the token provided.
+                </p>
+              </div>
+              <Button
+                onClick={handleSubmit}
+                disabled={isLoading || !telegramBotToken}
+                className="w-full h-16 rounded-3xl bg-[#229ED9] hover:bg-[#1a8fc2] text-white font-black text-lg shadow-2xl shadow-sky-500/10 transition-all hover:scale-[1.02] active:scale-[0.98]"
+              >
+                {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : (
+                  <><Link2 className="w-5 h-5 mr-2" />Connect Telegram</>
+                )}
+              </Button>
+            </div>
+          )}
+
+          {/* Slack */}
+          {type === "SLACK" && (
+            <div className="space-y-5">
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 pl-1">Bot User OAuth Token</Label>
+                <div className="relative">
+                  <Input
+                    value={slackBotToken}
+                    onChange={(e) => setSlackBotToken(e.target.value)}
+                    type="password"
+                    className="h-14 rounded-2xl bg-zinc-50 border-zinc-100 pl-12 font-mono text-xs focus:bg-white transition-all shadow-none"
+                    placeholder="xoxb-..."
+                  />
+                  <Key className="w-4 h-4 text-zinc-400 absolute left-4 top-1/2 -translate-y-1/2" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 pl-1">Channel ID</Label>
+                <div className="relative">
+                  <Input
+                    value={slackChannelId}
+                    onChange={(e) => setSlackChannelId(e.target.value)}
+                    className="h-14 rounded-2xl bg-zinc-50 border-zinc-100 pl-12 font-mono text-xs focus:bg-white transition-all shadow-none"
+                    placeholder="C0XXXXXXXX"
+                  />
+                  <Globe className="w-4 h-4 text-zinc-400 absolute left-4 top-1/2 -translate-y-1/2" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 pl-1">Channel Name (optional)</Label>
+                <Input
+                  value={slackChannelName}
+                  onChange={(e) => setSlackChannelName(e.target.value)}
+                  className="h-14 rounded-2xl bg-zinc-50 border-zinc-100 pl-4 font-medium focus:bg-white transition-all shadow-none"
+                  placeholder="#general"
+                />
+              </div>
+              <div className="bg-purple-50 border border-purple-100 rounded-2xl p-4">
+                <p className="text-[11px] text-purple-800 font-medium leading-relaxed">
+                  <strong>Setup:</strong> Create a Slack App → Add <em>chat:write</em> & <em>channels:history</em> permissions → Install to workspace → Copy Bot User OAuth Token. Set your Event Subscriptions URL to <strong>/api/webhooks/slack</strong>.
+                </p>
+              </div>
+              <Button
+                onClick={handleSubmit}
+                disabled={isLoading || !slackBotToken || !slackChannelId}
+                className="w-full h-16 rounded-3xl bg-[#4A154B] hover:bg-[#3b1039] text-white font-black text-lg shadow-2xl shadow-purple-900/10 transition-all hover:scale-[1.02] active:scale-[0.98]"
+              >
+                {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : (
+                  <><Link2 className="w-5 h-5 mr-2" />Connect Slack</>
                 )}
               </Button>
             </div>

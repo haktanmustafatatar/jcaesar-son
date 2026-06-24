@@ -102,7 +102,7 @@ export default function NewChatbotPage() {
     systemPrompt: "",
     baseAnalysis: "",
     temperature: 0.7,
-    model: "GPT-4o",
+    model: "gpt-4.1-nano",
     welcomeMessage: "Hi! How can I help you today?",
     suggestedMessages: ["What is this website about?", "How can I contact you?"],
     appearance: "light" as "light" | "dark",
@@ -1193,32 +1193,7 @@ export default function NewChatbotPage() {
             </div>
 
             <div className="space-y-10">
-              {/* Model Selection */}
-              <div className="space-y-4">
-                 <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 pl-1">{t("personality.modelLabel")}</Label>
-                 <div className="grid grid-cols-2 gap-4">
-                    <div 
-                      onClick={() => setFormData({ ...formData, model: "GPT-4o" })}
-                      className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${formData.model === "GPT-4o" ? "border-zinc-950 bg-zinc-950 text-white shadow-xl shadow-black/10 scale-[1.02]" : "bg-white border-zinc-100 hover:border-zinc-200"}`}
-                    >
-                       <div className="flex items-center justify-between mb-1">
-                         <span className="font-black text-sm tracking-tight">GPT-4o</span>
-                         <Check className={`w-4 h-4 ${formData.model === "GPT-4o" ? "text-white" : "text-transparent"}`} />
-                       </div>
-                       <p className={`text-[10px] font-bold leading-tight ${formData.model === "GPT-4o" ? "text-zinc-400" : "text-zinc-400"}`}>{t("personality.gpt4oDesc")}</p>
-                    </div>
-                    <div 
-                      onClick={() => setFormData({ ...formData, model: "GPT-4o-mini" })}
-                      className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${formData.model === "GPT-4o-mini" ? "border-zinc-950 bg-zinc-950 text-white shadow-xl shadow-black/10 scale-[1.02]" : "bg-white border-zinc-100 hover:border-zinc-200"}`}
-                    >
-                       <div className="flex items-center justify-between mb-1">
-                         <span className="font-black text-sm tracking-tight">GPT-4o mini</span>
-                         <Check className={`w-4 h-4 ${formData.model === "GPT-4o-mini" ? "text-white" : "text-transparent"}`} />
-                       </div>
-                       <p className={`text-[10px] font-bold leading-tight ${formData.model === "GPT-4o-mini" ? "text-zinc-400" : "text-zinc-400"}`}>{t("personality.gpt4oMiniDesc")}</p>
-                    </div>
-                 </div>
-              </div>
+
 
               {/* Instruction Style (the 4 styles requested) */}
               <div className="space-y-4">

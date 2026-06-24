@@ -34,6 +34,7 @@ interface ChannelCardProps {
   onConnect: () => void;
   onDisconnect?: () => void;
   onConfigure?: () => void;
+  onFinishSetup?: () => void;
   isLoading?: boolean;
 }
 
@@ -45,6 +46,7 @@ export function ChannelCard({
   onConnect,
   onDisconnect,
   onConfigure,
+  onFinishSetup,
   isLoading = false
 }: ChannelCardProps) {
   const t = useTranslations("Dashboard.channels");
@@ -125,6 +127,14 @@ export function ChannelCard({
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
+            ) : status === "PENDING" ? (
+              <Button 
+                onClick={onFinishSetup || onConnect}
+                disabled={isLoading}
+                className="bg-amber-500 hover:bg-amber-600 text-white rounded-xl h-10 px-6 font-bold text-xs shadow-lg shadow-amber-500/20"
+              >
+                {isLoading ? <Loader2 className="w-3 h-3 animate-spin mr-2" /> : t("status.pending")}
+              </Button>
             ) : (
               <Button 
                 onClick={onConnect}

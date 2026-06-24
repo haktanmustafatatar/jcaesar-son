@@ -16,6 +16,13 @@ export async function GET() {
 
     const userId = user.id;
 
+    const chatbotFilter = {
+      OR: [
+        { userId },
+        ...(user.organizationId ? [{ organizationId: user.organizationId }] : [])
+      ]
+    };
+
     // Fetch stats in parallel
     const [
       totalChatbots,
@@ -25,15 +32,15 @@ export async function GET() {
       recentChatbots,
       recentConversationsRaw
     ] = await Promise.all([
-      prisma.chatbot.count({ where: { userId } }),
-      prisma.conversation.count({ where: { chatbot: { userId } } }),
-      prisma.message.count({ where: { conversation: { chatbot: { userId } } } }),
+      prisma.chatbot.count({ where: chatbotFilter }),
+      prisma.conversation.count({ where: { chatbot: chatbotFilter } }),
+      prisma.message.count({ where: { conversation: { chatbot: chatbotFilter } } }),
       prisma.conversation.groupBy({
         by: ['channelUserId'],
-        where: { chatbot: { userId }, channelUserId: { not: null } },
+        where: { chatbot: chatbotFilter, channelUserId: { not: null } },
       }),
       prisma.chatbot.findMany({
-        where: { userId },
+        where: chatbotFilter,
         orderBy: { updatedAt: 'desc' },
         take: 3,
         select: {
@@ -45,7 +52,7 @@ export async function GET() {
         }
       }),
       prisma.conversation.findMany({
-        where: { chatbot: { userId } },
+        where: { chatbot: chatbotFilter },
         include: {
           messages: {
             orderBy: { createdAt: 'desc' },
@@ -59,11 +66,34 @@ export async function GET() {
 
     const activeUsers = activeUsersRaw.length;
 
+    // Fetch CRM contacts for recent conversations
+    const chatbotIds = (await prisma.chatbot.findMany({
+      where: chatbotFilter,
+      select: { id: true }
+    })).map(c => c.id);
+
+    const contacts = await (prisma as any).crmContact.findMany({
+      where: {
+        chatbotId: { in: chatbotIds }
+      }
+    });
+
+    const contactMap = new Map();
+    for (const contact of contacts) {
+      if (contact.externalId) {
+        contactMap.set(`${contact.chatbotId}_${contact.externalId}`, contact);
+      }
+    }
+
     // Format recent conversations
     const recentConversations = recentConversationsRaw.map(conv => {
       const lastMessage = conv.messages[0];
+      const contactKey = `${conv.chatbotId}_${conv.channelUserId}`;
+      const contact = conv.channelUserId ? contactMap.get(contactKey) : null;
+
       return {
-        user: conv.channelUserId || "Guest User",
+        user: contact?.name || conv.channelUserId || "Guest User",
+        avatar: contact?.profilePic || null,
         message: lastMessage?.content || "No messages yet",
         time: lastMessage ? lastMessage.createdAt : conv.createdAt
       };

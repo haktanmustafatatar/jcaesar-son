@@ -23,7 +23,7 @@ export async function GET() {
       where: { 
         OR: [
           { userId: user.id },
-          { organizationId: user.organizationId }
+          ...(user.organizationId ? [{ organizationId: user.organizationId }] : [])
         ]
       },
       select: { id: true }
@@ -42,6 +42,9 @@ export async function GET() {
           take: 1
         },
         user: true,
+        notes: {
+          orderBy: { createdAt: "desc" }
+        },
         chatbot: {
           select: {
             name: true,
@@ -52,7 +55,36 @@ export async function GET() {
       orderBy: { updatedAt: "desc" }
     });
 
-    return NextResponse.json(conversations);
+    // Get all CRM contacts for these chatbots to map them to conversations
+    const contacts = await (prisma as any).crmContact.findMany({
+      where: {
+        chatbotId: { in: chatbotIds }
+      }
+    });
+
+    // Map by chatbotId_externalId
+    const contactMap = new Map();
+    for (const contact of contacts) {
+      if (contact.externalId) {
+        contactMap.set(`${contact.chatbotId}_${contact.externalId}`, contact);
+      }
+    }
+
+    const enrichedConversations = conversations.map(conv => {
+      const contactKey = `${conv.chatbotId}_${conv.channelUserId}`;
+      const contact = conv.channelUserId ? contactMap.get(contactKey) : null;
+      
+      return {
+        ...conv,
+        contactName: contact?.name || null,
+        contactEmail: contact?.email || null,
+        contactPhone: contact?.phone || null,
+        contactNotes: contact?.notes || null,
+        contactProfilePic: contact?.profilePic || null,
+      };
+    });
+
+    return NextResponse.json(enrichedConversations);
   } catch (error) {
     console.error("Error fetching conversations:", error);
     return NextResponse.json(
@@ -61,3 +93,4 @@ export async function GET() {
     );
   }
 }
+

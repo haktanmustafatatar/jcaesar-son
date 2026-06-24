@@ -2,6 +2,7 @@ import { Worker } from "bullmq";
 import IORedis from "ioredis";
 import { prisma } from "@/lib/prisma";
 import { performRAGSearch, generateRAGResponse, logTokenUsage, LLMModel } from "@/lib/ai";
+import { downloadImageAsBase64, downloadWhatsAppImageAsBase64 } from "@/lib/media";
 
 const redisConnection = new IORedis(process.env.REDIS_URL || "redis://localhost:6379", {
   maxRetriesPerRequest: null,
@@ -19,12 +20,16 @@ async function sendMetaMessage({
   message,
   accessToken,
   phoneNumberId,
+  configPageId,
+  instagramId,
 }: {
   channel: "whatsapp" | "instagram" | "facebook";
   recipientId: string;
   message: string;
   accessToken: string;
   phoneNumberId?: string;
+  configPageId?: string;
+  instagramId?: string;
 }) {
   let url: string;
   let payload: any;
@@ -42,14 +47,19 @@ async function sendMetaMessage({
     };
   } else if (channel === "instagram") {
     // Instagram Graph API
-    url = `https://graph.facebook.com/v22.0/me/messages`;
+    const igId = phoneNumberId || configPageId || instagramId;
+    if (!igId) {
+      throw new Error("Instagram channel config eksik: instagramId veya pageId bulunamadı.");
+    }
+    url = `https://graph.facebook.com/v22.0/${igId}/messages`;
     payload = {
       recipient: { id: recipientId },
       message: { text: message },
     };
   } else {
     // Facebook Messenger
-    url = `https://graph.facebook.com/v22.0/me/messages`;
+    const senderId = phoneNumberId || "me";
+    url = `https://graph.facebook.com/v22.0/${senderId}/messages`;
     payload = {
       recipient: { id: recipientId },
       message: { text: message },
@@ -65,6 +75,56 @@ async function sendMetaMessage({
   if (!response.ok) {
     const error = await response.json();
     throw new Error(`Meta API error: ${JSON.stringify(error)}`);
+  }
+
+  return response.json();
+}
+
+// Bird API (WhatsApp, Instagram, Facebook via Bird)
+async function sendBirdMessage({
+  recipientId,
+  message,
+  connectorId,
+  channel,
+}: {
+  recipientId: string;
+  message: string;
+  connectorId: string;
+  channel: string;
+}) {
+  const apiKey = process.env.BIRD_API_KEY;
+  if (!apiKey) throw new Error("BIRD_API_KEY not configured");
+
+  const workspaceId = process.env.BIRD_WORKSPACE_ID;
+  if (!workspaceId) throw new Error("BIRD_WORKSPACE_ID not configured");
+
+  const url = `https://api.bird.com/workspaces/${workspaceId}/channels/${connectorId}/messages`;
+
+  // Instagram/Facebook use 'id' as identifierKey, WhatsApp uses 'phonenumber'
+  const identifierKey = channel === "instagram" || channel === "facebook" ? "id" : "phonenumber";
+
+  const payload = {
+    receiver: {
+      contacts: [{ identifierKey, identifierValue: recipientId }]
+    },
+    body: {
+      type: "text",
+      text: { text: message }
+    }
+  };
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `AccessKey ${apiKey}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(`Bird API error: ${JSON.stringify(error)}`);
   }
 
   return response.json();
@@ -143,9 +203,30 @@ async function sendEmailMessage({
   subject: string;
   message: string;
 }) {
-  // TODO: SendGrid entegrasyonu
-  console.log(`[Email] To: ${to}, Subject: ${subject}`);
-  console.log(`[Email] Message: ${message}`);
+  const apiKey = process.env.SENDGRID_API_KEY;
+  if (!apiKey) throw new Error("SENDGRID_API_KEY not configured");
+
+  const fromEmail = process.env.EMAIL_FROM || "noreply@jcaesars.com";
+
+  const response = await fetch("https://api.sendgrid.com/v3/mail/send", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      personalizations: [{ to: [{ email: to }] }],
+      from: { email: fromEmail },
+      subject,
+      content: [{ type: "text/plain", value: message }],
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`SendGrid error: ${error}`);
+  }
+
   return { success: true };
 }
 
@@ -153,7 +234,7 @@ async function sendEmailMessage({
 export const channelWorker = new Worker(
   "channel",
   async (job) => {
-    const { type, channel, recipientId, message: userMessage, chatbotId, conversationId: existingConversationId, platformMetadata } = job.data;
+    const { type, channel, recipientId, message: userMessage, attachments = [], chatbotId, conversationId: existingConversationId, platformMetadata, contactInfo } = job.data;
 
     console.log(`[ChannelWorker] Processing job ${job.id} - ${channel} (${type})`);
 
@@ -184,15 +265,75 @@ export const channelWorker = new Worker(
               channel: channel.toUpperCase() as any,
               channelUserId: recipientId,
               aiEnabled: true,
-              status: "ACTIVE"
+              status: "ACTIVE",
+              contactName: contactInfo?.contactName || null,
+              contactPhone: contactInfo?.contactPhone || null,
             }
           });
+        } else if (contactInfo?.contactName && !conversation.contactName) {
+          // Update contact info if missing
+          await prisma.conversation.update({
+            where: { id: conversation.id },
+            data: {
+              contactName: contactInfo.contactName,
+              contactPhone: contactInfo.contactPhone || undefined,
+            }
+          });
+          conversation = { ...conversation, contactName: contactInfo.contactName };
         }
 
         // If handoff is active (aiEnabled: false), skip AI response
         if (!conversation.aiEnabled) {
-          console.log(`[ChannelWorker] Conversation ${conversation.id} has AI disabled. Skipping.`);
+          console.log(`[ChannelWorker] Handoff aktif, AI atlandı. Conv: ${conversation.id}, Son güncelleme: ${conversation.updatedAt}`);
           return { skipped: "handoff_active" };
+        }
+
+        // Load Channel Config early for both media downloads and response routing
+        const channelConfig = await prisma.channel.findFirst({
+          where: { chatbotId, type: channel.toUpperCase() as any, status: "CONNECTED" }
+        });
+        if (!channelConfig) throw new Error("Channel configuration lost");
+        const config = channelConfig.config as any;
+
+        // Process attachments (e.g. download images as base64)
+        const processedAttachments: Array<{ type: string; data: string; mimeType?: string }> = [];
+        for (const att of attachments) {
+          if (att.type === "image" && att.url) {
+            try {
+              let imageData;
+              if (att.url.startsWith("whatsapp_media_id:")) {
+                const mediaId = att.url.split("whatsapp_media_id:")[1];
+                console.log(`[ChannelWorker] Fetching and downloading WhatsApp image: ${mediaId}`);
+                imageData = await downloadWhatsAppImageAsBase64(mediaId, config.accessToken);
+              } else {
+                console.log(`[ChannelWorker] Downloading standard image attachment: ${att.url}`);
+                imageData = await downloadImageAsBase64(att.url);
+              }
+              processedAttachments.push({
+                type: "image",
+                data: imageData.data,
+                mimeType: imageData.mimeType
+              });
+            } catch (err) {
+              console.error(`[ChannelWorker] Failed to download image from ${att.url}:`, err);
+              processedAttachments.push({
+                type: "text_fallback",
+                data: `[Görsel yüklenemedi: ${att.url}]`
+              });
+            }
+          } else if (att.type === "share" && att.url) {
+            processedAttachments.push({
+              type: "share",
+              data: att.url
+            });
+          }
+        }
+
+        // Format user message content for DB history
+        let displayMessage = userMessage || "";
+        if (attachments && attachments.length > 0) {
+          const attachmentLabels = attachments.map((att: any) => `[${att.type === 'image' ? 'Görsel' : att.type === 'share' ? 'Gönderi' : 'Ek'}: ${att.url}]`).join(" ");
+          displayMessage = displayMessage ? `${displayMessage} ${attachmentLabels}` : attachmentLabels;
         }
 
         // Save User Message
@@ -200,14 +341,24 @@ export const channelWorker = new Worker(
           data: {
             conversationId: conversation.id,
             role: "USER",
-            content: userMessage,
+            content: displayMessage,
           }
         });
+
+        // Construct refined query text for RAG Search
+        let aiQueryText = userMessage || "";
+        for (const att of processedAttachments) {
+          if (att.type === "text_fallback") {
+            aiQueryText += `\n${att.data}`;
+          } else if (att.type === "share") {
+            aiQueryText += `\n[Paylaşılan Gönderi Linki: ${att.data}]`;
+          }
+        }
 
         // 1. Perform RAG Search
         const { context, sources } = await performRAGSearch({
           chatbotId,
-          query: userMessage,
+          query: aiQueryText || "görsel",
         });
 
         // 2. Clear Chat History (last 10)
@@ -229,30 +380,51 @@ export const channelWorker = new Worker(
           systemPrompt: chatbot.systemPrompt,
           context,
           chatbotId,
-          conversationId: conversation.id
+          conversationId: conversation.id,
+          attachments: processedAttachments as any
         });
 
         // 4. Send Response back to Channel
-        // Recursive call to ourselves but with 'outbound' type? 
-        // Or call sendMetaMessage directly for speed.
-        const channelConfig = await prisma.channel.findFirst({
-          where: { chatbotId, type: channel.toUpperCase() as any, status: "CONNECTED" }
-        });
-
-        if (!channelConfig) throw new Error("Channel configuration lost");
-        const config = channelConfig.config as any;
-
         let sendResult;
         if (["whatsapp", "instagram", "facebook"].includes(channel)) {
-          sendResult = await sendMetaMessage({
-            channel: channel as any,
-            recipientId,
+          // Use Bird API if channel was created via Bird
+          const isBirdChannel = config.provider === "bird" || (!config.accessToken && channelConfig.phoneNumberId);
+          if (isBirdChannel) {
+            console.log(`[ChannelWorker] Using Bird API to send ${channel} response`);
+            sendResult = await sendBirdMessage({
+              recipientId,
+              message: aiResponse.text,
+              connectorId: channelConfig.phoneNumberId!,
+              channel,
+            });
+          } else {
+            sendResult = await sendMetaMessage({
+              channel: channel as any,
+              recipientId,
+              message: aiResponse.text,
+              accessToken: config.accessToken,
+              phoneNumberId: channelConfig.phoneNumberId || undefined,
+              configPageId: config.pageId || undefined,
+              instagramId: config.instagramId || undefined
+            });
+          }
+        } else if (channel === "telegram") {
+          const botToken = config.botToken;
+          if (!botToken) throw new Error("Telegram botToken missing in channel config");
+          sendResult = await sendTelegramMessage({
+            chatId: recipientId,
             message: aiResponse.text,
-            accessToken: config.accessToken,
-            phoneNumberId: channelConfig.phoneNumberId || undefined
+            botToken,
+          });
+        } else if (channel === "slack") {
+          const botToken = config.botToken;
+          if (!botToken) throw new Error("Slack botToken missing in channel config");
+          sendResult = await sendSlackMessage({
+            channel: recipientId,
+            message: aiResponse.text,
+            botToken,
           });
         }
-        // ... handle other channels (telegram, slack) as needed
 
         // 5. Save Assistant Message
         await prisma.message.create({
@@ -299,14 +471,28 @@ export const channelWorker = new Worker(
       switch (channel) {
         case "whatsapp":
         case "instagram":
-        case "facebook":
-          result = await sendMetaMessage({
-            channel,
-            recipientId,
-            message: userMessage,
-            accessToken: config.accessToken,
-          });
+        case "facebook": {
+          const isBirdChannel = config.provider === "bird" || (!config.accessToken && channelConfig.phoneNumberId);
+          if (isBirdChannel) {
+            result = await sendBirdMessage({
+              recipientId,
+              message: userMessage,
+              connectorId: channelConfig.phoneNumberId!,
+              channel,
+            });
+          } else {
+            result = await sendMetaMessage({
+              channel,
+              recipientId,
+              message: userMessage,
+              accessToken: config.accessToken,
+              phoneNumberId: channelConfig.phoneNumberId || undefined,
+              configPageId: config.pageId || undefined,
+              instagramId: config.instagramId || undefined
+            });
+          }
           break;
+        }
 
         case "telegram":
           result = await sendTelegramMessage({
@@ -351,11 +537,28 @@ export const channelWorker = new Worker(
     } catch (error) {
       console.error(`[ChannelWorker] Job ${job.id} failed:`, error);
 
-      // Hata durumunda channel'ı error durumuna getir
-      await prisma.channel.updateMany({
-        where: { chatbotId, type: channel.toUpperCase() as any },
-        data: { status: "ERROR" },
-      });
+      // Sadece kritik kimlik doğrulama / izin hatalarında kanalı ERROR durumuna getir
+      const errMsg = error instanceof Error ? error.message : String(error);
+      
+      const isTrueAuthError =
+        !errMsg.includes("Object with ID 'undefined'") && // phoneNumberId undefined ise auth hatası değil
+        !errMsg.includes("Object with ID 'me'") &&        // pageId eksik ise auth hatası değil
+        (errMsg.includes("OAuthException") && (
+          errMsg.includes("190") ||
+          errMsg.includes("expired") ||
+          errMsg.includes("revoked") ||
+          errMsg.includes("invalid access token")
+        ));
+
+      if (isTrueAuthError) {
+        console.warn(`[ChannelWorker] Critical auth/permission error detected. Setting channel status to ERROR.`);
+        await prisma.channel.updateMany({
+          where: { chatbotId, type: channel.toUpperCase() as any },
+          data: { status: "ERROR" },
+        });
+      } else {
+        console.log(`[ChannelWorker] Non-critical or transient error (e.g. policy window/rate limit/validation/missing config). Leaving channel status as-is.`);
+      }
 
       throw error;
     }

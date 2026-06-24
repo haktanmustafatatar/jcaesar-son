@@ -34,6 +34,7 @@ COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/workers ./workers
 COPY --from=builder /app/lib ./lib
+COPY --from=builder /app/scripts ./scripts
 
 # Expose port
 EXPOSE 3000

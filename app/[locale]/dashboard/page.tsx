@@ -13,6 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "@/i18n/routing";
 import { useTranslations } from "next-intl";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 import { useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
@@ -215,9 +216,10 @@ export default function DashboardPage() {
                   key={index}
                   className="flex items-start gap-5 p-5 rounded-[24px] bg-zinc-50/50 border border-zinc-100/50 hover:border-zinc-200 transition-all"
                 >
-                  <div className="w-12 h-12 rounded-2xl bg-zinc-950 flex items-center justify-center flex-shrink-0 text-white font-black shadow-lg shadow-black/10">
-                    {conv.user[0].toUpperCase()}
-                  </div>
+                  <Avatar className="w-12 h-12 rounded-2xl border border-zinc-100 flex-shrink-0">
+                    <AvatarImage src={conv.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${conv.user}`} className="object-cover" />
+                    <AvatarFallback className="bg-zinc-950 text-white font-black">{(conv.user || "U").charAt(0).toUpperCase()}</AvatarFallback>
+                  </Avatar>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-black text-zinc-950 truncate">{conv.user}</p>
                     <p className="text-sm text-zinc-500 font-medium truncate mt-0.5">

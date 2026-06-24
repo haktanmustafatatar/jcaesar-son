@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { searchWooProducts } from "@/lib/integrations/woocommerce";
+import { encrypt } from "@/lib/crypto";
 
 /**
  * POST /api/channels/woocommerce — Connect a WooCommerce store to a chatbot
@@ -43,6 +44,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const encryptedConfig = encrypt(JSON.stringify({ baseUrl, consumerKey, consumerSecret }));
+
     // Upsert channel
     const existingChannel = await prisma.channel.findFirst({
       where: { chatbotId, type: "WOOCOMMERCE" },
@@ -53,7 +56,7 @@ export async function POST(req: NextRequest) {
       channel = await prisma.channel.update({
         where: { id: existingChannel.id },
         data: {
-          config: { baseUrl, consumerKey, consumerSecret },
+          config: encryptedConfig as any,
           status: "CONNECTED",
           name: `WooCommerce — ${new URL(baseUrl).hostname}`,
         },
@@ -64,7 +67,7 @@ export async function POST(req: NextRequest) {
           chatbotId,
           type: "WOOCOMMERCE",
           name: `WooCommerce — ${new URL(baseUrl).hostname}`,
-          config: { baseUrl, consumerKey, consumerSecret },
+          config: encryptedConfig as any,
           status: "CONNECTED",
         },
       });

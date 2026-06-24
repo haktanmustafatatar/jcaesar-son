@@ -4,7 +4,9 @@
     "login": "Login",
     "signup": "Sign Up",
     "demo": "Watch Demo",
-    "earlyAccess": "Get Early Access"
+    "earlyAccess": "Get Early Access",
+    "integrationsCount": "10+ Integrations",
+    "connectSeconds": "Connect in Seconds"
   },
   "Hero": {
     "badge": "Next Generation AI Agents",

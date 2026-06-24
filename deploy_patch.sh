@@ -1,34 +1,31 @@
 #!/bin/bash
 set -e
 
-# Antigravity Automated Droplet Deployer v4 (Split-Transfer Bulletproof Edition)
-echo "=== 🚀 Antigravity Automated Droplet Deployer v4 (Split-Transfer) ==="
+echo "=== 🚀 JCaesar Deployer ==="
 
 LOCAL_APP_DIR="/Users/haktanmustafatatar/Downloads/ef/app"
-ARCHIVE_NAME="jcaesar_patch_v4.tar.gz"
+ARCHIVE_NAME="/tmp/jcaesar_patch_latest.tar.gz"
 DROPLET_IP="164.92.167.62"
+SSH_KEY="$HOME/.ssh/do_root_ed25519"
+# Allow password auth if key auth fails
+SSH_OPTS="-o ServerAliveInterval=60 -o ServerAliveCountMax=10 -o PreferredAuthentications=publickey,keyboard-interactive,password -o StrictHostKeyChecking=no"
+if [ -f "$SSH_KEY" ]; then
+  SSH_OPTS="-i $SSH_KEY $SSH_OPTS"
+fi
 
 cd "$LOCAL_APP_DIR"
 
-# Clean up any old chunks first
-rm -f chunk_*
+echo "📦 [1/4] Creating tarball..."
+tar --exclude='node_modules' --exclude='.next' --exclude='.git' --exclude='.env' \
+    --exclude='backups' --exclude='*.tar.gz' --exclude='*.zip' --exclude='*.log' \
+    --exclude='chunk_*' --exclude='scratch' \
+    -czf "$ARCHIVE_NAME" .
+echo "   Size: $(du -sh $ARCHIVE_NAME | cut -f1)"
 
-echo "📦 [1/6] Creating lightweight tarball..."
-tar --exclude='node_modules' --exclude='.next' --exclude='.git' --exclude='.vercel' --exclude='.env' --exclude='backups' --exclude='*.tar.gz' --exclude='*.zip' --exclude='*.log' -czf "$ARCHIVE_NAME" .
+echo "📤 [2/4] Uploading to server..."
+scp $SSH_OPTS "$ARCHIVE_NAME" deploy_remote.sh root@$DROPLET_IP:/app/
 
-echo "✂️ [2/6] Splitting archive into 200KB chunks to bypass network stalling..."
-split -b 200k "$ARCHIVE_NAME" chunk_
-rm "$ARCHIVE_NAME"
+echo "🔄 [3/4] Running remote deploy..."
+ssh $SSH_OPTS root@$DROPLET_IP "cd /app && tar -xzf jcaesar_patch_latest.tar.gz -C /app/app && bash /app/deploy_remote.sh"
 
-echo "📤 [3/6] Transferring chunks and remote deploy script to Droplet..."
-echo "🔒 (Please enter your droplet password if prompted - ONLY ONCE)"
-# Upload both the split chunks AND the deploy_remote.sh script
-scp -P 22 chunk_* deploy_remote.sh root@$DROPLET_IP:/app/
-
-# Clean up local chunks
-rm -f chunk_*
-
-echo "🔄 [4/6] Connecting to remote server to execute deployment..."
-echo "🔒 (Please enter your droplet password if prompted)"
-# Execute the remote deployment script cleanly (no interactive shell warnings)
-ssh -o ServerAliveInterval=60 -o ServerAliveCountMax=10 root@$DROPLET_IP "bash /app/deploy_remote.sh"
+echo "✅ [4/4] Deploy complete!"

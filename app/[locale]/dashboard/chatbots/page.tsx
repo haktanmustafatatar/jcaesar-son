@@ -175,9 +175,7 @@ export default function ChatbotsPage() {
                         >
                           {chatbot.status === "ACTIVE" ? "READY" : chatbot.status}
                         </Badge>
-                        <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
-                          {chatbot.model}
-                        </span>
+
                       </div>
                     </div>
                   </div>

@@ -15,8 +15,6 @@ async function sendEmail({
   to,
   subject,
   body,
-  template,
-  data,
 }: {
   to: string;
   subject?: string;
@@ -24,14 +22,34 @@ async function sendEmail({
   template?: string;
   data?: Record<string, any>;
 }) {
-  // TODO: SendGrid entegrasyonu
-  // const sgMail = require('@sendgrid/mail');
-  // sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-  // await sgMail.send({...});
+  const apiKey = process.env.SENDGRID_API_KEY;
+  if (!apiKey) {
+    console.warn("[NotificationWorker] SENDGRID_API_KEY not set, skipping email");
+    return { success: false, skipped: true };
+  }
 
-  console.log(`[Email] To: ${to}, Subject: ${subject}`);
-  console.log(`[Email] Body: ${body}`);
+  const fromEmail = process.env.EMAIL_FROM || "noreply@jcaesars.com";
 
+  const response = await fetch("https://api.sendgrid.com/v3/mail/send", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      personalizations: [{ to: [{ email: to }] }],
+      from: { email: fromEmail },
+      subject: subject || "J.Caesar Agent Notification",
+      content: [{ type: "text/plain", value: body }],
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`SendGrid error: ${error}`);
+  }
+
+  console.log(`[Email] Sent to: ${to}, Subject: ${subject}`);
   return { success: true };
 }
 

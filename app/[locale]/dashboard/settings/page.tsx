@@ -28,12 +28,14 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { useClerk } from "@clerk/nextjs";
+import { useClerk, useUser } from "@clerk/nextjs";
 import { toast } from "sonner";
+import Link from "next/link";
 
 export default function UserSettingsPage() {
   const [activeTab, setActiveTab] = useState("profile");
   const { signOut } = useClerk();
+  const { user } = useUser();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isOtpSent, setIsOtpSent] = useState(false);
@@ -182,7 +184,7 @@ export default function UserSettingsPage() {
                          <div className="relative group cursor-pointer">
                             <div className="w-32 h-32 rounded-[40px] bg-white p-2 shadow-2xl overflow-hidden ring-4 ring-white">
                                <img 
-                                 src="https://api.dicebear.com/7.x/avataaars/svg?seed=Haktan" 
+                                 src={user?.imageUrl || "https://api.dicebear.com/7.x/avataaars/svg?seed=JCaesar"} 
                                  alt="Avatar" 
                                  className="w-full h-full object-cover rounded-[32px]"
                                />
@@ -192,10 +194,10 @@ export default function UserSettingsPage() {
                             </div>
                          </div>
                          <div className="flex-1 space-y-1 mb-2">
-                            <h2 className="text-2xl font-bold tracking-tight">Haktan Mustafa Tatar</h2>
+                            <h2 className="text-2xl font-bold tracking-tight">{user?.firstName} {user?.lastName}</h2>
                             <p className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                                <Mail className="w-4 h-4" />
-                               haktan@jcaesar.ai
+                               {user?.primaryEmailAddress?.emailAddress}
                             </p>
                          </div>
                          <Button variant="outline" className="mb-2 rounded-xl h-10 px-6 font-bold border-muted-foreground/10">
@@ -211,19 +213,19 @@ export default function UserSettingsPage() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                          <div className="space-y-2">
                             <Label className="text-xs font-bold text-muted-foreground uppercase tracking-widest px-1">First Name</Label>
-                            <Input placeholder="John" defaultValue="Haktan Mustafa" className="h-12 rounded-xl focus-visible:ring-primary/20 transition-all" />
+                            <Input placeholder="First Name" value={user?.firstName || ""} readOnly className="h-12 rounded-xl bg-muted/50 cursor-not-allowed focus-visible:ring-primary/20 transition-all" />
                          </div>
                          <div className="space-y-2">
                             <Label className="text-xs font-bold text-muted-foreground uppercase tracking-widest px-1">Last Name</Label>
-                            <Input placeholder="Doe" defaultValue="Tatar" className="h-12 rounded-xl focus-visible:ring-primary/20 transition-all" />
+                            <Input placeholder="Last Name" value={user?.lastName || ""} readOnly className="h-12 rounded-xl bg-muted/50 cursor-not-allowed focus-visible:ring-primary/20 transition-all" />
                          </div>
                          <div className="space-y-2">
                             <Label className="text-xs font-bold text-muted-foreground uppercase tracking-widest px-1">Email Address</Label>
-                            <Input type="email" defaultValue="haktan@jcaesar.ai" className="h-12 rounded-xl focus-visible:ring-primary/20 transition-all" />
+                            <Input type="email" value={user?.primaryEmailAddress?.emailAddress || ""} readOnly className="h-12 rounded-xl bg-muted/50 cursor-not-allowed focus-visible:ring-primary/20 transition-all" />
                          </div>
                          <div className="space-y-2">
                             <Label className="text-xs font-bold text-muted-foreground uppercase tracking-widest px-1">Organization</Label>
-                            <Input defaultValue="J.Caesar AI Lab" className="h-12 rounded-xl focus-visible:ring-primary/20 transition-all" />
+                            <Input defaultValue="J.Caesar AI Lab" readOnly className="h-12 rounded-xl bg-muted/50 cursor-not-allowed focus-visible:ring-primary/20 transition-all" />
                          </div>
                       </div>
 
@@ -363,7 +365,9 @@ export default function UserSettingsPage() {
                                    className="h-full bg-blue-500 rounded-full" 
                                  />
                               </div>
-                              <p className="text-[11px] text-muted-foreground font-medium px-1 underline cursor-pointer hover:text-primary">Upgrade limit →</p>
+                              <Link href="/pricing">
+                                <p className="text-[11px] text-muted-foreground font-medium px-1 underline cursor-pointer hover:text-primary pt-1">Upgrade limit →</p>
+                              </Link>
                            </div>
                         </CardContent>
                      </Card>

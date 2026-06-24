@@ -204,6 +204,14 @@ export default function AdminPlansPage() {
                               <Bot className="w-4 h-4 text-blue-400" />
                               <span className="text-xs font-bold text-zinc-300">{plan.chatbotLimit} Active Neural Nodes</span>
                            </div>
+                           <div className="flex items-center gap-3">
+                              <DollarSign className="w-4 h-4 text-emerald-400" />
+                              <span className="text-xs font-bold text-zinc-300">Ekstra Bot: ₺{plan.extraBotPrice || '0.00'}</span>
+                           </div>
+                           <div className="flex items-center gap-3">
+                              <Settings2 className="w-4 h-4 text-orange-400" />
+                              <span className="text-xs font-bold text-zinc-300">Aylık Crawl: {plan.crawlLimit || 0}</span>
+                           </div>
                         </div>
                      </div>
 

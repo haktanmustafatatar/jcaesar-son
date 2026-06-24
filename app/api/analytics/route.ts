@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
       where: { 
         OR: [
           { userId: user.id },
-          { organizationId: user.organizationId }
+          ...(user.organizationId ? [{ organizationId: user.organizationId }] : [])
         ]
       },
       select: { id: true, name: true }

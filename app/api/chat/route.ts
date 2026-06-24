@@ -15,9 +15,23 @@ export async function POST(req: NextRequest) {
 
     const { message, chatbotId, conversationId, model = "gpt-4o" } = await req.json();
 
-    // Chatbot'u kontrol et
-    const chatbot = await prisma.chatbot.findUnique({
-      where: { id: chatbotId },
+    const user = await prisma.user.findUnique({
+      where: { clerkId: userId },
+    });
+
+    if (!user) {
+      return new Response("User not found in database", { status: 404 });
+    }
+
+    // Chatbot'u kontrol et ve yetkiyi doğrula (BOLA Yaması)
+    const chatbot = await prisma.chatbot.findFirst({
+      where: { 
+        id: chatbotId,
+        OR: [
+          { userId: user.id },
+          ...(user.organizationId ? [{ organizationId: user.organizationId }] : [])
+        ]
+      },
     });
 
     if (!chatbot || chatbot.status !== "ACTIVE") {

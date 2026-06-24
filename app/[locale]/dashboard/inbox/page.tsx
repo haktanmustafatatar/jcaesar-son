@@ -28,7 +28,9 @@ import {
   Clock,
   Zap,
   StickyNote,
-  AlertCircle
+  AlertCircle,
+  Send as TelegramIcon,
+  Hash
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -57,6 +59,8 @@ const channelConfig: Record<string, { icon: any, color: string, bg: string, labe
   instagram: { icon: Instagram, color: "text-pink-500", bg: "bg-pink-50", label: "Instagram" },
   facebook: { icon: Facebook, color: "text-blue-600", bg: "bg-blue-50", label: "Facebook" },
   email: { icon: Mail, color: "text-zinc-500", bg: "bg-zinc-50", label: "Email" },
+  telegram: { icon: TelegramIcon, color: "text-sky-500", bg: "bg-sky-50", label: "Telegram" },
+  slack: { icon: Hash, color: "text-purple-500", bg: "bg-purple-50", label: "Slack" },
 };
 
 export default function InboxPage() {
@@ -76,6 +80,69 @@ export default function InboxPage() {
   const [mobileView, setMobileView] = useState<"list" | "chat">("list");
   
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Status Filter Tab & CRM Form states
+  const [activeTab, setActiveTab] = useState<"active" | "closed">("active");
+  const [isCrmFormOpen, setIsCrmFormOpen] = useState(false);
+  const [crmName, setCrmName] = useState("");
+  const [crmEmail, setCrmEmail] = useState("");
+  const [crmPhone, setCrmPhone] = useState("");
+  const [crmNotes, setCrmNotes] = useState("");
+  const [isAddingToCrm, setIsAddingToCrm] = useState(false);
+
+  // Redesign states
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedChannel, setSelectedChannel] = useState<string | null>(null);
+  const [isAddingTagInline, setIsAddingTagInline] = useState(false);
+  const [newTagInput, setNewTagInput] = useState("");
+  const [newNoteText, setNewNoteText] = useState("");
+  const [isSavingNote, setIsSavingNote] = useState(false);
+
+  const selectedConv = conversations.find(c => c.id === selectedId);
+
+  // Auto-populate CRM details on selection
+  useEffect(() => {
+    if (selectedConv) {
+      setCrmName(selectedConv.contactName || selectedConv.user?.name || selectedConv.channelUserId || "");
+      setCrmEmail(selectedConv.contactEmail || selectedConv.user?.email || "");
+      setCrmPhone(selectedConv.contactPhone || selectedConv.user?.phone || "");
+      const channelLabel = selectedConv.channel === "widget" ? "Web Sitesi" : selectedConv.channel;
+      setCrmNotes(selectedConv.contactNotes || `${channelLabel} sohbetinden eklendi.`);
+      setIsCrmFormOpen(false);
+    }
+  }, [selectedId, conversations]);
+
+  const filteredConversations = conversations.filter(c => {
+    const isActive = c.status === "ACTIVE" || c.status === "ESCALATED";
+    const matchesTab = activeTab === "active" ? isActive : c.status === "CLOSED";
+    
+    if (!matchesTab) return false;
+
+    // Apply channel filter if selected
+    if (selectedChannel && c.channel?.toLowerCase() !== selectedChannel.toLowerCase()) {
+      return false;
+    }
+
+    // Apply search query if present
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      const name = (c.contactName || c.user?.name || c.channelUserId || "").toLowerCase();
+      const email = (c.contactEmail || c.user?.email || "").toLowerCase();
+      const phone = (c.contactPhone || c.user?.phone || "").toLowerCase();
+      const lastMsg = (c.messages?.[0]?.content || "").toLowerCase();
+      const tags = (c.tags as string[] || []).map(t => t.toLowerCase());
+
+      return (
+        name.includes(q) ||
+        email.includes(q) ||
+        phone.includes(q) ||
+        lastMsg.includes(q) ||
+        tags.some(t => t.includes(q))
+      );
+    }
+
+    return true;
+  });
 
   // Poll for new messages every 5 seconds to guarantee real-time feel
   useEffect(() => {
@@ -176,7 +243,7 @@ export default function InboxPage() {
       const res = await fetch(`/api/conversations/${selectedId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "RESOLVED" })
+        body: JSON.stringify({ status: "CLOSED" })
       });
       if (res.ok) {
         // reload list
@@ -186,6 +253,136 @@ export default function InboxPage() {
       }
     } catch (err) {
       console.error("Error resolving conversation:", err);
+    }
+  };
+
+  const handleDeleteConversation = async () => {
+    if (!selectedId) return;
+    if (!confirm("Bu sohbeti ve tüm mesajlarını kalıcı olarak silmek istediğinizden emin misiniz?")) return;
+    try {
+      const res = await fetch(`/api/conversations/${selectedId}`, {
+        method: "DELETE"
+      });
+      if (res.ok) {
+        fetchConversations();
+        setSelectedId(null);
+        setMobileView("list");
+      }
+    } catch (err) {
+      console.error("Error deleting conversation:", err);
+    }
+  };
+
+  const handleAddTagSubmit = async (tag: string) => {
+    if (!selectedId || !selectedConv || !tag.trim()) return;
+    
+    const trimmedTag = tag.trim().toLowerCase();
+    const currentTags = selectedConv.tags as string[] || [];
+    if (currentTags.includes(trimmedTag)) return;
+
+    const newTags = [...currentTags, trimmedTag];
+    
+    // Optimistic update
+    setConversations(prev => prev.map(c => c.id === selectedId ? { ...c, tags: newTags } : c));
+
+    try {
+      const res = await fetch(`/api/conversations/${selectedId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tags: newTags })
+      });
+      if (!res.ok) {
+        // rollback
+        setConversations(prev => prev.map(c => c.id === selectedId ? { ...c, tags: currentTags } : c));
+      }
+    } catch (err) {
+      console.error("Error adding tag:", err);
+      setConversations(prev => prev.map(c => c.id === selectedId ? { ...c, tags: currentTags } : c));
+    }
+  };
+
+  const handleAddNoteSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedId || !newNoteText.trim() || isSavingNote) return;
+
+    const noteContent = newNoteText.trim();
+    setNewNoteText("");
+    setIsSavingNote(true);
+
+    try {
+      const res = await fetch(`/api/conversations/${selectedId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ note: noteContent })
+      });
+      if (res.ok) {
+        // reload list
+        fetchConversations(true);
+      } else {
+        alert("Not eklenemedi.");
+      }
+    } catch (err) {
+      console.error("Error saving note:", err);
+      alert("Not eklenirken hata oluştu.");
+    } finally {
+      setIsSavingNote(false);
+    }
+  };
+
+  const handleRemoveTag = async (tagToRemove: string) => {
+    if (!selectedId || !selectedConv) return;
+    const currentTags = selectedConv.tags as string[] || [];
+    const newTags = currentTags.filter(t => t !== tagToRemove);
+
+    // Optimistic update
+    setConversations(prev => prev.map(c => c.id === selectedId ? { ...c, tags: newTags } : c));
+
+    try {
+      const res = await fetch(`/api/conversations/${selectedId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tags: newTags })
+      });
+      if (!res.ok) {
+        // rollback
+        setConversations(prev => prev.map(c => c.id === selectedId ? { ...c, tags: currentTags } : c));
+      }
+    } catch (err) {
+      console.error("Error removing tag:", err);
+      setConversations(prev => prev.map(c => c.id === selectedId ? { ...c, tags: currentTags } : c));
+    }
+  };
+
+  const handleSaveToCrm = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedConv) return;
+    setIsAddingToCrm(true);
+    try {
+      const res = await fetch("/api/crm/contacts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chatbotId: selectedConv.chatbotId,
+          name: crmName,
+          email: crmEmail || undefined,
+          phone: crmPhone || undefined,
+          notes: crmNotes,
+          sourceChannel: selectedConv.channel.toUpperCase(),
+          externalId: selectedConv.channelUserId
+        })
+      });
+      if (res.ok) {
+        alert("Kişi CRM'e başarıyla kaydedildi!");
+        setIsCrmFormOpen(false);
+      } else {
+        const err = await res.json();
+        alert(`Hata: ${err.error || "Kişi kaydedilemedi"}`);
+      }
+    } catch (err) {
+      console.error("Error saving CRM contact:", err);
+      alert("CRM kişisi kaydedilirken hata oluştu. Lütfen detayları kontrol edin.");
+    } finally {
+      setIsAddingToCrm(false);
     }
   };
 
@@ -230,8 +427,6 @@ export default function InboxPage() {
     }
   };
 
-  const selectedConv = conversations.find(c => c.id === selectedId);
-
   const formatTime = (date: string) => {
     const d = new Date(date);
     const now = new Date();
@@ -258,25 +453,66 @@ export default function InboxPage() {
             <div>
               <h2 className="text-2xl font-black tracking-tight text-zinc-950">Inbox</h2>
               <p className="text-[10px] uppercase tracking-widest font-black text-muted-foreground mt-1">
-                {conversations.length} Active Sessions
+                {filteredConversations.length} {activeTab === "active" ? "Aktif" : "Kapalı"} Oturum
               </p>
             </div>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon" className="rounded-xl bg-muted/50 hover:bg-white transition-all">
-                    <Filter className="w-4 h-4 text-zinc-600" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Filter Chats</TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className={`rounded-xl transition-all ${selectedChannel ? "bg-primary/10 text-primary hover:bg-primary/20" : "bg-muted/50 hover:bg-white text-zinc-600"}`}>
+                  <Filter className="w-4 h-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48 p-2 rounded-2xl">
+                <DropdownMenuItem onClick={() => setSelectedChannel(null)} className="rounded-xl py-2.5 font-bold text-xs">
+                  Tüm Kanallar
+                </DropdownMenuItem>
+                <DropdownMenuSeparator className="opacity-50" />
+                {Object.entries(channelConfig).map(([key, cfg]) => {
+                  const Icon = cfg.icon;
+                  return (
+                    <DropdownMenuItem
+                      key={key}
+                      onClick={() => setSelectedChannel(key)}
+                      className={`rounded-xl py-2 font-bold text-xs flex items-center gap-2 ${selectedChannel === key ? "bg-primary/5 text-primary" : ""}`}
+                    >
+                      <Icon className={`w-3.5 h-3.5 ${cfg.color}`} />
+                      {cfg.label}
+                    </DropdownMenuItem>
+                  );
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+
+          <div className="flex bg-muted/30 p-1 rounded-2xl border border-black/[0.02]">
+            <button
+              onClick={() => setActiveTab("active")}
+              className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all ${
+                activeTab === "active"
+                  ? "bg-white text-zinc-950 shadow-sm"
+                  : "text-muted-foreground hover:text-zinc-900"
+              }`}
+            >
+              Aktif ({conversations.filter(c => c.status === "ACTIVE" || c.status === "ESCALATED").length})
+            </button>
+            <button
+              onClick={() => setActiveTab("closed")}
+              className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all ${
+                activeTab === "closed"
+                  ? "bg-white text-zinc-950 shadow-sm"
+                  : "text-muted-foreground hover:text-zinc-900"
+              }`}
+            >
+              Kapalı ({conversations.filter(c => c.status === "CLOSED").length})
+            </button>
           </div>
 
           <div className="relative group">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
             <Input 
-              placeholder="Search conversations..." 
+              placeholder="Sohbetleri ara..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-11 h-12 bg-muted/30 border-none rounded-2xl focus-visible:ring-primary/20 focus-visible:bg-white transition-all font-bold text-sm" 
             />
           </div>
@@ -289,23 +525,23 @@ export default function InboxPage() {
               <div className="h-16 bg-muted/40 animate-pulse rounded-2xl" />
               <div className="h-16 bg-muted/40 animate-pulse rounded-2xl" />
             </div>
-          ) : conversations.length === 0 ? (
+          ) : filteredConversations.length === 0 ? (
             <div className="flex flex-col items-center justify-center p-8 text-center space-y-3">
               <div className="w-12 h-12 rounded-2xl bg-zinc-100 flex items-center justify-center text-zinc-400">
                 <MessageSquare className="w-6 h-6" />
               </div>
-              <p className="text-sm font-bold text-zinc-700">No active conversations</p>
-              <p className="text-xs text-muted-foreground">Conversations from widgets or social channels will pop up here.</p>
+              <p className="text-sm font-bold text-zinc-700">{activeTab === "active" ? "Aktif" : "Kapalı"} sohbet bulunamadı</p>
+              <p className="text-xs text-muted-foreground">Web sitenizden veya sosyal medya hesaplarınızdan gelen sohbetler burada görünecektir.</p>
             </div>
           ) : (
             <div className="space-y-2">
-              {conversations.map((conv) => {
+              {filteredConversations.map((conv) => {
                 const cfg = channelConfig[conv.channel?.toLowerCase()] || channelConfig.widget;
                 const isSelected = selectedId === conv.id;
                 const Icon = cfg.icon;
                 const lastMsg = conv.messages?.[0];
-                const userName = conv.user?.name || conv.channelUserId || "Visitor";
-                const userAvatar = conv.user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${conv.id}`;
+                const userName = conv.contactName || conv.user?.name || conv.channelUserId || "Visitor";
+                const userAvatar = conv.contactProfilePic || conv.user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${conv.id}`;
                 
                 return (
                   <motion.button
@@ -352,11 +588,11 @@ export default function InboxPage() {
                         </div>
                         
                         <p className={`text-xs truncate font-medium ${isSelected ? "text-zinc-600" : "text-muted-foreground/80"}`}>
-                          {lastMsg?.content || "No messages"}
+                          {lastMsg?.content || "Mesaj yok"}
                         </p>
                       </div>
 
-                      {conv.unreadCount > 0 && (
+                      {(conv.unreadCount || 0) > 0 && (
                         <div className="self-start mt-1">
                            <span className="flex items-center justify-center w-5 h-5 bg-primary text-white text-[10px] font-black rounded-full animate-bounce">
                              {conv.unreadCount}
@@ -398,8 +634,8 @@ export default function InboxPage() {
 
                 <div className="relative">
                   <Avatar className="w-12 h-12 rounded-2xl border border-black/5">
-                    <AvatarImage src={selectedConv.user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedConv.id}`} />
-                    <AvatarFallback>{(selectedConv.user?.name || "U").charAt(0)}</AvatarFallback>
+                    <AvatarImage src={selectedConv.contactProfilePic || selectedConv.user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedConv.id}`} />
+                    <AvatarFallback>{(selectedConv.contactName || selectedConv.user?.name || selectedConv.channelUserId || "U").charAt(0)}</AvatarFallback>
                   </Avatar>
                   <div className="absolute -bottom-1 -right-1 p-1 bg-white rounded-lg shadow-sm border border-black/5">
                     {(() => {
@@ -415,12 +651,12 @@ export default function InboxPage() {
                 </div>
                 <div>
                   <h3 className="font-black text-zinc-900 flex items-center gap-2 text-base lg:text-lg">
-                    {selectedConv.user?.name || selectedConv.channelUserId || "Visitor"}
+                    {selectedConv.contactName || selectedConv.user?.name || selectedConv.channelUserId || "Ziyaretçi"}
                     <Badge variant="outline" className="text-[9px] h-5 rounded-md border-primary/20 text-primary bg-primary/5 uppercase tracking-widest px-1.5">
-                      {selectedConv.status}
+                      {selectedConv.status === "ACTIVE" ? "AKTİF" : selectedConv.status === "ESCALATED" ? "DESTEK" : "KAPALI"}
                     </Badge>
                   </h3>
-                  <p className="text-xs font-medium text-muted-foreground">{selectedConv.user?.email || "No email available"}</p>
+                  <p className="text-xs font-medium text-muted-foreground">{selectedConv.contactEmail || selectedConv.user?.email || "E-posta adresi yok"}</p>
                 </div>
               </div>
 
@@ -429,7 +665,7 @@ export default function InboxPage() {
                 <div className="flex flex-col items-end">
                    <div className="flex items-center gap-1.5 mb-1">
                      <Zap className={`w-3.5 h-3.5 ${isAiActive ? "text-amber-500 fill-amber-500" : "text-muted-foreground"}`} />
-                     <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">AI Autopilot</span>
+                     <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">YZ Otopilot</span>
                    </div>
                    <Switch 
                      checked={isAiActive} 
@@ -450,10 +686,10 @@ export default function InboxPage() {
                             onClick={handleResolveChat}
                             className="rounded-xl h-10 px-4 font-bold border-emerald-500/20 text-emerald-600 bg-emerald-50 hover:bg-emerald-100 transition-all text-xs"
                           >
-                            <Check className="w-4 h-4 mr-2" /> Resolve
+                            <Check className="w-4 h-4 mr-2" /> Kapat
                           </Button>
                        </TooltipTrigger>
-                       <TooltipContent>Close Conversation</TooltipContent>
+                       <TooltipContent>Sohbeti Kapat</TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
 
@@ -464,10 +700,11 @@ export default function InboxPage() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-56 p-2 rounded-2xl">
-                       <DropdownMenuItem className="rounded-xl py-2.5 font-bold text-xs"><Tag className="w-4 h-4 mr-2 text-muted-foreground" /> Edit Tags</DropdownMenuItem>
-                       <DropdownMenuItem className="rounded-xl py-2.5 font-bold text-xs"><StickyNote className="w-4 h-4 mr-2 text-muted-foreground" /> Add Internal Note</DropdownMenuItem>
+                       <DropdownMenuItem onClick={() => setIsAddingTagInline(true)} className="rounded-xl py-2.5 font-bold text-xs"><Tag className="w-4 h-4 mr-2 text-muted-foreground" /> Etiket Ekle</DropdownMenuItem>
+                       <DropdownMenuItem onClick={() => { const el = document.getElementById("new-note-textarea"); if (el) el.focus(); }} className="rounded-xl py-2.5 font-bold text-xs"><StickyNote className="w-4 h-4 mr-2 text-muted-foreground" /> Dahili Not Ekle</DropdownMenuItem>
                        <DropdownMenuSeparator className="opacity-50" />
-                       <DropdownMenuItem className="rounded-xl py-2.5 font-bold text-xs text-destructive focus:bg-destructive/5"><X className="w-4 h-4 mr-2" /> Close Session</DropdownMenuItem>
+                       <DropdownMenuItem onClick={handleResolveChat} className="rounded-xl py-2.5 font-bold text-xs text-destructive focus:bg-destructive/5"><X className="w-4 h-4 mr-2" /> Oturumu Kapat</DropdownMenuItem>
+                       <DropdownMenuItem onClick={handleDeleteConversation} className="rounded-xl py-2.5 font-bold text-xs text-destructive focus:bg-destructive/5"><X className="w-4 h-4 mr-2" /> Sohbeti Sil</DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
@@ -488,7 +725,7 @@ export default function InboxPage() {
                 ) : messages.length === 0 ? (
                   <div className="flex flex-col items-center justify-center p-12 text-center text-muted-foreground">
                     <AlertCircle className="w-8 h-8 text-zinc-400 mb-2" />
-                    <p className="text-sm font-bold">No messages in this chat session</p>
+                    <p className="text-sm font-bold">Bu sohbette henüz mesaj bulunmuyor</p>
                   </div>
                 ) : (
                   <div className="space-y-8">
@@ -496,18 +733,21 @@ export default function InboxPage() {
                       const role = msg.role.toLowerCase();
                       const time = new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                       const sources = msg.sources as any[];
+                      const isAgent = role === "assistant" && msg.agentId;
                       
                       return (
                         <div key={msg.id} className={`flex gap-4 ${role === "user" ? "flex-row-reverse" : "flex-row"}`}>
                           <div className="pt-2">
-                            <Avatar className={`w-9 h-9 rounded-xl border border-black/5 shadow-sm ${role === "assistant" ? "bg-zinc-950" : "bg-white"}`}>
-                              {role === "assistant" ? (
+                            <Avatar className={`w-9 h-9 rounded-xl border border-black/5 shadow-sm ${role === "user" ? "bg-white" : isAgent ? "bg-blue-600 text-white" : "bg-zinc-950"}`}>
+                              {isAgent ? (
+                                <div className="w-full h-full flex items-center justify-center bg-blue-600 text-white font-bold text-xs"><User className="w-4 h-4" /></div>
+                              ) : role === "assistant" ? (
                                 <AvatarImage src={selectedConv.chatbot?.avatar || "/bot-avatar.png"} className="p-1.5" />
                               ) : (
-                                <AvatarImage src={selectedConv.user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedConv.id}`} />
+                                <AvatarImage src={selectedConv.contactProfilePic || selectedConv.user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedConv.id}`} />
                               )}
-                              <AvatarFallback className={role === "assistant" ? "bg-zinc-950 text-white" : "bg-primary/5 text-primary"}>
-                                {role === "assistant" ? "AI" : (selectedConv.user?.name?.charAt(0) || "U")}
+                              <AvatarFallback className={isAgent ? "bg-blue-600 text-white" : role === "assistant" ? "bg-zinc-950 text-white" : "bg-primary/5 text-primary"}>
+                                {isAgent ? "TR" : role === "assistant" ? "AI" : ((selectedConv.contactName || selectedConv.user?.name || selectedConv.channelUserId || "U").charAt(0))}
                               </AvatarFallback>
                             </Avatar>
                           </div>
@@ -518,7 +758,9 @@ export default function InboxPage() {
                                 relative p-4 lg:p-5 rounded-[24px] text-sm leading-relaxed shadow-sm whitespace-pre-wrap break-words w-full
                                 ${role === "user" 
                                   ? "bg-zinc-950 text-white rounded-br-sm shadow-zinc-950/10" 
-                                  : "bg-white text-zinc-800 rounded-bl-sm ring-1 ring-black/[0.03]"}
+                                  : isAgent
+                                    ? "bg-blue-50 text-zinc-800 rounded-bl-sm ring-1 ring-blue-100/50"
+                                    : "bg-white text-zinc-800 rounded-bl-sm ring-1 ring-black/[0.03]"}
                               `}
                             >
                               {msg.content}
@@ -526,7 +768,7 @@ export default function InboxPage() {
                               {sources && sources.length > 0 && (
                                 <div className="mt-4 pt-3 border-t border-muted/50 flex flex-col gap-2">
                                   <div className="flex items-center gap-2 text-[10px] font-black text-primary uppercase tracking-widest">
-                                     <ShieldCheck className="w-3.5 h-3.5" /> Verified Source
+                                     <ShieldCheck className="w-3.5 h-3.5" /> Doğrulanmış Kaynak
                                   </div>
                                   {sources.slice(0, 2).map((src: any, idx: number) => (
                                     <div key={idx} className="p-2.5 rounded-xl bg-primary/5 border border-primary/10 flex items-center justify-between group cursor-pointer hover:bg-primary/10 transition-colors">
@@ -542,6 +784,11 @@ export default function InboxPage() {
                             </div>
                             <span className="text-[10px] font-bold text-muted-foreground px-2 flex items-center gap-2 italic">
                                {time}
+                               {isAgent ? (
+                                 <span className="flex items-center gap-1 text-[9px] bg-blue-100/60 text-blue-700 px-1.5 py-0.5 rounded-full font-bold not-italic">Temsilci</span>
+                               ) : role === "assistant" ? (
+                                 <span className="flex items-center gap-1 text-[9px] bg-amber-100/60 text-amber-700 px-1.5 py-0.5 rounded-full font-bold not-italic">Yapay Zeka</span>
+                               ) : null}
                                {role === "assistant" && <Check className="w-3 h-3 text-emerald-500" />}
                             </span>
                           </div>
@@ -574,11 +821,11 @@ export default function InboxPage() {
                    <div className="px-5 py-2 flex items-center justify-between bg-black/[0.02] border-b border-black/[0.03]">
                       <div className="flex items-center gap-3">
                          <span className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${isAiActive ? "bg-amber-100 text-amber-700" : "bg-zinc-200 text-zinc-700"}`}>
-                            {isAiActive ? "AI Mode Active" : "Human Mode"}
+                            {isAiActive ? "YZ Modu Aktif" : "Temsilci Modu"}
                          </span>
                       </div>
                       <div className="flex gap-4">
-                         <button type="button" className="text-[10px] font-black text-primary hover:underline uppercase tracking-tighter">Templates / Quick Reply</button>
+                         <button type="button" className="text-[10px] font-black text-primary hover:underline uppercase tracking-tighter">Şablonlar / Hızlı Yanıt</button>
                       </div>
                    </div>
 
@@ -596,7 +843,7 @@ export default function InboxPage() {
                            handleSendMessage();
                          }
                        }}
-                       placeholder={isAiActive ? "AI Autopilot is on. Send a message to manually interrupt..." : "Type a message..."}
+                       placeholder={isAiActive ? "Yapay Zeka Otopilot aktif. Devre dışı bırakmak için mesaj yazın..." : "Bir mesaj yazın..."}
                        className="flex-1 min-h-[48px] max-h-32 border-none bg-transparent focus-visible:ring-0 resize-none font-bold text-sm py-4 px-4 placeholder:text-muted-foreground/50"
                      />
 
@@ -623,8 +870,8 @@ export default function InboxPage() {
               <MessageSquare className="w-8 h-8" />
             </div>
             <div className="max-w-sm space-y-2">
-              <h3 className="font-black text-lg text-zinc-800">Select a conversation</h3>
-              <p className="text-sm text-muted-foreground">Select an active session from the left column to view the conversation logs and chat history.</p>
+              <h3 className="font-black text-lg text-zinc-800">Bir sohbet seçin</h3>
+              <p className="text-sm text-muted-foreground">Sohbet geçmişini ve logları görüntülemek için sol sütundan aktif bir oturum seçin.</p>
             </div>
           </div>
         )}
@@ -637,84 +884,273 @@ export default function InboxPage() {
           {/* User Profile Card */}
           <div className="bg-white/60 backdrop-blur-xl rounded-[32px] border border-black/5 p-6 space-y-6">
              <div className="flex items-center justify-between mb-4">
-               <h4 className="text-xs font-black uppercase tracking-widest text-muted-foreground">User Profile</h4>
+               <h4 className="text-xs font-black uppercase tracking-widest text-muted-foreground">Kullanıcı Profili</h4>
              </div>
              
              <div className="flex flex-col items-center text-center gap-3">
                <div className="w-24 h-24 rounded-[32px] overflow-hidden p-1.5 bg-gradient-to-br from-primary/20 to-primary/5 shadow-xl shadow-primary/5">
                   <Avatar className="w-full h-full rounded-[24px]">
-                    <AvatarImage src={selectedConv.user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedConv.id}`} className="object-cover" />
-                    <AvatarFallback className="text-2xl">{(selectedConv.user?.name || "U").charAt(0)}</AvatarFallback>
+                     <AvatarImage src={selectedConv.contactProfilePic || selectedConv.user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedConv.id}`} className="object-cover" />
+                     <AvatarFallback className="text-2xl">{(selectedConv.contactName || selectedConv.user?.name || selectedConv.channelUserId || "U").charAt(0)}</AvatarFallback>
                   </Avatar>
                </div>
                <div>
-                 <h3 className="font-black text-lg">{selectedConv.user?.name || selectedConv.channelUserId || "Visitor"}</h3>
+                 <h3 className="font-black text-lg">{selectedConv.contactName || selectedConv.user?.name || selectedConv.channelUserId || "Ziyaretçi"}</h3>
                  <p className="text-xs text-muted-foreground font-medium flex items-center justify-center gap-1">
-                   <Mail className="w-3 h-3" /> {selectedConv.user?.email || "No email"}
+                   <Mail className="w-3 h-3" /> {selectedConv.contactEmail || selectedConv.user?.email || "E-posta yok"}
                  </p>
+                 
+                                  {!isCrmFormOpen ? (
+                    selectedConv.contactName ? (
+                      <div className="mt-4 text-left p-3.5 bg-muted/40 rounded-2xl border border-black/[0.02] space-y-2">
+                        <div className="flex flex-col">
+                          <span className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">Müşteri Detayı</span>
+                          <span className="text-xs font-bold text-zinc-800 mt-1">{selectedConv.contactName}</span>
+                        </div>
+                        {selectedConv.contactPhone && (
+                          <div className="flex flex-col">
+                            <span className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">Telefon</span>
+                            <span className="text-xs font-medium text-zinc-700 mt-0.5">{selectedConv.contactPhone}</span>
+                          </div>
+                        )}
+                        {selectedConv.contactNotes && (
+                          <div className="flex flex-col">
+                            <span className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">Notlar</span>
+                            <span className="text-xs font-medium text-zinc-600 mt-0.5 break-words line-clamp-3">{selectedConv.contactNotes}</span>
+                          </div>
+                        )}
+                        <Button 
+                          onClick={() => setIsCrmFormOpen(true)}
+                          className="w-full rounded-xl font-bold text-xs bg-zinc-100 text-zinc-800 hover:bg-zinc-200 mt-2 h-8"
+                        >
+                          Bilgileri Güncelle
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button 
+                        onClick={() => setIsCrmFormOpen(true)}
+                        className="w-full rounded-xl font-bold text-xs bg-primary text-white hover:bg-primary/95 mt-4 h-9 shadow-md shadow-primary/10"
+                      >
+                        CRM'e Ekle
+                      </Button>
+                    )
+                  ) : (
+                   <form onSubmit={handleSaveToCrm} className="space-y-3 mt-4 text-left">
+                     <div className="space-y-1">
+                       <label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">CRM İsim</label>
+                       <Input 
+                         value={crmName} 
+                         onChange={(e) => setCrmName(e.target.value)} 
+                         placeholder="İsim" 
+                         required 
+                         className="h-9 rounded-xl text-xs font-bold bg-muted/30 border-none"
+                       />
+                     </div>
+                     <div className="space-y-1">
+                       <label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">CRM E-Posta</label>
+                       <Input 
+                         value={crmEmail} 
+                         onChange={(e) => setCrmEmail(e.target.value)} 
+                         placeholder="E-Posta (isteğe bağlı)" 
+                         type="email" 
+                         className="h-9 rounded-xl text-xs font-bold bg-muted/30 border-none"
+                       />
+                     </div>
+                     <div className="space-y-1">
+                       <label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">CRM Telefon</label>
+                       <Input 
+                         value={crmPhone} 
+                         onChange={(e) => setCrmPhone(e.target.value)} 
+                         placeholder="Telefon (isteğe bağlı)" 
+                         type="tel" 
+                         className="h-9 rounded-xl text-xs font-bold bg-muted/30 border-none"
+                       />
+                     </div>
+                     <div className="space-y-1">
+                       <label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">Notlar</label>
+                       <Textarea 
+                         value={crmNotes} 
+                         onChange={(e) => setCrmNotes(e.target.value)} 
+                         placeholder="Notlar" 
+                         className="min-h-[60px] rounded-xl text-xs font-bold bg-muted/30 border-none py-2 px-3 focus-visible:ring-0 resize-none"
+                       />
+                     </div>
+                     <div className="flex gap-2">
+                       <Button 
+                         type="submit" 
+                         disabled={isAddingToCrm}
+                         className="flex-1 h-9 rounded-xl font-bold text-xs bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-600/10"
+                       >
+                         {isAddingToCrm ? "Kaydediliyor..." : "Kaydet"}
+                       </Button>
+                       <Button 
+                         type="button" 
+                         onClick={() => setIsCrmFormOpen(false)}
+                         className="h-9 rounded-xl font-bold text-xs bg-zinc-100 hover:bg-zinc-200 text-zinc-800"
+                       >
+                         İptal
+                       </Button>
+                     </div>
+                   </form>
+                 )}
                </div>
              </div>
-
+ 
              <div className="space-y-4 pt-4 border-t border-black/5">
-                <div className="space-y-1">
-                   <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Metadata</span>
-                   <div className="p-3 bg-muted/30 rounded-2xl border border-black/[0.02] space-y-2">
-                      <div className="flex justify-between items-center">
-                         <span className="text-[10px] font-bold opacity-60">Country</span>
-                         <span className="text-xs font-black uppercase">{selectedConv.country || "Unknown"}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                         <span className="text-[10px] font-bold opacity-60">Channel</span>
-                         <span className="text-xs font-black uppercase">{selectedConv.channel}</span>
-                      </div>
-                   </div>
-                </div>
+                 <div className="space-y-1">
+                    <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Meta Veriler</span>
+                    <div className="p-3 bg-muted/30 rounded-2xl border border-black/[0.02] space-y-2">
+                       <div className="flex justify-between items-center">
+                          <span className="text-[10px] font-bold opacity-60">Ülke</span>
+                          <span className="text-xs font-black uppercase">{selectedConv.country || "Bilinmiyor"}</span>
+                       </div>
+                       <div className="flex justify-between items-center">
+                          <span className="text-[10px] font-bold opacity-60">Kanal</span>
+                          <span className="text-xs font-black uppercase">{selectedConv.channel === "widget" ? "Web Sitesi" : selectedConv.channel}</span>
+                       </div>
+                    </div>
+                 </div>
+ 
+                 <div className="space-y-2">
+                    <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Etiketler</span>
+                    <div className="flex flex-wrap gap-1.5">
+                       {(selectedConv.tags as string[] || []).map(tag => (
+                         <Badge 
+                           key={tag} 
+                           variant="secondary" 
+                           onClick={() => handleRemoveTag(tag)}
+                           className="px-3 py-1 rounded-lg text-[10px] font-bold bg-zinc-100 hover:bg-red-50 hover:text-red-600 border-none capitalize cursor-pointer transition-colors"
+                         >
+                           {tag} <span className="ml-1 text-[8px] opacity-60">×</span>
+                         </Badge>
+                       ))}
+                       {isAddingTagInline ? (
+                         <form
+                           onSubmit={(e) => {
+                             e.preventDefault();
+                             handleAddTagSubmit(newTagInput);
+                             setNewTagInput("");
+                             setIsAddingTagInline(false);
+                           }}
+                           className="flex items-center gap-1.5 w-full mt-1"
+                         >
+                           <Input
+                             value={newTagInput}
+                             onChange={(e) => setNewTagInput(e.target.value)}
+                             onKeyDown={(e) => {
+                               if (e.key === "Escape") {
+                                 setIsAddingTagInline(false);
+                                 setNewTagInput("");
+                               }
+                             }}
+                             placeholder="Etiket..."
+                             autoFocus
+                             className="h-8 rounded-lg text-[11px] font-bold bg-zinc-100/50 border-zinc-200/50 flex-1 py-1 px-2 focus-visible:ring-primary/20"
+                           />
+                           <Button type="submit" size="sm" className="h-8 w-8 rounded-lg p-0 bg-emerald-600 hover:bg-emerald-700 text-white shadow-md">
+                             <Check className="w-3.5 h-3.5" />
+                           </Button>
+                           <Button
+                             type="button"
+                             onClick={() => {
+                               setIsAddingTagInline(false);
+                               setNewTagInput("");
+                             }}
+                             variant="ghost"
+                             size="sm"
+                             className="h-8 w-8 rounded-lg p-0 text-muted-foreground hover:bg-zinc-100"
+                           >
+                             <X className="w-3.5 h-3.5" />
+                           </Button>
+                         </form>
+                       ) : (
+                         <Badge 
+                           variant="outline" 
+                           onClick={() => setIsAddingTagInline(true)}
+                           className="px-3 py-1 rounded-lg text-[10px] font-bold border-dashed border-muted-foreground/30 text-muted-foreground cursor-pointer hover:bg-zinc-50 transition-colors"
+                         >
+                           + Etiket Ekle
+                         </Badge>
+                       )}
+                    </div>
+                 </div>
+              </div>
+           </div>
 
-                <div className="space-y-2">
-                   <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Labels / Tags</span>
-                   <div className="flex flex-wrap gap-1.5">
-                      {(selectedConv.tags as string[] || []).map(tag => (
-                        <Badge key={tag} variant="secondary" className="px-3 py-1 rounded-lg text-[10px] font-bold bg-zinc-100 hover:bg-zinc-200 border-none capitalize">{tag}</Badge>
-                      ))}
-                      <Badge variant="outline" className="px-3 py-1 rounded-lg text-[10px] font-bold border-dashed border-muted-foreground/30 text-muted-foreground cursor-pointer">
-                        + Add Tag
-                      </Badge>
-                   </div>
-                </div>
-             </div>
-          </div>
+           {/* Internal Notes Card */}
+           <div className="bg-white/60 backdrop-blur-xl rounded-[32px] border border-black/5 p-6 space-y-4">
+              <div className="flex items-center gap-2 pb-2 border-b border-black/5">
+                 <StickyNote className="w-4 h-4 text-amber-500" />
+                 <h4 className="text-xs font-black uppercase tracking-widest text-muted-foreground">Dahili Notlar</h4>
+              </div>
 
-          {/* AI Strategy Info Card */}
-          <div className="bg-zinc-950 text-white rounded-[32px] p-6 space-y-5 shadow-2xl relative overflow-hidden group">
-             <div className="absolute top-0 right-0 w-32 h-32 bg-primary/20 blur-3xl rounded-full translate-x-1/2 -translate-y-1/2 group-hover:scale-150 transition-transform duration-1000" />
-             
-             <div className="relative z-10">
-                <div className="flex items-center gap-3 mb-6">
-                   <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center ring-1 ring-white/10">
-                      <Bot className="w-5 h-5 text-primary" />
-                   </div>
-                   <div>
-                      <h4 className="font-black text-sm">Bot Intelligence</h4>
-                      <p className="text-[10px] text-zinc-400 font-bold">{selectedConv.chatbot?.name || "Assistant Agent"}</p>
-                   </div>
-                </div>
+              {/* Notes Timeline List */}
+              <div className="space-y-3 max-h-[160px] overflow-y-auto pr-1">
+                 {selectedConv.notes && selectedConv.notes.length > 0 ? (
+                   selectedConv.notes.map((note: any) => (
+                     <div key={note.id} className="p-3 rounded-2xl bg-amber-50/40 border border-amber-200/10 text-xs text-zinc-700 space-y-1">
+                       <p className="font-semibold break-words leading-relaxed">{note.content}</p>
+                       <div className="flex justify-between items-center text-[9px] text-zinc-400 font-semibold pt-1">
+                         <span>{note.createdBy === "system" ? "Sistem" : "Temsilci"}</span>
+                         <span>{new Date(note.createdAt).toLocaleDateString("tr-TR", {hour: "2-digit", minute:"2-digit"})}</span>
+                       </div>
+                     </div>
+                   ))
+                 ) : (
+                   <p className="text-[11px] text-muted-foreground/80 italic text-center py-2">Dahili not bulunmuyor.</p>
+                 )}
+              </div>
 
-                <div className="space-y-3">
-                   <div className="flex items-center justify-between p-3 rounded-2xl bg-white/5 border border-white/5">
-                      <span className="text-xs font-bold text-zinc-300">Autopilot</span>
-                      <span className={`text-xs font-black ${isAiActive ? "text-emerald-400" : "text-amber-400"}`}>
-                        {isAiActive ? "ACTIVE" : "PAUSED"}
-                      </span>
-                   </div>
-                   <div className="flex items-center justify-between p-3 rounded-2xl bg-white/5 border border-white/5">
-                      <span className="text-xs font-bold text-zinc-300">Total Messages</span>
-                      <span className="text-xs font-black text-blue-400">{messages.length}</span>
-                   </div>
-                </div>
-             </div>
-          </div>
-        </div>
-      )}
-    </div>
+              {/* Add Note Form */}
+              <form onSubmit={handleAddNoteSubmit} className="space-y-2 pt-2 border-t border-black/5">
+                 <Textarea
+                   id="new-note-textarea"
+                   value={newNoteText}
+                   onChange={(e) => setNewNoteText(e.target.value)}
+                   placeholder="Dahili bir not yazın..."
+                   required
+                   className="min-h-[50px] max-h-24 rounded-xl text-xs font-bold bg-muted/30 border-none py-2 px-3 focus-visible:ring-0 resize-none placeholder:text-muted-foreground/50"
+                 />
+                 <Button
+                   type="submit"
+                   disabled={isSavingNote || !newNoteText.trim()}
+                   className="w-full h-8 rounded-xl font-bold text-xs bg-amber-600 hover:bg-amber-700 text-white shadow-md shadow-amber-600/10"
+                 >
+                   {isSavingNote ? "Kaydediliyor..." : "Not Ekle"}
+                 </Button>
+              </form>
+           </div>
+ 
+           {/* AI Strategy Info Card */}
+           <div className="bg-zinc-950 text-white rounded-[32px] p-6 space-y-5 shadow-2xl relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-primary/20 blur-3xl rounded-full translate-x-1/2 -translate-y-1/2 group-hover:scale-150 transition-transform duration-1000" />
+              
+              <div className="relative z-10">
+                 <div className="flex items-center gap-3 mb-6">
+                    <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center ring-1 ring-white/10">
+                       <Bot className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                       <h4 className="font-black text-sm">Bot Zekası</h4>
+                       <p className="text-[10px] text-zinc-400 font-bold">{selectedConv.chatbot?.name || "Asistan Temsilci"}</p>
+                    </div>
+                 </div>
+ 
+                 <div className="space-y-3">
+                    <div className="flex items-center justify-between p-3 rounded-2xl bg-white/5 border border-white/5">
+                       <span className="text-xs font-bold text-zinc-300">Otopilot</span>
+                       <span className={`text-xs font-black ${isAiActive ? "text-emerald-400" : "text-amber-400"}`}>
+                         {isAiActive ? "AKTİF" : "DURAKLATILDI"}
+                       </span>
+                    </div>
+                    <div className="flex items-center justify-between p-3 rounded-2xl bg-white/5 border border-white/5">
+                       <span className="text-xs font-bold text-zinc-300">Toplam Mesaj</span>
+                       <span className="text-xs font-black text-blue-400">{messages.length}</span>
+                    </div>
+                 </div>
+              </div>
+           </div>
+         </div>
+       )}     </div>
   );
 }

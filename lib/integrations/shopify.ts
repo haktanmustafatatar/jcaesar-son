@@ -10,7 +10,8 @@ export interface ShopifyConfig {
 export async function searchShopifyProducts(config: ShopifyConfig, query: string) {
   try {
     const { shopDomain, accessToken } = config;
-    const url = `https://${shopDomain}/admin/api/2024-04/products.json?title=${encodeURIComponent(query)}`;
+    // Query with limit=250 to fetch all products for robust local searching
+    const url = `https://${shopDomain}/admin/api/2024-04/products.json?limit=250`;
     
     const response = await fetch(url, {
       headers: {
@@ -24,7 +25,17 @@ export async function searchShopifyProducts(config: ShopifyConfig, query: string
     }
 
     const data = await response.json();
-    return data.products.map((p: any) => ({
+    const queryLower = query.toLowerCase().trim();
+    
+    const filteredProducts = data.products.filter((p: any) => {
+      if (!queryLower) return true;
+      const titleMatch = p.title.toLowerCase().includes(queryLower);
+      const handleMatch = p.handle.toLowerCase().includes(queryLower);
+      const skuMatch = p.variants.some((v: any) => v.sku && v.sku.toLowerCase().includes(queryLower));
+      return titleMatch || handleMatch || skuMatch;
+    });
+
+    return filteredProducts.map((p: any) => ({
       id: p.id,
       title: p.title,
       handle: p.handle,

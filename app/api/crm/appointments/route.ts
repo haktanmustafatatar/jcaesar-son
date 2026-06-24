@@ -18,7 +18,10 @@ export async function GET() {
     const appointments = await prisma.appointment.findMany({
       where: {
         chatbot: {
-          userId: dbUser.id
+          OR: [
+            { userId: dbUser.id },
+            ...(dbUser.organizationId ? [{ organizationId: dbUser.organizationId }] : [])
+          ]
         }
       },
       include: {
@@ -64,7 +67,13 @@ export async function POST(req: NextRequest) {
 
     // Verify chatbot ownership
     const chatbot = await prisma.chatbot.findFirst({
-      where: { id: chatbotId, userId: dbUser.id }
+      where: { 
+        id: chatbotId,
+        OR: [
+          { userId: dbUser.id },
+          ...(dbUser.organizationId ? [{ organizationId: dbUser.organizationId }] : [])
+        ]
+      }
     });
     if (!chatbot) {
       return NextResponse.json({ error: "Sohbet botu bulunamadı veya yetkisiz erişim." }, { status: 404 });
@@ -245,7 +254,7 @@ export async function DELETE(req: NextRequest) {
       include: { chatbot: true }
     });
 
-    if (!appointment || appointment.chatbot.userId !== dbUser.id) {
+    if (!appointment || (appointment.chatbot.userId !== dbUser.id && (!dbUser.organizationId || appointment.chatbot.organizationId !== dbUser.organizationId))) {
       return NextResponse.json({ error: "Not found or unauthorized" }, { status: 404 });
     }
 
@@ -257,5 +266,63 @@ export async function DELETE(req: NextRequest) {
   } catch (error) {
     console.error("Delete Appointment Error:", error);
     return NextResponse.json({ error: "Failed to delete appointment" }, { status: 500 });
+  }
+}
+
+export async function PATCH(req: NextRequest) {
+  try {
+    const { userId: clerkId } = await auth();
+    if (!clerkId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const dbUser = await prisma.user.findUnique({
+      where: { clerkId }
+    });
+    if (!dbUser) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    const body = await req.json();
+    const { id, paymentStatus } = body;
+
+    if (!id || !paymentStatus) {
+      return NextResponse.json({ error: "ID ve ödeme durumu gereklidir." }, { status: 400 });
+    }
+
+    if (paymentStatus !== "PAID" && paymentStatus !== "UNPAID") {
+      return NextResponse.json({ error: "Geçersiz ödeme durumu." }, { status: 400 });
+    }
+
+    const appointment = await prisma.appointment.findUnique({
+      where: { id },
+      include: { chatbot: true }
+    });
+
+    if (!appointment) {
+      return NextResponse.json({ error: "Randevu bulunamadı." }, { status: 404 });
+    }
+
+    // Verify ownership or organization access
+    const hasAccess = 
+      appointment.chatbot.userId === dbUser.id || 
+      (dbUser.organizationId && appointment.chatbot.organizationId === dbUser.organizationId);
+
+    if (!hasAccess) {
+      return NextResponse.json({ error: "Yetkisiz erişim." }, { status: 403 });
+    }
+
+    const updated = await prisma.appointment.update({
+      where: { id },
+      data: { paymentStatus },
+      include: {
+        contact: true,
+        chatbot: true,
+        staff: true
+      }
+    });
+
+    return NextResponse.json(updated);
+  } catch (error) {
+    console.error("Update Appointment Status Error:", error);
+    return NextResponse.json({ error: "Randevu güncellenemedi." }, { status: 500 });
   }
 }

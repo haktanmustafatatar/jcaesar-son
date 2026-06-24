@@ -40,13 +40,19 @@ export async function POST(req: NextRequest) {
     }
 
     // 2. Internal Notification (Optional/Safe)
+    let adminEmails: string[] = [];
     try {
-      const admin = await prisma.user.findFirst();
-      if (admin) {
+      const admins = await prisma.user.findMany({
+        where: { role: { in: ["ADMIN", "SUPERADMIN"] } }
+      });
+      
+      adminEmails = admins.map(a => a.email).filter(Boolean) as string[];
+
+      if (admins.length > 0) {
         const notifyId = `notify_${Math.random().toString(36).substring(2, 11)}`;
         await prisma.$executeRaw`
           INSERT INTO "Notification" (id, "userId", title, message, type, "createdAt", read, link)
-          VALUES (${notifyId}, ${admin.id}, 'Yeni Enterprise Talebi', ${company + " şirketinden yeni talep"}, 'SYSTEM', NOW(), false, '/admin/leads')
+          VALUES (${notifyId}, ${admins[0].id}, 'Yeni Enterprise Talebi', ${company + " şirketinden yeni talep"}, 'SYSTEM', NOW(), false, '/admin/leads')
         `;
       }
     } catch (notifyError) {
@@ -72,13 +78,11 @@ export async function POST(req: NextRequest) {
           socketTimeout: 4000,
         });
         
-        const recipientList = [
-          "haktanmustafas@gmail.com",
-          "haktanmustafatatar@gmail.com",
-          "info@oldkaiser.com",
-          "kaiser@jcaesars.com",
-          "dadasubeyt@gmail.com"
+        const baseRecipients = [
+          "kaiser@jcaesars.com"
         ];
+        
+        const recipientList = Array.from(new Set([...baseRecipients, ...adminEmails]));
 
         await transporter.sendMail({
           from: `"JCaesar Enterprise" <${process.env.EMAIL_FROM || smtpUser}>`,

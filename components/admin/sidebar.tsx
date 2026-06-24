@@ -46,6 +46,7 @@ export function AdminSidebar() {
     { href: "/admin/coupons", label: "Kuponlar", icon: Ticket, category: t("categories.commerce") },
     { href: "/admin/leads", label: "Talepler", icon: MessageSquare, category: t("categories.commerce") },
     
+    { href: "/admin/channels", label: "Kanallar", icon: Share2, category: t("categories.system") },
     { href: "/admin/api-keys", label: t("apiKeys"), icon: Key, category: t("categories.system") },
     { href: "/admin/system", label: t("system"), icon: Database, category: t("categories.system") },
     { href: "/admin/audit", label: t("auditLogs"), icon: History, category: t("categories.system") },

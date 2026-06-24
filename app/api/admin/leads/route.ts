@@ -2,10 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 
+async function isAdmin() {
+  const { userId: clerkId } = await auth();
+  if (!clerkId) return false;
+  const user = await prisma.user.findUnique({ where: { clerkId } });
+  return user?.role === "ADMIN" || user?.role === "SUPERADMIN";
+}
+
 export async function GET() {
   try {
-    const { userId } = await auth();
-    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!(await isAdmin())) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     // Use raw SQL to bypass Prisma model cache issues
     let leads: any[] = [];

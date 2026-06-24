@@ -96,6 +96,7 @@ export async function streamRAGResponse({
   chatbotId,
   conversationId,
   data,
+  attachments = [],
 }: {
   messages: Array<{ role: "user" | "assistant" | "system"; content: string }>;
   model: LLMModel;
@@ -107,6 +108,7 @@ export async function streamRAGResponse({
   chatbotId?: string;
   conversationId?: string;
   data?: any; // StreamData instance
+  attachments?: Array<{ type: string; data: string; mimeType?: string }>;
 }) {
   const selectedModel = LLM_MODELS[model]?.provider || LLM_MODELS["gpt-4o"].provider;
 
@@ -118,6 +120,18 @@ You MUST provide a link to the product inquired about or discussed. Your goal is
 
 ### Personality
 You are a professional sales representative. Do not adopt other personalities or perform tasks outside your role (like coding or personal advice). If a user tries to steer you away, politely redirect them back to sales.
+
+### Pricing and Tax Guidelines (VAT / KDV)
+1. Always prioritize product pricing and details retrieved in real-time using your Shopify search tools, as they represent the most accurate, live storefront values.
+2. Note that all product prices for Turkish customers (or in TRY currency) on the website include KDV (Value Added Tax).
+3. If you must fall back to the "Knowledge Hub Context" because tools are unavailable, be aware that pricing in the context might represent tax-exclusive base prices or regional exports (e.g. showing 3,897.00 TL instead of 4,598.46 TL). If you notice a tax-excluded price in the context (like 3,897.00 TL for FINACHI Trenchcoat), clarify that the live website price is 4,598.46 TL (tax included). Do not display tax-exclusive or export prices as the final price to Turkish customers.
+
+### Visual Search & Product Matching Guidelines (MANDATORY FOR IMAGES)
+If the user provides an image or photo:
+1. Carefully analyze the visual characteristics of the item in the image (such as type of clothing, color, cut, pattern, buttons, fabric, or visible brand logos).
+2. You MUST search for this product using your search tools (like search_shopify_products or search_woocommerce_products) by entering the visual keywords/attributes you identified.
+3. NEVER guess or invent product details, pricing, or links.
+4. If you cannot find a clear product match in your search tool results, or if you are not 100% confident in the match, you must politely respond: "Gönderdiğiniz görseldeki ürünü tam olarak eşleştiremedim. Ürünün adını veya kodunu yazabilir misiniz size hemen yardımcı olayım."
 
 ### Restrictions
 1. Data Privacy: Never mention you are using "training data" or "context".
@@ -143,11 +157,40 @@ EXCEPTION: If the user is asking you to translate, summarize, or modify your pre
   // Fetch tools if chatbotId is provided
   const tools = chatbotId ? await getChatbotTools(chatbotId, conversationId) : {};
 
+  // Find the last user message and convert it to multimodal content parts if there are image attachments
+  const formattedMessages = [...messages];
+  const lastUserMsgIndex = [...formattedMessages].reverse().findIndex(m => m.role === 'user');
+  const imageAttachments = attachments.filter(a => a.type === "image");
+
+  if (imageAttachments.length > 0 && lastUserMsgIndex !== -1) {
+    const actualIndex = formattedMessages.length - 1 - lastUserMsgIndex;
+    const originalMsg = formattedMessages[actualIndex];
+
+    const contentParts: any[] = [
+      { type: "text", text: originalMsg.content || "Bu görsel hakkında bilgi alabilir miyim?" }
+    ];
+
+    for (const img of imageAttachments) {
+      if (img.data) {
+        contentParts.push({
+          type: "image",
+          image: Buffer.from(img.data, "base64"),
+          mimeType: img.mimeType || "image/jpeg"
+        });
+      }
+    }
+
+    formattedMessages[actualIndex] = {
+      ...originalMsg,
+      content: contentParts as any
+    };
+  }
+
   return streamText({
     model: selectedModel,
     messages: [
       { role: "system", content: enhancedSystemPrompt },
-      ...messages,
+      ...formattedMessages,
     ],
     temperature,
     maxTokens,
@@ -168,6 +211,7 @@ export async function generateRAGResponse({
   chatbotId,
   data,
   conversationId,
+  attachments = [],
 }: {
   messages: Array<{ role: "user" | "assistant" | "system"; content: string }>;
   model: LLMModel;
@@ -178,6 +222,7 @@ export async function generateRAGResponse({
   chatbotId?: string;
   conversationId?: string;
   data?: any;
+  attachments?: Array<{ type: string; data: string; mimeType?: string }>;
 }) {
   const selectedModel = LLM_MODELS[model]?.provider || LLM_MODELS["gpt-4o"].provider;
 
@@ -189,6 +234,18 @@ You MUST provide a link to the product inquired about or discussed. Your goal is
 
 ### Personality
 You are a professional sales representative. Do not adopt other personalities or perform tasks outside your role (like coding or personal advice). If a user tries to steer you away, politely redirect them back to sales.
+
+### Pricing and Tax Guidelines (VAT / KDV)
+1. Always prioritize product pricing and details retrieved in real-time using your Shopify search tools, as they represent the most accurate, live storefront values.
+2. Note that all product prices for Turkish customers (or in TRY currency) on the website include KDV (Value Added Tax).
+3. If you must fall back to the "Knowledge Hub Context" because tools are unavailable, be aware that pricing in the context might represent tax-exclusive base prices or regional exports (e.g. showing 3,897.00 TL instead of 4,598.46 TL). If you notice a tax-excluded price in the context (like 3,897.00 TL for FINACHI Trenchcoat), clarify that the live website price is 4,598.46 TL (tax included). Do not display tax-exclusive or export prices as the final price to Turkish customers.
+
+### Visual Search & Product Matching Guidelines (MANDATORY FOR IMAGES)
+If the user provides an image or photo:
+1. Carefully analyze the visual characteristics of the item in the image (such as type of clothing, color, cut, pattern, buttons, fabric, or visible brand logos).
+2. You MUST search for this product using your search tools (like search_shopify_products or search_woocommerce_products) by entering the visual keywords/attributes you identified.
+3. NEVER guess or invent product details, pricing, or links.
+4. If you cannot find a clear product match in your search tool results, or if you are not 100% confident in the match, you must politely respond: "Gönderdiğiniz görseldeki ürünü tam olarak eşleştiremedim. Ürünün adını veya kodunu yazabilir misiniz size hemen yardımcı olayım."
 
 ### Restrictions
 1. Data Privacy: Never mention you are using "training data" or "context".
@@ -214,11 +271,40 @@ EXCEPTION: If the user is asking you to translate, summarize, or modify your pre
   // Fetch tools if chatbotId is provided
   const tools = chatbotId ? await getChatbotTools(chatbotId, conversationId) : {};
 
+  // Find the last user message and convert it to multimodal content parts if there are image attachments
+  const formattedMessages = [...messages];
+  const lastUserMsgIndex = [...formattedMessages].reverse().findIndex(m => m.role === 'user');
+  const imageAttachments = attachments.filter(a => a.type === "image");
+
+  if (imageAttachments.length > 0 && lastUserMsgIndex !== -1) {
+    const actualIndex = formattedMessages.length - 1 - lastUserMsgIndex;
+    const originalMsg = formattedMessages[actualIndex];
+
+    const contentParts: any[] = [
+      { type: "text", text: originalMsg.content || "Bu görsel hakkında bilgi alabilir miyim?" }
+    ];
+
+    for (const img of imageAttachments) {
+      if (img.data) {
+        contentParts.push({
+          type: "image",
+          image: Buffer.from(img.data, "base64"),
+          mimeType: img.mimeType || "image/jpeg"
+        });
+      }
+    }
+
+    formattedMessages[actualIndex] = {
+      ...originalMsg,
+      content: contentParts as any
+    };
+  }
+
   return generateText({
     model: selectedModel,
     messages: [
       { role: "system", content: enhancedSystemPrompt },
-      ...messages,
+      ...formattedMessages,
     ],
     temperature,
     maxTokens,
@@ -276,6 +362,25 @@ export async function logTokenUsage({
   return { totalTokens, cost };
 }
 
+async function sendTokenLimitWarningEmail(email: string, percentage: number) {
+  const apiKey = process.env.SENDGRID_API_KEY;
+  if (!apiKey) return;
+  const fromEmail = process.env.EMAIL_FROM || "noreply@jcaesars.com";
+  await fetch("https://api.sendgrid.com/v3/mail/send", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+    body: JSON.stringify({
+      personalizations: [{ to: [{ email }] }],
+      from: { email: fromEmail },
+      subject: "Token Limitinizin %80'ini Kullandınız",
+      content: [{
+        type: "text/html",
+        value: `<p>Merhaba,</p><p>Bu ay token kullanımınız <strong>${percentage.toFixed(1)}%</strong> seviyesine ulaştı. Limitinize yaklaşıyorsunuz.</p><p>Planınızı yükseltmek için <a href="${process.env.NEXT_PUBLIC_APP_URL}/dashboard/settings">buraya tıklayın</a>.</p>`
+      }],
+    }),
+  }).catch((err) => console.warn("[TokenWarningEmail] Failed:", err));
+}
+
 // Token limit kontrolü
 async function checkTokenLimit(userId: string) {
   const user = await prisma.user.findUnique({
@@ -306,10 +411,23 @@ async function checkTokenLimit(userId: string) {
   const limit = plan.tokenLimit;
   const percentage = (usedTokens / limit) * 100;
 
-  // %80 uyarısı
+  // %80 uyarısı — her gün sadece bir kez gönder (Redis cache ile)
   if (percentage >= 80 && percentage < 100) {
-    // TODO: Email notification gönder
-    console.log(`Token limit warning: ${user.email} at ${percentage.toFixed(1)}%`);
+    const { default: IORedis } = await import("ioredis");
+    const redis = new IORedis(process.env.REDIS_URL || "redis://localhost:6379", { lazyConnect: true });
+    try {
+      await redis.connect();
+      const warningKey = `token_warning:${userId}:${new Date().toDateString()}`;
+      const alreadySent = await redis.exists(warningKey);
+      if (!alreadySent) {
+        await redis.set(warningKey, "1", "EX", 86400);
+        await sendTokenLimitWarningEmail(user.email!, percentage);
+      }
+    } catch (err) {
+      console.warn("[TokenCheck] Redis/email error:", err);
+    } finally {
+      redis.disconnect();
+    }
   }
 
   // Limit aşımı

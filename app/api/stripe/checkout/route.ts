@@ -86,27 +86,36 @@ export async function POST(req: NextRequest) {
     // Use NEXT_PUBLIC_APP_URL to avoid Docker-internal 0.0.0.0 address in Stripe redirects
     const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://jcaesars.com").replace(/\/$/, "");
 
-    const session = await stripe.checkout.sessions.create({
-      customer: user.stripeCustomerId || undefined,
-      customer_email: user.stripeCustomerId ? undefined : user.email,
-      allow_promotion_codes: true,
-      line_items: [{ price: priceId, quantity: 1 }],
-      discounts: stripeCouponId ? [{ coupon: stripeCouponId }] : undefined,
-      mode: "subscription",
-      success_url: `${appUrl}/dashboard?success=true`,
-      cancel_url: `${appUrl}/pricing?canceled=true`,
-      metadata: {
-        userId: user.id,
-        planId: plan.id,
-        couponCode: couponCode || "",
-      },
-    });
+    try {
+      const session = await stripe.checkout.sessions.create({
+        customer: user.stripeCustomerId || undefined,
+        customer_email: user.stripeCustomerId ? undefined : user.email,
+        allow_promotion_codes: stripeCouponId ? undefined : true,
+        line_items: [{ price: priceId, quantity: 1 }],
+        discounts: stripeCouponId ? [{ coupon: stripeCouponId }] : undefined,
+        mode: "subscription",
+        success_url: `${appUrl}/dashboard?success=true`,
+        cancel_url: `${appUrl}/pricing?canceled=true`,
+        metadata: {
+          userId: user.id,
+          planId: plan.id,
+          couponCode: couponCode || "",
+        },
+      });
 
-    return NextResponse.json({ url: session.url });
+      return NextResponse.json({ url: session.url });
+    } catch (stripeError: any) {
+      console.error("[StripeCheckout] Stripe API Error:", stripeError);
+      return NextResponse.json({ 
+        error: stripeError.message?.includes("No such coupon") 
+          ? "Girdiğiniz kupon kodu ödeme altyapısında (Stripe) bulunamadı. Lütfen destek ile iletişime geçin." 
+          : "Stripe Ödeme Hatası: " + stripeError.message 
+      }, { status: 400 });
+    }
   } catch (error: any) {
-    console.error("[StripeCheckout] Error:", error);
+    console.error("[StripeCheckout] Route Error:", error);
     return NextResponse.json(
-      { error: error.message || "Internal Server Error" },
+      { error: "Internal Server Error", details: error.message },
       { status: 500 }
     );
   }

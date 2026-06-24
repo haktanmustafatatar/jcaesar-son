@@ -1,7 +1,7 @@
 import IORedis from "ioredis";
 
 // Global Redis client for rate limiting
-const redis = new IORedis(process.env.REDIS_URL || "redis://localhost:6379", {
+export const redis = new IORedis(process.env.REDIS_URL || "redis://localhost:6379", {
   maxRetriesPerRequest: null,
   enableReadyCheck: false,
 });

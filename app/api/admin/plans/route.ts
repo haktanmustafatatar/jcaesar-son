@@ -2,12 +2,22 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 
+async function isAuthorizedAdmin(clerkId: string) {
+  const user = await prisma.user.findUnique({ where: { clerkId } });
+  return user && (user.role === "ADMIN" || user.role === "SUPERADMIN");
+}
+
 export async function GET() {
   try {
     const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    if (!(await isAuthorizedAdmin(userId))) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const plans = await prisma.plan.findMany({
       include: {
         _count: { select: { subscriptions: true } }
@@ -25,6 +35,10 @@ export async function POST(req: Request) {
   try {
     const { userId } = await auth();
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    if (!(await isAuthorizedAdmin(userId))) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
 
     const data = await req.json();
     const plan = await prisma.plan.create({
@@ -57,6 +71,10 @@ export async function PATCH(req: Request) {
   try {
     const { userId } = await auth();
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    if (!(await isAuthorizedAdmin(userId))) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
 
     const { id, ...data } = await req.json();
     
@@ -91,6 +109,10 @@ export async function DELETE(req: NextRequest) {
   try {
     const { userId } = await auth();
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    if (!(await isAuthorizedAdmin(userId))) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
 
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");

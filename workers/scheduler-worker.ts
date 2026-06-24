@@ -89,9 +89,46 @@ async function checkAndTriggerSchedules() {
   }
 }
 
+async function checkAndResolveStaleHandoffs() {
+  console.log("[Scheduler] Checking for stale human handoff conversations...");
+  try {
+    const staleHandoffConversations = await prisma.conversation.findMany({
+      where: {
+        aiEnabled: false,
+        status: "ACTIVE",
+        updatedAt: { lt: new Date(Date.now() - 2 * 60 * 60 * 1000) } // 2 saat
+      }
+    });
+    
+    if (staleHandoffConversations.length > 0) {
+      console.log(`[Scheduler] Found ${staleHandoffConversations.length} stale handoff conversations to re-enable.`);
+    }
+
+    for (const conv of staleHandoffConversations) {
+      await prisma.conversation.update({
+        where: { id: conv.id },
+        data: { aiEnabled: true }
+      });
+      await prisma.conversationNote.create({
+        data: {
+          conversationId: conv.id,
+          content: "AI agent 2 saatlik inaktivite sonrası otomatik devreye alındı.",
+          createdBy: "system"
+        }
+      });
+      console.log(`[Scheduler] Re-enabled AI for conversation ${conv.id}`);
+    }
+  } catch (error) {
+    console.error("[Scheduler] Error in handoff inactivity check:", error);
+  }
+}
+
 // Her saat başı kontrol et
 console.log("[Scheduler] Background worker initialized");
 setInterval(checkAndTriggerSchedules, 60 * 60 * 1000);
+// Her 30 dakikada bir kontrol et
+setInterval(checkAndResolveStaleHandoffs, 30 * 60 * 1000);
 
 // Başlangıçta da bir kontrol yapalım
 checkAndTriggerSchedules();
+checkAndResolveStaleHandoffs();

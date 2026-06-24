@@ -30,12 +30,12 @@ export default function CustomApiPage() {
   const [isLoading, setIsLoading] = useState(false);
   
   const [webhook, setWebhook] = useState({
-    name: "Check Order Status",
-    description: "Use this API to check the delivery status of a customer's order using their Order ID.",
+    name: "Sipariş Durumunu Kontrol Et",
+    description: "Müşterinin Sipariş ID'sini kullanarak teslimat durumunu kontrol etmek için bu API'yi kullanın.",
     method: "POST",
-    url: "https://api.yourdomain.com/v1/orders/status",
-    headers: "{\n  \"Authorization\": \"Bearer YOUR_API_KEY\",\n  \"Content-Type\": \"application/json\"\n}",
-    body: "{\n  \"orderId\": \"{{user_input}}\"\n}"
+    url: "https://api.siteniz.com/v1/siparisler/durum",
+    headers: "{\n  \"Authorization\": \"Bearer SIZIN_API_ANAHTARINIZ\",\n  \"Content-Type\": \"application/json\"\n}",
+    body: "{\n  \"orderId\": \"{{kullanici_girdisi}}\"\n}"
   });
 
   const handleSave = async () => {
@@ -60,12 +60,12 @@ export default function CustomApiPage() {
       });
 
       if (res.ok) {
-        toast.success("Custom API integration saved successfully!");
+        toast.success("Özel API entegrasyonu başarıyla kaydedildi!");
       } else {
-        toast.error("Failed to save integration. Please check your JSON formatting.");
+        toast.error("Entegrasyon kaydedilemedi. Lütfen JSON formatınızı kontrol edin.");
       }
     } catch (error) {
-      toast.error("Invalid JSON format in headers or body.");
+      toast.error("Başlıklar veya gövdede geçersiz JSON formatı.");
     } finally {
       setIsLoading(false);
     }
@@ -80,8 +80,8 @@ export default function CustomApiPage() {
           </Button>
         </Link>
         <div>
-          <h1 className="text-3xl font-black tracking-tight text-zinc-950">Custom API (Webhooks)</h1>
-          <p className="text-zinc-500 font-medium">Connect external data sources & trigger real-time actions</p>
+          <h1 className="text-3xl font-black tracking-tight text-zinc-950">Özel API (Webhook'lar)</h1>
+          <p className="text-zinc-500 font-medium">Dış veri kaynaklarını bağlayın ve gerçek zamanlı işlemleri tetikleyin</p>
         </div>
       </div>
 
@@ -92,13 +92,13 @@ export default function CustomApiPage() {
           <Card className="rounded-[32px] border-none shadow-xl shadow-zinc-200/50 overflow-hidden bg-white">
             <CardHeader className="bg-zinc-50 border-b border-zinc-100 p-8">
               <CardTitle className="flex items-center gap-2">
-                <Server className="w-5 h-5 text-indigo-500" /> Endpoint Configuration
+                <Server className="w-5 h-5 text-indigo-500" /> Uç Nokta (Endpoint) Yapılandırması
               </CardTitle>
-              <CardDescription>Define how the AI Agent should interact with your API.</CardDescription>
+              <CardDescription>Yapay Zeka ajanının API'nizle nasıl etkileşime gireceğini tanımlayın.</CardDescription>
             </CardHeader>
             <CardContent className="p-8 space-y-6">
               <div className="space-y-2">
-                <Label className="text-xs font-bold uppercase tracking-widest text-zinc-500">Action Name</Label>
+                <Label className="text-xs font-bold uppercase tracking-widest text-zinc-500">İşlem Adı</Label>
                 <Input 
                   value={webhook.name}
                   onChange={e => setWebhook({...webhook, name: e.target.value})}
@@ -107,8 +107,8 @@ export default function CustomApiPage() {
               </div>
 
               <div className="space-y-2">
-                <Label className="text-xs font-bold uppercase tracking-widest text-zinc-500">AI Prompt / Description</Label>
-                <p className="text-[11px] text-zinc-400 mb-2">Tell the AI EXACTLY when it should use this API (e.g., "Use this when the user asks for their order status").</p>
+                <Label className="text-xs font-bold uppercase tracking-widest text-zinc-500">Yapay Zeka Komutu / Açıklaması</Label>
+                <p className="text-[11px] text-zinc-400 mb-2">Yapay zekaya bu API'yi TAM OLARAK ne zaman kullanması gerektiğini söyleyin (örn. "Kullanıcı sipariş durumunu sorduğunda bunu kullan").</p>
                 <Textarea 
                   value={webhook.description}
                   onChange={e => setWebhook({...webhook, description: e.target.value})}
@@ -118,10 +118,10 @@ export default function CustomApiPage() {
 
               <div className="flex gap-4">
                 <div className="w-1/3 space-y-2">
-                  <Label className="text-xs font-bold uppercase tracking-widest text-zinc-500">Method</Label>
+                  <Label className="text-xs font-bold uppercase tracking-widest text-zinc-500">Metot</Label>
                   <Select value={webhook.method} onValueChange={(val) => setWebhook({...webhook, method: val})}>
                     <SelectTrigger className="h-12 rounded-xl bg-zinc-50 font-bold">
-                      <SelectValue placeholder="Method" />
+                      <SelectValue placeholder="Metot Seç" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="GET">GET</SelectItem>
@@ -131,18 +131,18 @@ export default function CustomApiPage() {
                   </Select>
                 </div>
                 <div className="flex-1 space-y-2">
-                  <Label className="text-xs font-bold uppercase tracking-widest text-zinc-500">URL Endpoint</Label>
+                  <Label className="text-xs font-bold uppercase tracking-widest text-zinc-500">URL Uç Noktası</Label>
                   <Input 
                     value={webhook.url}
                     onChange={e => setWebhook({...webhook, url: e.target.value})}
-                    placeholder="https://api.example.com/data" 
+                    placeholder="https://api.ornek.com/veri" 
                     className="h-12 rounded-xl bg-zinc-50 font-mono text-sm" 
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label className="text-xs font-bold uppercase tracking-widest text-zinc-500">Headers (JSON)</Label>
+                <Label className="text-xs font-bold uppercase tracking-widest text-zinc-500">Başlıklar (Headers - JSON)</Label>
                 <Textarea 
                   value={webhook.headers}
                   onChange={e => setWebhook({...webhook, headers: e.target.value})}
@@ -152,7 +152,7 @@ export default function CustomApiPage() {
 
               {webhook.method !== "GET" && (
                 <div className="space-y-2">
-                  <Label className="text-xs font-bold uppercase tracking-widest text-zinc-500">Body Payload (JSON)</Label>
+                  <Label className="text-xs font-bold uppercase tracking-widest text-zinc-500">Gövde Yükü (Body - JSON)</Label>
                   <Textarea 
                     value={webhook.body}
                     onChange={e => setWebhook({...webhook, body: e.target.value})}
@@ -166,7 +166,7 @@ export default function CustomApiPage() {
                 disabled={isLoading}
                 className="w-full h-14 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold"
               >
-                {isLoading ? "Saving..." : <><Save className="w-5 h-5 mr-2" /> Save Integration</>}
+                {isLoading ? "Kaydediliyor..." : <><Save className="w-5 h-5 mr-2" /> Entegrasyonu Kaydet</>}
               </Button>
             </CardContent>
           </Card>
@@ -178,42 +178,42 @@ export default function CustomApiPage() {
             <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
             <CardHeader className="p-8 pb-4 relative z-10">
               <CardTitle className="text-white flex items-center gap-2">
-                <BookOpen className="w-5 h-5" /> Developer Guide
+                <BookOpen className="w-5 h-5" /> Geliştirici Rehberi
               </CardTitle>
             </CardHeader>
             <CardContent className="p-8 pt-0 space-y-6 relative z-10 text-indigo-50">
               <p className="text-sm leading-relaxed">
-                Custom APIs allow the AI Agent to perform actions on your behalf or fetch dynamic data during a conversation.
+                Özel API'ler, Yapay Zeka Ajanının sizin adınıza işlemler yapmasına veya konuşma sırasında dinamik veriler çekmesine olanak tanır.
               </p>
               
               <div className="space-y-4">
                 <div className="bg-indigo-950/30 p-4 rounded-xl border border-white/10 space-y-2">
                   <div className="flex items-center gap-2 text-white font-bold">
-                    <Code2 className="w-4 h-4" /> 1. Dynamic Variables
+                    <Code2 className="w-4 h-4" /> 1. Dinamik Değişkenler
                   </div>
                   <p className="text-xs opacity-80 leading-relaxed">
-                    You can use <code className="bg-black/30 px-1.5 py-0.5 rounded">{"{{variable_name}}"}</code> in your URL or Body. The AI will intelligently extract this value from the user's message and replace it before sending the request.
+                    URL'nizde veya Gövdenizde <code className="bg-black/30 px-1.5 py-0.5 rounded">{"{{degisken_adi}}"}</code> kullanabilirsiniz. Yapay Zeka, bu değeri kullanıcının mesajından akıllıca çıkaracak ve isteği göndermeden önce değiştirecektir.
                   </p>
                 </div>
 
                 <div className="bg-indigo-950/30 p-4 rounded-xl border border-white/10 space-y-2">
                   <div className="flex items-center gap-2 text-white font-bold">
-                    <TerminalSquare className="w-4 h-4" /> 2. Expected Response
+                    <TerminalSquare className="w-4 h-4" /> 2. Beklenen Yanıt
                   </div>
                   <p className="text-xs opacity-80 leading-relaxed">
-                    Your API must return a valid JSON response within 10 seconds. The AI will read the JSON and formulate a natural language response for the user.
+                    API'niz 10 saniye içinde geçerli bir JSON yanıtı döndürmelidir. Yapay zeka JSON'u okuyacak ve kullanıcı için doğal dilde bir yanıt oluşturacaktır.
                   </p>
                 </div>
               </div>
 
               <div className="pt-4 mt-4 border-t border-white/10">
-                <h4 className="font-bold text-white mb-2 text-sm">Example Workflow:</h4>
+                <h4 className="font-bold text-white mb-2 text-sm">Örnek İş Akışı:</h4>
                 <ol className="text-xs space-y-2 opacity-90 list-decimal list-inside">
-                  <li>User: "Where is my order #12345?"</li>
-                  <li>AI maps "12345" to {"{{orderId}}"}</li>
-                  <li>AI sends POST request to your API</li>
-                  <li>Your API returns: <code className="block bg-black/30 p-2 mt-1 rounded text-emerald-300">{"{\"status\": \"Shipped\"}"}</code></li>
-                  <li>AI replies: "Your order is currently shipped!"</li>
+                  <li>Kullanıcı: "12345 numaralı siparişim nerede?"</li>
+                  <li>Yapay zeka "12345"i {"{{siparisId}}"} ile eşleştirir</li>
+                  <li>Yapay zeka API'nize POST isteği gönderir</li>
+                  <li>API'nizin yanıtı: <code className="block bg-black/30 p-2 mt-1 rounded text-emerald-300">{"{\"durum\": \"Kargoya Verildi\"}"}</code></li>
+                  <li>Yapay Zeka yanıtlar: "Siparişiniz şu anda kargoda!"</li>
                 </ol>
               </div>
             </CardContent>

@@ -41,3 +41,10 @@ next-env.d.ts
 worker.log
 dev.log
 test_result.log
+
+# temp patches and chunks
+/chunk_*
+/patch-callback.js
+/patch_translations.js
+/patch*.zip
+/*.tar.gz

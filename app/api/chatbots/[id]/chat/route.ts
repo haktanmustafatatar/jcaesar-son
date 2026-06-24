@@ -16,7 +16,7 @@ export async function POST(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { messages: rawMessages } = await req.json();
+    const { messages: rawMessages, attachments } = await req.json();
     
     if (!rawMessages || !Array.isArray(rawMessages) || rawMessages.length === 0) {
       return NextResponse.json({ error: "Messages are required" }, { status: 400 });
@@ -26,6 +26,16 @@ export async function POST(
     const messages = rawMessages.slice(-6);
     const lastMessage = messages[messages.length - 1];
     const message = lastMessage.content;
+
+    let queryText = message;
+    if (attachments && Array.isArray(attachments)) {
+      for (const att of attachments) {
+        if (att.type === "share" && att.data) {
+          queryText += `\n[Paylaşılan Gönderi Linki: ${att.data}]`;
+        }
+      }
+      lastMessage.content = queryText;
+    }
 
     // 1. Get Chatbot & User
     const user = await prisma.user.findUnique({ where: { clerkId: clerkId as string } });
@@ -45,7 +55,7 @@ export async function POST(
     // 2. Perform RAG Search
     const { context } = await performRAGSearch({
       chatbotId,
-      query: message,
+      query: queryText,
       messages: messages, // Pass conversation history for better context
       limit: 8,
       minSimilarity: 0.35,
@@ -60,6 +70,7 @@ export async function POST(
       systemPrompt: chatbot.systemPrompt,
       context: context || "No specific context found.",
       chatbotId,
+      attachments,
       onFinish: async ({ text, usage }) => {
         // Log Token Usage for display
         data.appendMessageAnnotation({

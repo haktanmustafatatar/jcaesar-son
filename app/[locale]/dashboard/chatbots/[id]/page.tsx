@@ -16,7 +16,11 @@ import {
   BarChart3,
   Sparkles,
   Info,
-  RefreshCw
+  RefreshCw,
+  Image as ImageIcon,
+  Link2,
+  X,
+  Paperclip
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +28,21 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import Link from "next/link";
 import { toast } from "sonner";
 
@@ -36,6 +55,87 @@ export default function ChatbotDetailPage() {
   const [chatbot, setChatbot] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Attachment state for testing
+  const [attachedImage, setAttachedImage] = useState<{ name: string; data: string; mimeType: string } | null>(null);
+  const [sharedPostUrl, setSharedPostUrl] = useState<string>("");
+  const [chatAttachments, setChatAttachments] = useState<Array<{ msgIndex: number; attachments: any[] }>>([]);
+  
+  // Dialog state for shared post simulation
+  const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
+  const [tempShareUrl, setTempShareUrl] = useState("");
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Lütfen geçerli bir görsel dosyası seçin.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64String = reader.result as string;
+      const base64Data = base64String.split(",")[1];
+      setAttachedImage({
+        name: file.name,
+        data: base64Data,
+        mimeType: file.type,
+      });
+      toast.success(`${file.name} başarıyla eklendi.`);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!input.trim() && !attachedImage && !sharedPostUrl) return;
+
+    const bodyAttachments: any[] = [];
+    const localAttachmentsList: any[] = [];
+
+    if (attachedImage) {
+      bodyAttachments.push({
+        type: "image",
+        data: attachedImage.data,
+        mimeType: attachedImage.mimeType,
+      });
+      localAttachmentsList.push({
+        type: "image",
+        url: `data:${attachedImage.mimeType};base64,${attachedImage.data}`,
+      });
+    }
+
+    if (sharedPostUrl) {
+      bodyAttachments.push({
+        type: "share",
+        data: sharedPostUrl,
+      });
+      localAttachmentsList.push({
+        type: "share",
+        url: sharedPostUrl,
+      });
+    }
+
+    const nextMsgIndex = messages.length;
+    setChatAttachments((prev) => [
+      ...prev,
+      {
+        msgIndex: nextMsgIndex,
+        attachments: localAttachmentsList,
+      },
+    ]);
+
+    handleSubmit(e, {
+      body: {
+        attachments: bodyAttachments,
+      },
+    });
+
+    setAttachedImage(null);
+    setSharedPostUrl("");
+  };
 
   const { messages, input, handleInputChange, handleSubmit, setMessages, isLoading: isTyping } = useChat({
     api: `/api/chatbots/${id}/chat`,
@@ -154,7 +254,15 @@ export default function ChatbotDetailPage() {
                 <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
                 <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest">{t("liveStatus")}</span>
               </div>
-              <Button variant="ghost" size="sm" onClick={() => setMessages([{ id: "welcome-"+Date.now(), role: "assistant", content: chatbot?.welcomeMessage || "Hello!", createdAt: new Date() }])} className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 hover:text-primary">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => {
+                  setMessages([{ id: "welcome-"+Date.now(), role: "assistant", content: chatbot?.welcomeMessage || "Hello!", createdAt: new Date() }]);
+                  setChatAttachments([]);
+                }} 
+                className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 hover:text-primary"
+              >
                 <RefreshCw className="w-3 h-3 mr-2" />
                 {t("resetForge")}
               </Button>
@@ -186,6 +294,43 @@ export default function ChatbotDetailPage() {
                       }`}>
                         {message.content}
                       </div>
+                      {(() => {
+                        const attachmentsForMsg = chatAttachments.find(a => a.msgIndex === i)?.attachments || [];
+                        if (attachmentsForMsg.length === 0) return null;
+                        
+                        return (
+                          <div className={`flex flex-col gap-2 mt-2 ${message.role === "user" ? "items-end" : "items-start"}`}>
+                            {attachmentsForMsg.map((att: any, idx: number) => (
+                              <div key={idx} className="rounded-2xl overflow-hidden border border-zinc-100 max-w-sm shadow-sm bg-white p-1">
+                                {att.type === "image" ? (
+                                  <img 
+                                    src={att.url} 
+                                    alt="Uploaded test" 
+                                    className="max-h-60 w-auto object-cover rounded-xl"
+                                  />
+                                ) : (
+                                  <div className="flex items-center gap-3 p-3 bg-zinc-50 rounded-xl">
+                                    <div className="w-8 h-8 rounded-lg bg-zinc-100 flex items-center justify-center">
+                                      <Link2 className="w-4 h-4 text-zinc-500" />
+                                    </div>
+                                    <div className="min-w-0">
+                                      <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Simüle Edilen Gönderi</p>
+                                      <a 
+                                        href={att.url} 
+                                        target="_blank" 
+                                        rel="noopener noreferrer" 
+                                        className="text-xs font-semibold text-blue-600 hover:underline truncate block max-w-[200px]"
+                                      >
+                                        {att.url}
+                                      </a>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      })()}
                       {message.annotations && message.annotations.length > 0 && (
                          <div className={`text-[10px] font-bold text-zinc-400 uppercase tracking-widest ${message.role === "user" ? "text-right" : "text-left"}`}>
                           {t("prompt")}: {message.annotations[0].promptTokens || 0} | {t("response")}: {message.annotations[0].completionTokens || 0}
@@ -214,16 +359,101 @@ export default function ChatbotDetailPage() {
             </ScrollArea>
 
             <div className="p-8 bg-zinc-50/50 border-t border-zinc-100">
-              <form onSubmit={handleSubmit} className="relative group">
+              {/* Attachment Preview Bar */}
+              {(attachedImage || sharedPostUrl) && (
+                <div className="flex flex-wrap gap-4 mb-4 p-4 rounded-3xl bg-zinc-100/50 border border-zinc-200/40 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                  {attachedImage && (
+                    <div className="relative group rounded-2xl overflow-hidden border border-zinc-200 bg-white p-1">
+                      <img 
+                        src={`data:${attachedImage.mimeType};base64,${attachedImage.data}`} 
+                        alt="Preview" 
+                        className="w-16 h-16 object-cover rounded-xl"
+                      />
+                      <button 
+                        type="button"
+                        onClick={() => setAttachedImage(null)}
+                        className="absolute -top-1 -right-1 p-1 bg-red-500 text-white rounded-full shadow-md hover:bg-red-600 active:scale-90 transition-all"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  )}
+
+                  {sharedPostUrl && (
+                    <div className="relative flex items-center gap-3 p-3 pr-10 rounded-2xl border border-zinc-200 bg-white max-w-xs shadow-sm">
+                      <div className="w-10 h-10 rounded-xl bg-zinc-50 flex items-center justify-center shrink-0 border border-zinc-100">
+                        <Link2 className="w-4 h-4 text-zinc-500" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Simüle Gönderi</p>
+                        <p className="text-xs font-semibold text-zinc-700 truncate max-w-[150px]">{sharedPostUrl}</p>
+                      </div>
+                      <button 
+                        type="button"
+                        onClick={() => setSharedPostUrl("")}
+                        className="absolute top-2 right-2 p-1 bg-zinc-100 text-zinc-400 hover:text-zinc-600 rounded-full hover:bg-zinc-200 active:scale-90 transition-all"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <form onSubmit={onSubmit} className="relative group">
+                {/* Hidden File Input */}
+                <input 
+                  type="file" 
+                  id="playground-image-upload" 
+                  className="hidden" 
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                />
+                
+                {/* Attachment Dropdown */}
+                <div className="absolute left-2 top-2 z-10">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button 
+                        type="button"
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-12 w-12 rounded-2xl bg-zinc-50 hover:bg-zinc-100 border border-zinc-100 flex items-center justify-center transition-all text-zinc-500 hover:text-zinc-900 shadow-sm"
+                      >
+                        <Paperclip className="w-5 h-5" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="rounded-2xl border-zinc-200 shadow-2xl p-2 min-w-[180px] bg-white">
+                      <DropdownMenuItem 
+                        className="rounded-xl cursor-pointer py-2.5 font-medium flex items-center gap-2 text-zinc-700 hover:bg-zinc-50"
+                        onClick={() => document.getElementById("playground-image-upload")?.click()}
+                      >
+                        <ImageIcon className="w-4 h-4 text-emerald-500" />
+                        Görsel Test Et
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        className="rounded-xl cursor-pointer py-2.5 font-medium flex items-center gap-2 text-zinc-700 hover:bg-zinc-50"
+                        onClick={() => {
+                          setTempShareUrl(sharedPostUrl);
+                          setIsShareDialogOpen(true);
+                        }}
+                      >
+                        <Link2 className="w-4 h-4 text-blue-500" />
+                        Gönderi Simüle Et
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+
                 <Input
-                  className="h-16 pl-6 pr-16 rounded-3xl bg-white border-2 border-zinc-100 focus:border-primary/30 transition-all font-medium text-zinc-700 shadow-sm"
+                  className="h-16 pl-16 pr-16 rounded-3xl bg-white border-2 border-zinc-100 focus:border-primary/30 transition-all font-medium text-zinc-700 shadow-sm"
                   placeholder={t("placeholder", { name: chatbot?.name || "Agent" })}
                   value={input}
                   onChange={handleInputChange}
                 />
                 <Button 
                   type="submit"
-                  disabled={!input.trim() || isTyping}
+                  disabled={(!input.trim() && !attachedImage && !sharedPostUrl) || isTyping}
                   className="absolute right-2 top-2 h-12 w-12 rounded-2xl bg-zinc-950 hover:bg-zinc-900 text-white shadow-xl shadow-black/20 transition-all active:scale-95 disabled:opacity-50"
                 >
                   <Send className="w-5 h-5" />
@@ -244,10 +474,6 @@ export default function ChatbotDetailPage() {
                   {t("configTitle")}
                 </h3>
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between p-4 bg-zinc-50 rounded-2xl">
-                    <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Model</span>
-                    <span className="text-xs font-bold text-zinc-900 border-b-2 border-primary/20 pb-0.5">{chatbot?.model}</span>
-                  </div>
                   <div className="flex items-center justify-between p-4 bg-zinc-50 rounded-2xl">
                     <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Temperature</span>
                     <span className="text-xs font-bold text-zinc-900">{chatbot?.temperature}</span>
@@ -277,10 +503,12 @@ export default function ChatbotDetailPage() {
               </div>
 
               <div className="pt-4">
-                <Button variant="outline" className="w-full rounded-2xl h-14 border-zinc-100 hover:bg-zinc-50 font-bold text-zinc-600 shadow-sm transition-all hover:scale-105 active:scale-95 group">
-                  <BarChart3 className="w-4 h-4 mr-2 group-hover:text-primary" />
-                  {t("viewAnalytics")}
-                </Button>
+                <Link href="/dashboard/analytics">
+                  <Button variant="outline" className="w-full rounded-2xl h-14 border-zinc-100 hover:bg-zinc-50 font-bold text-zinc-600 shadow-sm transition-all hover:scale-105 active:scale-95 group">
+                    <BarChart3 className="w-4 h-4 mr-2 group-hover:text-primary" />
+                    {t("viewAnalytics")}
+                  </Button>
+                </Link>
               </div>
             </div>
           </Card>
@@ -291,12 +519,58 @@ export default function ChatbotDetailPage() {
             </div>
             <h4 className="text-lg font-bold mb-2">{t("needAPI")}</h4>
             <p className="text-zinc-400 text-sm font-medium leading-relaxed mb-6">{t("apiDesc")}</p>
-            <Button size="sm" className="bg-white text-zinc-900 hover:bg-zinc-100 rounded-xl px-6 font-bold">
-              {t("checkDocs")}
-            </Button>
+            <Link href={`/dashboard/chatbots/${id}/integrations/custom-api`}>
+              <Button size="sm" className="bg-white text-zinc-900 hover:bg-zinc-100 rounded-xl px-6 font-bold mt-2">
+                {t("checkDocs")}
+              </Button>
+            </Link>
           </div>
         </div>
       </div>
+      
+      {/* Shared Post Simulation Dialog */}
+      <Dialog open={isShareDialogOpen} onOpenChange={setIsShareDialogOpen}>
+        <DialogContent className="rounded-[40px] border-zinc-200 p-8 max-w-md bg-white">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-black text-zinc-900">Gönderi Simüle Et</DialogTitle>
+            <DialogDescription className="text-zinc-500 text-sm font-medium py-2">
+              Instagram DM üzerinden paylaşılan bir gönderiyi veya mağaza ürün linkini test etmek için URL girin.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Gönderi / Ürün URL</label>
+              <Input 
+                placeholder="https://example.com/products/t-shirt veya Instagram linki..."
+                value={tempShareUrl}
+                onChange={(e) => setTempShareUrl(e.target.value)}
+                className="h-12 rounded-2xl border-zinc-200 focus:border-zinc-300 font-medium"
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-3 sm:gap-0">
+            <Button 
+              type="button"
+              variant="outline" 
+              onClick={() => setIsShareDialogOpen(false)}
+              className="rounded-2xl h-12 px-6 font-bold border-zinc-200 hover:bg-zinc-50"
+            >
+              İptal
+            </Button>
+            <Button 
+              type="button"
+              onClick={() => {
+                setSharedPostUrl(tempShareUrl);
+                setIsShareDialogOpen(false);
+                toast.success("Gönderi başarıyla simüle edildi.");
+              }}
+              className="rounded-2xl h-12 px-6 font-bold bg-zinc-950 hover:bg-zinc-900 text-white shadow-xl shadow-black/10"
+            >
+              Simüle Et
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

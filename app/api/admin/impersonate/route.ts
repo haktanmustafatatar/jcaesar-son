@@ -35,6 +35,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ url: token.url });
   } catch (error: any) {
     console.error("[AdminImpersonate] Error:", error);
-    return NextResponse.json({ error: "Internal Server Error", details: error.message }, { status: 500 });
+    return NextResponse.json({ 
+      error: "Clerk API Hatası (Pro plan gerekebilir): " + (error.message || "Bilinmeyen Hata"), 
+      details: error.errors || error 
+    }, { status: 500 });
   }
 }

@@ -135,6 +135,7 @@ model Chatbot {
   knowledgeSources         KnowledgeSource[]
   suggestedQuestions       SuggestedQuestion[]
   tokenUsages              TokenUsage[]
+  messageTemplates         MessageTemplate[]
 }
 
 model SuggestedQuestion {
@@ -195,7 +196,7 @@ model Document {
   url               String?
   title             String?
   metadata          Json?
-  embedding         Unsupported("vector")?
+  embedding         Unsupported("vector(1536)")?
   createdAt         DateTime               @default(now())
   updatedAt         DateTime               @updatedAt
   knowledgeSourceId String?
@@ -207,21 +208,26 @@ model Document {
 }
 
 model Conversation {
-  id            String             @id @default(cuid())
-  chatbotId     String
-  userId        String?
-  channel       String             @default("widget")
-  channelUserId String?
-  status        ConversationStatus @default(ACTIVE)
-  assignedTo    String?
-  aiEnabled     Boolean            @default(true)
-  ipAddress     String?
-  userAgent     String?
-  country       String?
-  tags          Json?
-  createdAt     DateTime           @default(now())
-  updatedAt     DateTime           @updatedAt
-  sentiment     String?
+  id                 String             @id @default(cuid())
+  chatbotId          String
+  userId             String?
+  channel            String             @default("widget")
+  channelUserId      String?
+  status             ConversationStatus @default(ACTIVE)
+  assignedTo         String?
+  aiEnabled          Boolean            @default(true)
+  ipAddress          String?
+  userAgent          String?
+  country            String?
+  tags               Json?
+  contactName        String?
+  contactEmail       String?
+  contactPhone       String?
+  contactProfilePic  String?
+  contactNotes       String?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  sentiment          String?
   chatbot       Chatbot            @relation(fields: [chatbotId], references: [id], onDelete: Cascade)
   user          User?              @relation(fields: [userId], references: [id])
   notes         ConversationNote[]
@@ -404,6 +410,7 @@ model CrmContact {
   updatedAt     DateTime      @updatedAt
   externalId    String?
   sourceChannel String        @default("WIDGET")
+  profilePic    String?
   appointments  Appointment[]
   chatbot       Chatbot       @relation(fields: [chatbotId], references: [id], onDelete: Cascade)
 
@@ -574,3 +581,20 @@ model ScheduleSetting {
   updatedAt    DateTime @updatedAt
 }
 
+model MessageTemplate {
+  id              String   @id @default(cuid())
+  chatbotId       String
+  name            String
+  category        String?
+  language        String?  @default("en_US")
+  status          String   @default("PENDING") // APPROVED, REJECTED, PENDING
+  components      Json?    // The JSON definition of the template (headers, body, buttons)
+  metaTemplateId  String?  @unique // Meta's internal ID for the template
+  rejectionReason String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  chatbot         Chatbot  @relation(fields: [chatbotId], references: [id], onDelete: Cascade)
+
+  @@index([chatbotId])
+  @@index([status])
+}

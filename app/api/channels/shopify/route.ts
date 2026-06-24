@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { searchShopifyProducts } from "@/lib/integrations/shopify";
+import { encrypt } from "@/lib/crypto";
 
 /**
  * POST /api/channels/shopify — Connect a Shopify store to a chatbot
@@ -43,6 +44,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const encryptedConfig = encrypt(JSON.stringify({ shopDomain, accessToken }));
+
     // Upsert channel (update if already exists, create if not)
     const existingChannel = await prisma.channel.findFirst({
       where: { chatbotId, type: "SHOPIFY" },
@@ -53,7 +56,7 @@ export async function POST(req: NextRequest) {
       channel = await prisma.channel.update({
         where: { id: existingChannel.id },
         data: {
-          config: { shopDomain, accessToken },
+          config: encryptedConfig as any,
           status: "CONNECTED",
           name: `Shopify — ${shopDomain}`,
         },
@@ -64,7 +67,7 @@ export async function POST(req: NextRequest) {
           chatbotId,
           type: "SHOPIFY",
           name: `Shopify — ${shopDomain}`,
-          config: { shopDomain, accessToken },
+          config: encryptedConfig as any,
           status: "CONNECTED",
         },
       });

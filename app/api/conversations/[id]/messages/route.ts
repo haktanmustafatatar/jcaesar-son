@@ -121,9 +121,27 @@ export async function POST(
       data: {
         conversationId,
         role: "ASSISTANT",
-        content: content.trim()
+        content: content.trim(),
+        agentId: user.id
       }
     });
+
+    // Pause AI chatbot for this conversation upon manual agent reply (Handoff Trigger)
+    if (conversation.aiEnabled) {
+      await prisma.conversation.update({
+        where: { id: conversationId },
+        data: { aiEnabled: false }
+      });
+      
+      await prisma.conversationNote.create({
+        data: {
+          conversationId,
+          content: "System paused AI chatbot because a human agent replied.",
+          createdBy: clerkId
+        }
+      });
+      console.log(`[InboxManualMessage] Paused AI for conversation ${conversationId} due to manual agent reply.`);
+    }
 
     // 2. If channel is not internal "widget", dispatch the outbound job to the BullMQ worker
     const channelLower = conversation.channel.toLowerCase();

@@ -79,17 +79,17 @@ export function Hero() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 1, delay: 0.5 }}
-              className="pt-4 flex items-center gap-6 border-t border-black/[0.03]"
+              className="pt-4 flex items-center gap-6 border-t border-black/[0.03] mt-8"
             >
-               <div className="flex items-center -space-x-2">
-                  <div className="w-10 h-10 rounded-full border-2 border-white bg-green-50 text-green-500 flex items-center justify-center shadow-sm"><MessageCircle className="w-5 h-5" /></div>
-                  <div className="w-10 h-10 rounded-full border-2 border-white bg-pink-50 text-pink-500 flex items-center justify-center shadow-sm"><Instagram className="w-5 h-5" /></div>
-                  <div className="w-10 h-10 rounded-full border-2 border-white bg-blue-50 text-blue-500 flex items-center justify-center shadow-sm"><Facebook className="w-5 h-5" /></div>
-                  <div className="w-10 h-10 rounded-full border-2 border-white bg-emerald-50 text-emerald-500 flex items-center justify-center shadow-sm"><ShoppingBag className="w-5 h-5" /></div>
+               <div className="flex items-center -space-x-3 hover:space-x-1 transition-all duration-300">
+                  <div className="w-12 h-12 rounded-full border-[3px] border-white bg-green-50 text-green-500 flex items-center justify-center shadow-md z-40 hover:scale-110 transition-transform"><MessageCircle className="w-5 h-5" /></div>
+                  <div className="w-12 h-12 rounded-full border-[3px] border-white bg-pink-50 text-pink-500 flex items-center justify-center shadow-md z-30 hover:scale-110 transition-transform"><Instagram className="w-5 h-5" /></div>
+                  <div className="w-12 h-12 rounded-full border-[3px] border-white bg-blue-50 text-blue-500 flex items-center justify-center shadow-md z-20 hover:scale-110 transition-transform"><Facebook className="w-5 h-5" /></div>
+                  <div className="w-12 h-12 rounded-full border-[3px] border-white bg-emerald-50 text-emerald-500 flex items-center justify-center shadow-md z-10 hover:scale-110 transition-transform"><ShoppingBag className="w-5 h-5" /></div>
                </div>
-               <div>
-                  <p className="text-sm font-bold text-zinc-800">10+ Entegrasyon</p>
-                  <p className="text-xs text-zinc-400 font-medium tracking-tight uppercase">Saniyeler İçinde Bağlayın</p>
+               <div className="group cursor-pointer">
+                  <p className="text-base font-black text-zinc-900 group-hover:text-primary transition-colors">{tCommon("integrationsCount") || "10+ Entegrasyon"}</p>
+                  <p className="text-xs text-zinc-500 font-bold tracking-widest uppercase">{tCommon("connectSeconds") || "Saniyeler İçinde Bağlayın"}</p>
                </div>
             </motion.div>
           </div>

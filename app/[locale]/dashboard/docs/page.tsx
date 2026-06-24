@@ -35,7 +35,8 @@ const DOCS_DATA: Record<string, any> = {
       rag: "Yapay Zeka & RAG Altyapısı",
       webhooks: "Özel API / Webhook Entegrasyonu",
       channels: "CRM, E-Ticaret & Kanallar",
-      smtp: "E-Posta & SMTP Ayarları"
+      smtp: "E-Posta & SMTP Ayarları",
+      api: "API Referansı & Sorun Giderme"
     },
     sections: {
       overview: {
@@ -98,6 +99,16 @@ const DOCS_DATA: Record<string, any> = {
         smtp_d: "Ortam değişkenlerinizde (environment variables) SMTP_HOST, SMTP_USER, SMTP_PASS ve SMTP_PORT ayarlarını yapılandırın. Sistemimiz otomatik olarak limitsiz uyarı e-postaları yollayacaktır.",
         limits: "Otomatik Plan Limit Uyarıları",
         limits_d: "Kullanıcılar paketlerinin %80 ve %100 limitlerine yaklaştıklarında, sistem arayüz üzerinden gerçek zamanlı uyarının yanında, kayıtlı e-posta adreslerine şık bir HTML yükseltme maili atar."
+      },
+      api: {
+        title: "Harici REST API Referansı & Sorun Giderme",
+        desc: "J.Caesar platformunun sunduğu REST API'leri kullanarak sistemlerinizle çift yönlü veri akışları tasarlayın.",
+        sendMsgTitle: "1. Sohbet Mesajı Gönderme (Outbound API)",
+        sendMsgDesc: "Belirli bir sohbete programatik olarak veya harici webhook'lar üzerinden mesaj göndermek için kullanılır.",
+        crmTitle: "2. CRM Rehberine Yeni Kişi Ekleme",
+        crmDesc: "Sistemdeki potansiyel müşterilerinizi veya sipariş veren kişileri CRM veritabanınıza senkronize edin.",
+        igTitle: "🚨 Instagram Entegrasyonu Hata Giderme Kılavuzu",
+        igDesc: "Instagram entegrasyonu yaptıktan sonra mesajların gelip gitmemesi durumunda aşağıdaki kontrol listesini uygulayın:"
       }
     }
   },
@@ -111,7 +122,8 @@ const DOCS_DATA: Record<string, any> = {
       rag: "AI & RAG Infrastructure",
       webhooks: "Custom API & Webhooks",
       channels: "CRM, E-Commerce & Channels",
-      smtp: "E-Mail & SMTP Configurations"
+      smtp: "E-Mail & SMTP Configurations",
+      api: "API Reference & Troubleshooting"
     },
     sections: {
       overview: {
@@ -174,6 +186,16 @@ const DOCS_DATA: Record<string, any> = {
         smtp_d: "Inject SMTP_HOST, SMTP_USER, SMTP_PASS, and SMTP_PORT into your environment keys. The system handles all verification e-mails automatically.",
         limits: "Automated Usage Threshold Reminders",
         limits_d: "When accounts cross 80% or 100% of their plan allocations, SMTP triggers real-time HTML upgrade requests directly to their registered mail address."
+      },
+      api: {
+        title: "External REST API Reference & Troubleshooting",
+        desc: "Utilize J.Caesar's core REST APIs to establish bi-directional integrations and data sync workflows.",
+        sendMsgTitle: "1. Send Chat Message (Outbound API)",
+        sendMsgDesc: "Send manual or automated assistant responses to any active conversation from external scripts.",
+        crmTitle: "2. Add Contact to CRM",
+        crmDesc: "Programmatically synchronize leads or purchase data with your J.Caesar CRM dashboard.",
+        igTitle: "🚨 Instagram Messaging Troubleshooting Checklist",
+        igDesc: "If Instagram messages are not transmitting after connection, verify the following steps:"
       }
     }
   }
@@ -213,6 +235,7 @@ export default function DocsPage() {
           <TabsTrigger value="webhooks" className="rounded-xl font-bold px-5 data-[state=active]:bg-zinc-950 data-[state=active]:text-white transition-all">{lang.tabs.webhooks}</TabsTrigger>
           <TabsTrigger value="channels" className="rounded-xl font-bold px-5 data-[state=active]:bg-zinc-950 data-[state=active]:text-white transition-all">{lang.tabs.channels}</TabsTrigger>
           <TabsTrigger value="smtp" className="rounded-xl font-bold px-5 data-[state=active]:bg-zinc-950 data-[state=active]:text-white transition-all">{lang.tabs.smtp}</TabsTrigger>
+          <TabsTrigger value="api" className="rounded-xl font-bold px-5 data-[state=active]:bg-zinc-950 data-[state=active]:text-white transition-all">{lang.tabs.api}</TabsTrigger>
         </TabsList>
 
         {/* OVERVIEW CONTENT */}
@@ -391,7 +414,146 @@ export default function DocsPage() {
           </Card>
         </TabsContent>
 
+        {/* DETAILED REST API & INSTAGRAM TROUBLESHOOTING */}
+        <TabsContent value="api" className="space-y-6">
+          <Card className="rounded-[32px] border border-black/5 shadow-lg bg-white p-8 space-y-6">
+            <div>
+              <h3 className="text-2xl font-black text-zinc-950">{lang.sections.api.title}</h3>
+              <p className="text-zinc-500 text-sm mt-1">{lang.sections.api.desc}</p>
+            </div>
+
+            {/* Outbound Messaging API */}
+            <div className="space-y-4 p-6 rounded-2xl bg-zinc-50 border border-zinc-100 text-sm text-zinc-600">
+              <h4 className="font-black text-zinc-950 text-base">{lang.sections.api.sendMsgTitle}</h4>
+              <p className="text-zinc-500">{lang.sections.api.sendMsgDesc}</p>
+              <div className="flex gap-2 items-center bg-zinc-900 text-zinc-200 px-3 py-1.5 rounded-lg w-max font-mono text-xs">
+                <Badge variant="outline" className="bg-indigo-900/50 text-indigo-300 border-indigo-700/50">POST</Badge>
+                <span>/api/conversations/&#123;id&#125;/messages</span>
+              </div>
+              
+              <Tabs defaultValue="curl" className="w-full">
+                <TabsList className="bg-zinc-200/50 p-0.5 rounded-lg h-9 gap-1">
+                  <TabsTrigger value="curl" className="text-xs rounded-md h-8 px-3">cURL</TabsTrigger>
+                  <TabsTrigger value="js" className="text-xs rounded-md h-8 px-3">JavaScript</TabsTrigger>
+                  <TabsTrigger value="py" className="text-xs rounded-md h-8 px-3">Python</TabsTrigger>
+                </TabsList>
+                <TabsContent value="curl" className="bg-zinc-950 text-zinc-300 p-4 rounded-xl font-mono text-xs overflow-x-auto mt-2 leading-relaxed">
+                  {`curl -X POST "https://jcaesars.com/api/conversations/cmpyj3o9l0009ny01rv9ckmt6/messages" \\
+  -H "Content-Type: application/json" \\
+  -d '{"content": "Merhaba, siparişiniz başarıyla kargoya verildi."}'`}
+                </TabsContent>
+                <TabsContent value="js" className="bg-zinc-950 text-zinc-300 p-4 rounded-xl font-mono text-xs overflow-x-auto mt-2 leading-relaxed">
+                  {`fetch("https://jcaesars.com/api/conversations/cmpyj3o9l0009ny01rv9ckmt6/messages", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    content: "Merhaba, siparişiniz başarıyla kargoya verildi."
+  })
+})
+.then(res => res.json())
+.then(data => console.log(data));`}
+                </TabsContent>
+                <TabsContent value="py" className="bg-zinc-950 text-zinc-300 p-4 rounded-xl font-mono text-xs overflow-x-auto mt-2 leading-relaxed">
+                  {`import requests
+
+url = "https://jcaesars.com/api/conversations/cmpyj3o9l0009ny01rv9ckmt6/messages"
+payload = {"content": "Merhaba, siparişiniz başarıyla kargoya verildi."}
+response = requests.post(url, json=payload)
+print(response.json())`}
+                </TabsContent>
+              </Tabs>
+            </div>
+
+            {/* CRM Contact API */}
+            <div className="space-y-4 p-6 rounded-2xl bg-zinc-50 border border-zinc-100 text-sm text-zinc-600">
+              <h4 className="font-black text-zinc-950 text-base">{lang.sections.api.crmTitle}</h4>
+              <p className="text-zinc-500">{lang.sections.api.crmDesc}</p>
+              <div className="flex gap-2 items-center bg-zinc-900 text-zinc-200 px-3 py-1.5 rounded-lg w-max font-mono text-xs">
+                <Badge variant="outline" className="bg-indigo-900/50 text-indigo-300 border-indigo-700/50">POST</Badge>
+                <span>/api/crm/contacts</span>
+              </div>
+              
+              <Tabs defaultValue="curl-crm" className="w-full">
+                <TabsList className="bg-zinc-200/50 p-0.5 rounded-lg h-9 gap-1">
+                  <TabsTrigger value="curl-crm" className="text-xs rounded-md h-8 px-3">cURL</TabsTrigger>
+                  <TabsTrigger value="js-crm" className="text-xs rounded-md h-8 px-3">JavaScript</TabsTrigger>
+                  <TabsTrigger value="py-crm" className="text-xs rounded-md h-8 px-3">Python</TabsTrigger>
+                </TabsList>
+                <TabsContent value="curl-crm" className="bg-zinc-950 text-zinc-300 p-4 rounded-xl font-mono text-xs overflow-x-auto mt-2 leading-relaxed">
+                  {`curl -X POST "https://jcaesars.com/api/crm/contacts" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "name": "Ahmet Yılmaz",
+    "email": "ahmet@domain.com",
+    "phone": "+905551234567",
+    "notes": "Premium Müşteri",
+    "externalId": "user_9921"
+  }'`}
+                </TabsContent>
+                <TabsContent value="js-crm" className="bg-zinc-950 text-zinc-300 p-4 rounded-xl font-mono text-xs overflow-x-auto mt-2 leading-relaxed">
+                  {`fetch("https://jcaesars.com/api/crm/contacts", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    name: "Ahmet Yılmaz",
+    email: "ahmet@domain.com",
+    phone: "+905551234567",
+    notes: "Premium Müşteri",
+    externalId: "user_9921"
+  })
+})
+.then(res => res.json())
+.then(data => console.log(data));`}
+                </TabsContent>
+                <TabsContent value="py-crm" className="bg-zinc-950 text-zinc-300 p-4 rounded-xl font-mono text-xs overflow-x-auto mt-2 leading-relaxed">
+                  {`import requests
+
+url = "https://jcaesars.com/api/crm/contacts"
+payload = {
+    "name": "Ahmet Yılmaz",
+    "email": "ahmet@domain.com",
+    "phone": "+905551234567",
+    "notes": "Premium Müşteri",
+    "externalId": "user_9921"
+}
+response = requests.post(url, json=payload)
+print(response.json())`}
+                </TabsContent>
+              </Tabs>
+            </div>
+
+            {/* Instagram Troubleshooting Guide */}
+            <div className="p-6 rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-900 space-y-4">
+              <h4 className="font-black flex items-center gap-2 text-base">
+                <CheckCircle className="w-5 h-5 text-indigo-600" />
+                {lang.sections.api.igTitle}
+              </h4>
+              <p className="text-sm font-medium text-indigo-800">{lang.sections.api.igDesc}</p>
+              
+              <ul className="space-y-3 text-xs font-semibold pl-4">
+                <li className="list-decimal leading-relaxed">
+                  <span className="text-zinc-900 font-bold block mb-0.5">1. Instagram Mobil Uygulamasında Mesaj Erişimi (Kritik)</span>
+                  Instagram mobil uygulamasını açın: <span className="font-mono bg-indigo-100/80 px-1 rounded text-indigo-900">Ayarlar & Gizlilik &gt; Mesajlar ve Hikaye Yanıtları &gt; Mesaj Kontrolleri</span> yolunu izleyin ve en altta bulunan <span className="font-bold underline text-indigo-950">"Mesajlara Erişime İzin Ver" (Allow Access to Messages)</span> seçeneğini aktif konuma getirin. Bu seçenek kapalıyken webhooks çalışmaz.
+                </li>
+                <li className="list-decimal leading-relaxed">
+                  <span className="text-zinc-900 font-bold block mb-0.5">2. Meta Uygulama Canlı Modu (Live Mode)</span>
+                  Meta Developer paneline giderek uygulamanızın durumunu kontrol edin. Geliştirme modundaki uygulamalarda webhook olayları yalnızca Meta panelindeki "Roller" sekmesine eklediğiniz Admin/Tester hesapları için tetiklenir. Normal kullanıcılar için canlı modu aktif etmelisiniz.
+                </li>
+                <li className="list-decimal leading-relaxed">
+                  <span className="text-zinc-900 font-bold block mb-0.5">3. Facebook Login Sırasında Yetki Kapsamı</span>
+                  Instagram bağlantısını sağlarken Facebook Login penceresinde karşınıza gelen tüm sayfa ve Instagram hesaplarını işaretlediğinizden emin olun. Herhangi bir sayfayı dışarıda bırakmak jeton yetkisini kısıtlar.
+                </li>
+                <li className="list-decimal leading-relaxed">
+                  <span className="text-zinc-900 font-bold block mb-0.5">4. İzinleri ve Bağlantıyı Yenileme</span>
+                  Token geçerliliğinin kaybolması veya Facebook şifre değişikliği durumlarında J.Caesar kanal ayarlarından Instagram kanalını silip baştan bağlayarak en güncel Page Token'ı sisteme yükleyin.
+                </li>
+              </ul>
+            </div>
+          </Card>
+        </TabsContent>
+
       </Tabs>
     </div>
   );
 }
+

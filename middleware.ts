@@ -30,17 +30,11 @@ export default clerkMiddleware(async (auth, req) => {
 
   if (isAdminRoute(req)) {
     const { userId } = await auth();
-    console.log(`[MIDDLEWARE-DEBUG] Request for admin route: ${req.nextUrl.pathname}, userId: ${userId}`);
-    const allowedAdminIds = [
-      "user_3DxRHvrWjkRHA9gBZuFm2aXLR9k", // haktanmustafas@gmail.com (SUPERADMIN)
-      "user_3BipiRjNTlgQwubLijlvWqTDmzX", // dadasubeyt@gmail.com (ADMIN)
-    ];
+    const allowedAdminIds = (process.env.ADMIN_CLERK_IDS || "").split(",").map(id => id.trim()).filter(Boolean);
 
     if (userId && allowedAdminIds.includes(userId)) {
-      console.log(`[MIDDLEWARE-DEBUG] User ${userId} is a verified admin. Bypassing protect.`);
       // System administrator bypass
     } else {
-      console.log(`[MIDDLEWARE-DEBUG] User ${userId} is NOT in allowedAdminIds list. Enforcing Clerk Org protect.`);
       await auth.protect((has) => {
         return has({ role: "org:admin" }) || has({ role: "org:superadmin" });
       });

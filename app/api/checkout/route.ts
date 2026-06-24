@@ -2,17 +2,19 @@ export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
-import Stripe from "stripe";
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "sk_test_dummyForBuild", {
-  apiVersion: "2024-12-18.acacia" as any,
-});
+import { stripe } from "@/lib/stripe";
+import { rateLimit } from "@/lib/ratelimit";
 
 export async function POST(req: NextRequest) {
   try {
     const { userId: clerkId } = await auth();
     if (!clerkId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const rl = await rateLimit(`checkout:${clerkId}`, 5, 60);
+    if (!rl.success) {
+      return NextResponse.json({ error: "Too many requests" }, { status: 429 });
     }
 
     const { planId } = await req.json();

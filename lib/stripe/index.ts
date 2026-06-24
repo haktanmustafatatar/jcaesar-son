@@ -1,5 +1,9 @@
 import Stripe from "stripe";
 
+if (!process.env.STRIPE_SECRET_KEY && process.env.NODE_ENV === "production") {
+  throw new Error("STRIPE_SECRET_KEY is required in production");
+}
+
 export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "sk_test_dummyForBuild", {
   apiVersion: "2025-02-24.acacia",
 });
@@ -160,23 +164,35 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 
   if (!userId || !planId) return;
 
-  // Subscription oluştur
-  await prisma.subscription.create({
-    data: {
-      userId,
-      planId,
-      status: "ACTIVE",
-      stripeCustomerId: session.customer as string,
-      stripeSubscriptionId: session.subscription as string,
-      currentPeriodStart: new Date(),
-      currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 gün
-    },
+  const stripeSubscriptionId = session.subscription as string;
+
+  // Idempotent — webhook'un birden fazla tetiklenmesi durumunda duplicate yaratmaz
+  const existing = await prisma.subscription.findFirst({
+    where: { stripeSubscriptionId }
   });
 
-  // Kullanıcının organizasyonunu bul ve planını güncelle
+  if (existing) {
+    await prisma.subscription.update({
+      where: { id: existing.id },
+      data: { status: "ACTIVE", planId },
+    });
+  } else {
+    await prisma.subscription.create({
+      data: {
+        userId,
+        planId,
+        status: "ACTIVE",
+        stripeCustomerId: session.customer as string,
+        stripeSubscriptionId,
+        currentPeriodStart: new Date(),
+        currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      },
+    });
+  }
+
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { organizationId: true }
+    select: { organizationId: true, email: true, name: true }
   });
 
   if (user?.organizationId) {
@@ -185,18 +201,80 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       data: { planId }
     });
   }
+
+  // Ödeme onay emaili gönder
+  if (user?.email) {
+    await sendNotificationEmail({
+      to: user.email,
+      subject: "Aboneliğiniz Aktifleştirildi - J.Caesar Agent",
+      body: `Merhaba ${user.name || ""},\n\nAboneliğiniz başarıyla aktifleştirildi. J.Caesar Agent'ı kullanmaya başlayabilirsiniz.\n\nTeşekkürler,\nJ.Caesar Agent Ekibi`,
+    });
+  }
 }
 
 // Ödeme başarılı
 async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
-  console.log(`Payment succeeded for invoice: ${invoice.id}`);
-  // TODO: Email notification gönder
+  const { prisma } = await import("@/lib/prisma");
+  console.log(`[StripeWebhook] Payment succeeded for invoice: ${invoice.id}`);
+
+  const subscriptionId = typeof invoice.subscription === "string" ? invoice.subscription : invoice.subscription?.id;
+  if (subscriptionId) {
+    await prisma.subscription.updateMany({
+      where: { stripeSubscriptionId: subscriptionId },
+      data: {
+        status: "ACTIVE",
+        currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      },
+    });
+  }
 }
 
 // Ödeme başarısız
 async function handlePaymentFailed(invoice: Stripe.Invoice) {
-  console.log(`Payment failed for invoice: ${invoice.id}`);
-  // TODO: Email notification gönder, grace period başlat
+  const { prisma } = await import("@/lib/prisma");
+  console.log(`[StripeWebhook] Payment failed for invoice: ${invoice.id}`);
+
+  const subscriptionId = typeof invoice.subscription === "string" ? invoice.subscription : invoice.subscription?.id;
+  if (!subscriptionId) return;
+
+  await prisma.subscription.updateMany({
+    where: { stripeSubscriptionId: subscriptionId },
+    data: { status: "PAST_DUE" },
+  });
+
+  // Kullanıcıya bildirim emaili gönder
+  const subscription = await prisma.subscription.findFirst({
+    where: { stripeSubscriptionId: subscriptionId },
+    include: { user: { select: { email: true, name: true } } }
+  });
+
+  if (subscription?.user?.email) {
+    await sendNotificationEmail({
+      to: subscription.user.email,
+      subject: "Ödeme Başarısız - J.Caesar Agent",
+      body: `Merhaba ${subscription.user.name || ""},\n\nAbonelik ödemeniz alınamadı. Lütfen ödeme bilgilerinizi güncelleyin.\n\nTeşekkürler,\nJ.Caesar Agent Ekibi`,
+    });
+  }
+}
+
+async function sendNotificationEmail({ to, subject, body }: { to: string; subject: string; body: string }) {
+  const apiKey = process.env.SENDGRID_API_KEY;
+  if (!apiKey) return;
+
+  try {
+    await fetch("https://api.sendgrid.com/v3/mail/send", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        personalizations: [{ to: [{ email: to }] }],
+        from: { email: process.env.EMAIL_FROM || "noreply@jcaesars.com" },
+        subject,
+        content: [{ type: "text/plain", value: body }],
+      }),
+    });
+  } catch (err) {
+    console.error("[StripeWebhook] Email send failed:", err);
+  }
 }
 
 // Abonelik silindi
