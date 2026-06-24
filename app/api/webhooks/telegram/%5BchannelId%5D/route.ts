@@ -10,10 +10,9 @@ const redisConnection = new IORedis(process.env.REDIS_URL || "redis://localhost:
 
 const channelQueue = new Queue("channel", { connection: redisConnection });
 
-export async function POST(req: NextRequest, context: { params: Promise<{ channelId: string }> | { channelId: string } }) {
+export async function POST(req: NextRequest, context: { params: Promise<any> }) {
   try {
-    const resolvedParams = await (context.params instanceof Promise ? context.params : Promise.resolve(context.params));
-    const { channelId } = resolvedParams;
+    const { channelId } = await context.params;
     const body = await req.json();
     const message = body.message;
 
