@@ -4,4 +4,4 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install
 COPY prisma ./prisma
-CMD ["npx", "--yes", "prisma@6.0.0", "db", "push"]
+CMD ["npx", "--yes", "prisma@6.0.0", "db", "push", "--accept-data-loss"]
