@@ -126,29 +126,41 @@ export async function updateSubscription({
 // Webhook event işleme
 export async function handleWebhookEvent(event: Stripe.Event) {
   switch (event.type) {
-    case "checkout.session.completed":
+    case "checkout.session.completed": {
       const session = event.data.object as Stripe.Checkout.Session;
-      // Abonelik oluştur
       await handleCheckoutCompleted(session);
       break;
+    }
 
-    case "invoice.payment_succeeded":
+    case "invoice.payment_succeeded": {
       const invoice = event.data.object as Stripe.Invoice;
-      // Ödeme başarılı
       await handlePaymentSucceeded(invoice);
       break;
+    }
 
-    case "invoice.payment_failed":
+    case "invoice.payment_failed": {
       const failedInvoice = event.data.object as Stripe.Invoice;
-      // Ödeme başarısız
       await handlePaymentFailed(failedInvoice);
       break;
+    }
 
-    case "customer.subscription.deleted":
+    case "customer.subscription.updated": {
+      const updatedSub = event.data.object as Stripe.Subscription;
+      await handleSubscriptionUpdated(updatedSub);
+      break;
+    }
+
+    case "customer.subscription.paused": {
+      const pausedSub = event.data.object as Stripe.Subscription;
+      await handleSubscriptionPaused(pausedSub);
+      break;
+    }
+
+    case "customer.subscription.deleted": {
       const subscription = event.data.object as Stripe.Subscription;
-      // Abonelik silindi
       await handleSubscriptionDeleted(subscription);
       break;
+    }
 
     default:
       console.log(`Unhandled event type: ${event.type}`);
@@ -160,9 +172,64 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   const { prisma } = await import("@/lib/prisma");
 
   const userId = session.metadata?.userId;
-  const planId = session.metadata?.planId;
+  if (!userId) return;
 
-  if (!userId || !planId) return;
+  const type = session.metadata?.type;
+
+  if (type === "extra-credits") {
+    const amount = parseInt(session.metadata?.amount || "1000", 10);
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, organizationId: true, email: true, name: true, stripeCustomerId: true }
+    });
+
+    if (user) {
+      if (session.customer && !user.stripeCustomerId) {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { stripeCustomerId: session.customer as string }
+        });
+      }
+
+      if (user.organizationId) {
+        const org = await prisma.organization.findUnique({
+          where: { id: user.organizationId },
+          include: { plan: true }
+        });
+        if (org) {
+          const currentOverride = org.messageLimitOverride ?? org.plan.messageLimit;
+          const newOverride = currentOverride + amount;
+
+          await prisma.organization.update({
+            where: { id: user.organizationId },
+            data: { messageLimitOverride: newOverride }
+          });
+
+          await prisma.notification.create({
+            data: {
+              userId: user.id,
+              title: "Ek Limit Tanımlandı",
+              message: `Başarıyla ${amount} ek mesaj limiti satın aldınız. Yeni limitiniz: ${newOverride} mesaj.`,
+              type: "SUCCESS",
+              link: "/dashboard/settings"
+            }
+          });
+        }
+      }
+
+      if (user.email) {
+        await sendNotificationEmail({
+          to: user.email,
+          subject: "Ek Limit Satın Alma İşlemi Başarılı - J.Caesar Agent",
+          body: `Merhaba ${user.name || ""},\n\nSatın aldığınız ${amount} ek mesaj paketi hesabınıza başarıyla tanımlanmıştır.\n\nTeşekkürler,\nJ.Caesar Agent Ekibi`,
+        });
+      }
+    }
+    return;
+  }
+
+  const planId = session.metadata?.planId;
+  if (!planId) return;
 
   const stripeSubscriptionId = session.subscription as string;
 
@@ -192,23 +259,32 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { organizationId: true, email: true, name: true }
+    select: { id: true, organizationId: true, email: true, name: true, stripeCustomerId: true }
   });
 
-  if (user?.organizationId) {
-    await prisma.organization.update({
-      where: { id: user.organizationId },
-      data: { planId }
-    });
-  }
+  if (user) {
+    if (session.customer && !user.stripeCustomerId) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { stripeCustomerId: session.customer as string }
+      });
+    }
 
-  // Ödeme onay emaili gönder
-  if (user?.email) {
-    await sendNotificationEmail({
-      to: user.email,
-      subject: "Aboneliğiniz Aktifleştirildi - J.Caesar Agent",
-      body: `Merhaba ${user.name || ""},\n\nAboneliğiniz başarıyla aktifleştirildi. J.Caesar Agent'ı kullanmaya başlayabilirsiniz.\n\nTeşekkürler,\nJ.Caesar Agent Ekibi`,
-    });
+    if (user.organizationId) {
+      await prisma.organization.update({
+        where: { id: user.organizationId },
+        data: { planId }
+      });
+    }
+
+    // Ödeme onay emaili gönder
+    if (user.email) {
+      await sendNotificationEmail({
+        to: user.email,
+        subject: "Aboneliğiniz Aktifleştirildi - J.Caesar Agent",
+        body: `Merhaba ${user.name || ""},\n\nAboneliğiniz başarıyla aktifleştirildi. J.Caesar Agent'ı kullanmaya başlayabilirsiniz.\n\nTeşekkürler,\nJ.Caesar Agent Ekibi`,
+      });
+    }
   }
 }
 
@@ -289,4 +365,92 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
       status: "CANCELED",
     },
   });
+}
+
+async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
+  const { prisma } = await import("@/lib/prisma");
+  const existingSub = await prisma.subscription.findFirst({
+    where: { stripeSubscriptionId: subscription.id },
+    include: { user: true }
+  });
+
+  if (!existingSub) return;
+
+  const priceId = subscription.items.data[0]?.price.id;
+  let plan = null;
+  if (priceId) {
+    plan = await prisma.plan.findFirst({
+      where: { stripePriceId: priceId }
+    });
+  }
+
+  const newStatus = subscription.status === "paused" ? "PAUSED" : subscription.status.toUpperCase();
+
+  await prisma.subscription.update({
+    where: { id: existingSub.id },
+    data: {
+      status: newStatus as any,
+      ...(plan && { planId: plan.id }),
+      currentPeriodStart: new Date(subscription.current_period_start * 1000),
+      currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+    }
+  });
+
+  if (plan && existingSub.user?.organizationId) {
+    await prisma.organization.update({
+      where: { id: existingSub.user.organizationId },
+      data: { planId: plan.id }
+    });
+  }
+
+  await prisma.notification.create({
+    data: {
+      userId: existingSub.userId,
+      title: "Aboneliğiniz Güncellendi",
+      message: plan ? `Aboneliğiniz ${plan.name} planına başarıyla güncellendi.` : "Abonelik detaylarınız güncellendi.",
+      type: "SUCCESS",
+      link: "/dashboard/settings"
+    }
+  });
+
+  if (existingSub.user?.email && plan) {
+    await sendNotificationEmail({
+      to: existingSub.user.email,
+      subject: "Aboneliğiniz Güncellendi - J.Caesar Agent",
+      body: `Merhaba ${existingSub.user.name || ""},\n\nAboneliğiniz başarıyla ${plan.name} planına güncellendi.\n\nTeşekkürler,\nJ.Caesar Agent Ekibi`,
+    });
+  }
+}
+
+async function handleSubscriptionPaused(subscription: Stripe.Subscription) {
+  const { prisma } = await import("@/lib/prisma");
+  const existingSub = await prisma.subscription.findFirst({
+    where: { stripeSubscriptionId: subscription.id },
+    include: { user: true }
+  });
+
+  if (!existingSub) return;
+
+  await prisma.subscription.update({
+    where: { id: existingSub.id },
+    data: { status: "PAUSED" }
+  });
+
+  await prisma.notification.create({
+    data: {
+      userId: existingSub.userId,
+      title: "Planınız Duraklatıldı",
+      message: "Aboneliğiniz Stripe üzerinde duraklatıldı. Botlarınız şu an pasif durumda.",
+      type: "WARNING",
+      link: "/dashboard/settings"
+    }
+  });
+
+  if (existingSub.user?.email) {
+    await sendNotificationEmail({
+      to: existingSub.user.email,
+      subject: "Aboneliğiniz Duraklatıldı - J.Caesar Agent",
+      body: `Merhaba ${existingSub.user.name || ""},\n\nAboneliğiniz duraklatılmıştır. Sorularınız için destek ekibimizle iletişime geçebilirsiniz.\n\nTeşekkürler,\nJ.Caesar Agent Ekibi`,
+    });
+  }
 }

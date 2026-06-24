@@ -8,36 +8,41 @@ datasource db {
 }
 
 model User {
-  id               String         @id @default(cuid())
-  clerkId          String         @unique
-  email            String         @unique
-  name             String?
-  avatar           String?
-  role             UserRole       @default(USER)
-  stripeCustomerId String?
-  organizationId   String?
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
-  chatbots         Chatbot[]
-  conversations    Conversation[]
-  notifications    Notification[]
-  subscriptions    Subscription[]
-  teamMemberships  TeamMember[]
-  tokenUsages      TokenUsage[]
-  organization     Organization?  @relation(fields: [organizationId], references: [id])
+  id                 String         @id @default(cuid())
+  clerkId            String         @unique
+  email              String         @unique
+  name               String?
+  avatar             String?
+  role               UserRole       @default(USER)
+  stripeCustomerId   String?
+  organizationId     String?
+  conversationAlerts Boolean        @default(true)
+  botHealthChecks    Boolean        @default(true)
+  platformUpdates    Boolean        @default(true)
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  chatbots           Chatbot[]
+  conversations      Conversation[]
+  notifications      Notification[]
+  subscriptions      Subscription[]
+  teamMemberships    TeamMember[]
+  tokenUsages        TokenUsage[]
+  organization       Organization?  @relation(fields: [organizationId], references: [id])
 }
 
 model Organization {
-  id          String       @id @default(cuid())
-  name        String
-  slug        String       @unique
-  planId      String
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  chatbots    Chatbot[]
-  plan        Plan         @relation(fields: [planId], references: [id])
-  teamMembers TeamMember[]
-  users       User[]
+  id                   String       @id @default(cuid())
+  name                 String
+  slug                 String       @unique
+  planId               String
+  messageLimitOverride Int?
+  tokenLimitOverride   Int?
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+  chatbots             Chatbot[]
+  plan                 Plan         @relation(fields: [planId], references: [id])
+  teamMembers          TeamMember[]
+  users                User[]
 }
 
 model TeamMember {
@@ -436,6 +441,8 @@ model Appointment {
   paymentStatus String      @default("UNPAID")
   price         Float?      @default(0)
   reminderSent  Boolean     @default(false)
+  cancelToken   String?     @unique
+  gcalEventId   String?
   chatbot       Chatbot     @relation(fields: [chatbotId], references: [id], onDelete: Cascade)
   contact       CrmContact? @relation(fields: [contactId], references: [id])
   staff         Staff?      @relation(fields: [staffId], references: [id])

@@ -112,3 +112,35 @@ export async function getShopifyOrdersByEmail(config: ShopifyConfig, email: stri
     return [];
   }
 }
+
+export async function registerShopifyWebhook(config: ShopifyConfig, topic: string, address: string) {
+  try {
+    const { shopDomain, accessToken } = config;
+    const url = `https://${shopDomain}/admin/api/2024-04/webhooks.json`;
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "X-Shopify-Access-Token": accessToken,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        webhook: {
+          topic,
+          address,
+          format: "json",
+        },
+      }),
+    });
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`[ShopifyWebhook] Failed to register topic ${topic}:`, errorText);
+      return false;
+    }
+    const data = await response.json();
+    console.log(`[ShopifyWebhook] Registered topic ${topic} success:`, data);
+    return true;
+  } catch (error) {
+    console.error(`[ShopifyWebhook] Error registering topic ${topic}:`, error);
+    return false;
+  }
+}

@@ -3,7 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { tool } from "ai";
 import { searchShopifyProducts, getShopifyOrdersByEmail, ShopifyConfig } from "../integrations/shopify";
 import { decrypt } from "@/lib/crypto";
-import { searchWooProducts, WooCommerceConfig } from "../integrations/woocommerce";
+import { searchWooProducts, getWooOrdersByEmail, WooCommerceConfig } from "../integrations/woocommerce";
+import { searchTrendyolProducts, getTrendyolOrdersByCustomer, TrendyolConfig } from "../integrations/trendyol";
 import { createCalendarEvent, GoogleCalendarConfig } from "../integrations/google-calendar";
 import { addNotificationJob } from "@/lib/queue";
 
@@ -66,9 +67,47 @@ export async function getChatbotTools(chatbotId: string, conversationId?: string
         return { success: true, count: products.length, products };
       },
     });
+
+    tools.get_woocommerce_order_status = tool({
+      description: "Get WooCommerce orders and order statuses using customer email. Useful for checking order history and tracking status.",
+      parameters: z.object({
+        email: z.string().describe("The customer's email address"),
+      }),
+      execute: async ({ email }) => {
+        const orders = await getWooOrdersByEmail(config, email);
+        return { success: true, count: orders.length, orders };
+      },
+    });
   }
 
-  // 3. Google Calendar Tool
+  // 3. Trendyol Tool
+  const trendyolChannel = decryptedChannels.find(c => String(c.type) === "TRENDYOL" && c.status === "CONNECTED");
+  if (trendyolChannel) {
+    const config = trendyolChannel.config as any as TrendyolConfig;
+    tools.search_trendyol_products = tool({
+      description: "Search products in the Trendyol seller catalog. Useful for checking price, stock, and barcode information.",
+      parameters: z.object({
+        query: z.string().describe("Product title, barcode, or product code to search for"),
+      }),
+      execute: async ({ query }) => {
+        const products = await searchTrendyolProducts(config, query);
+        return { success: true, count: products.length, products };
+      },
+    });
+
+    tools.get_trendyol_order_status = tool({
+      description: "Get order details and status from Trendyol by order number. Useful for 'Where is my order?' or order status questions.",
+      parameters: z.object({
+        orderNumber: z.string().describe("The Trendyol order number to look up"),
+      }),
+      execute: async ({ orderNumber }) => {
+        const orders = await getTrendyolOrdersByCustomer(config, orderNumber);
+        return { success: true, count: orders.length, orders };
+      },
+    });
+  }
+
+  // 4. Google Calendar Tool
   const calendarChannel = decryptedChannels.find(c => c.type === "GOOGLE_CALENDAR" && c.status === "CONNECTED");
   if (calendarChannel) {
     const config = calendarChannel.config as any as GoogleCalendarConfig;
@@ -94,7 +133,7 @@ export async function getChatbotTools(chatbotId: string, conversationId?: string
     });
   }
 
-  // 4. Handoff Tool (Transfer to Human)
+  // 5. Handoff Tool (Transfer to Human)
   if (conversationId) {
     tools.transfer_to_human = tool({
       description: "Call this tool when the user explicitly asks to talk to a human, is frustrated, or when you are stuck and cannot answer effectively. This will alert a human operator to take over.",
@@ -123,7 +162,7 @@ export async function getChatbotTools(chatbotId: string, conversationId?: string
     });
   }
 
-  // 5. Internal CRM & Lead Capture (Always Available if collectLeads is true)
+  // 6. Internal CRM & Lead Capture (Always Available if collectLeads is true)
   if (chatbot.collectLeads) {
     tools.save_contact_info = tool({
       description: "Save user's contact information (name, email, phone) to the internal CRM. Use this when the user provides their details or shows high interest.",
@@ -218,7 +257,7 @@ export async function getChatbotTools(chatbotId: string, conversationId?: string
     });
   }
 
-  // 6. Custom API (Webhooks)
+  // 7. Custom API (Webhooks)
   const customActions = await prisma.aIAction.findMany({
     where: { chatbotId, type: "WEBHOOK", isActive: true }
   });

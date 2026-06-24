@@ -29,18 +29,6 @@ export async function POST(req: NextRequest) {
 
     const resolvedUsername = botUsername || meData.result.username;
 
-    // Register webhook with Telegram
-    const webhookUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/telegram`;
-    const webhookRes = await fetch(`https://api.telegram.org/bot${botToken}/setWebhook`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url: webhookUrl, allowed_updates: ["message"] }),
-    });
-    const webhookData = await webhookRes.json();
-    if (!webhookData.ok) {
-      return NextResponse.json({ error: `Failed to register webhook: ${webhookData.description}` }, { status: 400 });
-    }
-
     // Upsert channel
     const existing = await prisma.channel.findFirst({ where: { chatbotId, type: "TELEGRAM" } });
     const channelData = {
@@ -51,10 +39,23 @@ export async function POST(req: NextRequest) {
       phoneNumberId: meData.result.id.toString(),
     };
 
+    let channel;
     if (existing) {
-      await prisma.channel.update({ where: { id: existing.id }, data: channelData });
+      channel = await prisma.channel.update({ where: { id: existing.id }, data: channelData });
     } else {
-      await prisma.channel.create({ data: { chatbotId, ...channelData } });
+      channel = await prisma.channel.create({ data: { chatbotId, ...channelData } });
+    }
+
+    // Register webhook with Telegram using channel.id
+    const webhookUrl = `${process.env.NEXT_PUBLIC_APP_URL || "https://jcaesars.com"}/api/webhooks/telegram/${channel.id}`;
+    const webhookRes = await fetch(`https://api.telegram.org/bot${botToken}/setWebhook`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url: webhookUrl, allowed_updates: ["message"] }),
+    });
+    const webhookData = await webhookRes.json();
+    if (!webhookData.ok) {
+      return NextResponse.json({ error: `Failed to register webhook: ${webhookData.description}` }, { status: 400 });
     }
 
     return NextResponse.json({ success: true, botUsername: resolvedUsername });

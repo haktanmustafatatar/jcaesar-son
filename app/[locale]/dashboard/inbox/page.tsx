@@ -80,7 +80,6 @@ export default function InboxPage() {
   const [mobileView, setMobileView] = useState<"list" | "chat">("list");
   
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Status Filter Tab & CRM Form states
   const [activeTab, setActiveTab] = useState<"active" | "closed">("active");
@@ -167,10 +166,13 @@ export default function InboxPage() {
 
   // Auto-scroll to bottom of chat logs when new messages arrive
   useEffect(() => {
+    if (!selectedId || messages.length === 0) return;
     setTimeout(() => {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      if (scrollContainerRef.current) {
+        scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+      }
     }, 50);
-  }, [messages, isTyping]);
+  }, [messages, isTyping, selectedId]);
 
   const fetchConversations = async (silent = false) => {
     if (!silent) setIsLoading(true);
@@ -815,7 +817,6 @@ export default function InboxPage() {
                      </div>
                   </div>
                 )}
-                <div ref={messagesEndRef} />
               </div>
             </div>
 

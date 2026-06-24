@@ -1,559 +1,585 @@
 "use client";
 
 import { useLocale } from "next-intl";
-import { 
-  BookOpen, 
-  HelpCircle, 
-  Bot, 
-  Database, 
-  Cpu, 
-  Users, 
-  Calendar, 
-  Terminal, 
-  ArrowRight, 
-  Sparkles, 
-  Lock, 
-  Mail,
-  CheckCircle,
-  FileCode,
+import {
+  BookOpen,
+  HelpCircle,
+  Bot,
   Globe,
-  Settings
+  Settings,
+  Zap,
+  MessageSquare,
+  ShoppingBag,
+  ShoppingCart,
+  Instagram,
+  Facebook,
+  CheckCircle,
+  ChevronRight,
+  Sparkles,
+  AlertCircle,
+  Copy,
+  ArrowRight,
+  Package
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 
-// Localized translations for the Documentation Page
-const DOCS_DATA: Record<string, any> = {
-  tr: {
-    badge: "J.Caesar Bilgi Merkezi",
-    title: "Kullanıcı Kılavuzu &",
-    subtitle: "Geliştirici Dokümantasyonu",
-    desc: "J.Caesar platformunun tüm özelliklerini keşfedin. Yapay zekayı eğitmeyi, özel API entegrasyonlarını, CRM & Takvim otomasyonlarını ve çoklu dil yönetimini adım adım öğrenin.",
-    tabs: {
-      overview: "Genel Bakış",
-      rag: "Yapay Zeka & RAG Altyapısı",
-      webhooks: "Özel API / Webhook Entegrasyonu",
-      channels: "CRM, E-Ticaret & Kanallar",
-      smtp: "E-Posta & SMTP Ayarları",
-      api: "API Referansı & Sorun Giderme"
-    },
-    sections: {
-      overview: {
-        t1: "1. Anında Chatbot Kurulumu",
-        d1: "Yapay zeka ajanı oluşturmak sadece birkaç saniye sürer. Ajanın kişiliğini, renk temasını, karşılama mesajlarını ve davranış protokollerini markanıza göre özelleştirin.",
-        t2: "2. Akıllı RAG (Bilgi Tabanı) Eğitimi",
-        d2: "PDF, TXT, DOCX dosyalarını yükleyin veya web sitenizin URL'sini girin. Crawler motorumuz sayfaları derinlemesine tarar ve verileri vektör veri tabanına gömer.",
-        t3: "3. CRM & Otomatik Randevu",
-        d3: "Yapay zeka, konuşmalar esnasında müşteri adı, e-postası ve telefonu gibi bilgileri otomatik olarak yakalayarak CRM tablonuza kaydeder ve doğrudan randevuları bağlar.",
-        t4: "4. Entegrasyonlar ve API",
-        d4: "WhatsApp, Instagram, Messenger, Shopify ve WooCommerce mağazalarınızı anında yapay zekaya bağlayarak otonom bir satış temsilcisi yaratın."
-      },
-      rag: {
-        title: "RAG (Erişimle Artırılmış Üretim) Altyapısı",
-        desc: "J.Caesar, yapay zekanın hayal görmesini (hallucination) önlemek için gelişmiş bir RAG sistemi kullanır.",
-        steps: [
-          {
-            title: "Web Sitelerinin Taranması",
-            content: "Crawler motorumuz, sitemap veya doğrudan URL üzerinden hedefleri analiz eder. Her sayfanın ana metnini gereksiz HTML, reklam ve alt bilgi elemanlarından temizleyerek sisteme kaydeder."
-          },
-          {
-            title: "Vektör Bölümleme (Chunking)",
-            content: "Tüm metinler, semantik bağlamın korunması amacıyla 1000 karakterlik bloklara bölünür. Bloklar arasında 200 karakterlik bir çakışma (overlap) bırakılarak cümlenin ve bağlamın kesilmesi önlenir."
-          },
-          {
-            title: "Özel Soru-Cevap (Direct Q&A)",
-            content: "Spesifik durumlar için (örn. İade politikaları veya kargo ücretleri) doğrudan Soru-Cevap kartları ekleyebilirsiniz. Bu kartlar, yapay zeka tarafından doğrudan en yüksek öncelikli veri olarak işlenir."
-          }
-        ]
-      },
-      webhooks: {
-        title: "Geliştirici Rehberi: Özel API & Webhook Tanımlama",
-        desc: "Yapay zeka ajanınızın konuşma sırasında harici sistemlerinizden (örn. Sipariş takibi, bakiye sorgulama) canlı veri çekmesini sağlayın.",
-        step1: "1. Değişken Tanımlama",
-        step1_d: "API tetikleme sırasında kullanıcıdan alınacak dinamik girdileri {{değisken_adı}} şeklinde belirleyin (Örn: {{siparis_id}}). Yapay zeka bu bilgiyi konuşma içinde müşteriden otonom olarak talep eder.",
-        step2: "2. İstek & Yanıt Akışı",
-        step2_d: "HTTP Method (GET/POST), URL ve Gerekli Authorization Header'larını girin. Yapay zekaya döneceğiniz JSON formatı düz bir metin olmalıdır. Yapay zeka dönen bu JSON verisini analiz ederek müşteriye doğal bir dille yanıt verir.",
-        format: "// Örnek JSON Yanıtı Formatı",
-        security: "⚠️ Kritik Güvenlik Talimatları",
-        sec_items: [
-          "Veri gizliliği için tüm uç noktalarınızın HTTPS protokolü ile korunduğundan emin olun.",
-          "Yetkisiz istekleri önlemek için API ayarlarınıza 'Authorization: Bearer token_adı' şeklinde bir anahtar ekleyin.",
-          "Yapay zeka platformunun bekleme süresi aşımına (timeout) uğramaması için API yanıtlarınızın 10 saniyenin altında döndüğünden emin olun."
-        ]
-      },
-      channels: {
-        title: "Omnichannel & CRM Entegrasyonları",
-        desc: "Platform genelindeki e-ticaret ve sosyal medya kanallarını kurarak yapay zekayı her yere yayınlayın.",
-        woo: "WooCommerce Entegrasyonu",
-        woo_d: "WooCommerce API Anahtarı ve Tüketici Parolasını girerek botunuza ürün kataloğunuzu, fiyatlarını ve stok durumlarını otonom olarak okuma yetkisi verin.",
-        shopify: "Shopify Entegrasyonu",
-        shopify_d: "Shopify mağaza alan adınızı ve Access Token bilgilerinizi bağlayın. Yapay zeka anında Shopify mağaza kataloğunuzla senkronize olur.",
-        social: "Sosyal Medya & WhatsApp Business",
-        social_d: "WhatsApp Cloud API, Instagram Direct ve Facebook Messenger hesaplarınızı Meta Developer portalı üzerinden webhook adreslerimize yönlendirerek 7/24 otonom mesajlaşmayı başlatın."
-      },
-      smtp: {
-        title: "Sistem Alarm Altyapısı & SMTP Konfigürasyonu",
-        desc: "Kritik limit aşımı durumlarında ve yapay zeka hatalarında admin olarak anında mail altyapısını kurun.",
-        smtp_title: "SMTP Kurulumu",
-        smtp_d: "Ortam değişkenlerinizde (environment variables) SMTP_HOST, SMTP_USER, SMTP_PASS ve SMTP_PORT ayarlarını yapılandırın. Sistemimiz otomatik olarak limitsiz uyarı e-postaları yollayacaktır.",
-        limits: "Otomatik Plan Limit Uyarıları",
-        limits_d: "Kullanıcılar paketlerinin %80 ve %100 limitlerine yaklaştıklarında, sistem arayüz üzerinden gerçek zamanlı uyarının yanında, kayıtlı e-posta adreslerine şık bir HTML yükseltme maili atar."
-      },
-      api: {
-        title: "Harici REST API Referansı & Sorun Giderme",
-        desc: "J.Caesar platformunun sunduğu REST API'leri kullanarak sistemlerinizle çift yönlü veri akışları tasarlayın.",
-        sendMsgTitle: "1. Sohbet Mesajı Gönderme (Outbound API)",
-        sendMsgDesc: "Belirli bir sohbete programatik olarak veya harici webhook'lar üzerinden mesaj göndermek için kullanılır.",
-        crmTitle: "2. CRM Rehberine Yeni Kişi Ekleme",
-        crmDesc: "Sistemdeki potansiyel müşterilerinizi veya sipariş veren kişileri CRM veritabanınıza senkronize edin.",
-        igTitle: "🚨 Instagram Entegrasyonu Hata Giderme Kılavuzu",
-        igDesc: "Instagram entegrasyonu yaptıktan sonra mesajların gelip gitmemesi durumunda aşağıdaki kontrol listesini uygulayın:"
-      }
-    }
-  },
-  en: {
-    badge: "J.Caesar Knowledge Hub",
-    title: "User Guide &",
-    subtitle: "Developer Documentation",
-    desc: "Explore all J.Caesar platform capabilities. Learn step-by-step how to train your AI agents, create custom APIs, configure CRM & Calendars, and leverage multilingual support.",
-    tabs: {
-      overview: "Overview",
-      rag: "AI & RAG Infrastructure",
-      webhooks: "Custom API & Webhooks",
-      channels: "CRM, E-Commerce & Channels",
-      smtp: "E-Mail & SMTP Configurations",
-      api: "API Reference & Troubleshooting"
-    },
-    sections: {
-      overview: {
-        t1: "1. Instant Chatbot Deployment",
-        d1: "Create a customized AI agent in a couple of clicks. Tweak their personality, color themes, welcome prompts, and conversational rules to perfectly fit your brand identity.",
-        t2: "2. Intelligent RAG Knowledge Training",
-        d2: "Upload PDFs, Word docs, raw text, or enter your website URL. Our system recursively scrapes web pages to parse knowledge and converts them into high-dimensional vector embeddings.",
-        t3: "3. CRM & Automated Scheduling",
-        d3: "During conversations, the AI agent dynamically extracts lead contact details (name, email, phone) and registers them inside your CRM and Booking panels.",
-        t4: "4. Integrations & API Channels",
-        d4: "Connect WooCommerce, Shopify, WhatsApp, Instagram, and Facebook Messenger to deploy an autonomous 24/7 sales representative for your brand."
-      },
-      rag: {
-        title: "RAG (Retrieval-Augmented Generation) Workflows",
-        desc: "J.Caesar employs robust RAG parameters to eliminate hallucination, grounding replies purely in your official knowledge.",
-        steps: [
-          {
-            title: "Web Scraping Process",
-            content: "Our crawler recursively indexes sitemaps or pages, stripping out tracking scripts, CSS, navigation, and advertising wrappers to preserve clean context."
-          },
-          {
-            title: "Semantic Chunking",
-            content: "Parsed knowledge is chunked into 1000-character segments with a 200-character overlap boundary, ensuring sentences and semantics aren't clipped during query retrieval."
-          },
-          {
-            title: "Direct Q&A overrides",
-            content: "Set direct Question & Answer keys for legal disclaimers, refunds, or exact pricing. Direct Q&A lists always possess higher priority than standard vector searches."
-          }
-        ]
-      },
-      webhooks: {
-        title: "Developer Guide: Custom Webhooks & Actions",
-        desc: "Empower your AI agents to query external microservices (e.g. tracking orders, pulling live databases) on the fly.",
-        step1: "1. Defining Input Variables",
-        step1_d: "Declare dynamic parameters in the payload format using the {{variable_name}} syntax (e.g., {{order_id}}). The AI agent will autonomously prompt the user for these inputs inside chats.",
-        step2: "2. Executing HTTP Callouts",
-        step2_d: "Set up the Request Method (GET/POST), URL, and Authorization headers. Provide simple JSON payloads back to the chatbot interface. The AI will translate your API response into natural language.",
-        format: "// Sample API Response Format",
-        security: "⚠️ Crucial Security Guidelines",
-        sec_items: [
-          "Always verify your backend endpoints utilize SSL/HTTPS for encrypted transport.",
-          "Inject an Authorization header in custom api tabs (e.g. Bearer token) to validate JCaesar request origins.",
-          "Ensure your custom endpoints respond within 10 seconds to avoid gateway timeouts."
-        ]
-      },
-      channels: {
-        title: "Omnichannel Integrations & CRM Systems",
-        desc: "Configure platform connectors to distribute your intelligent agents everywhere.",
-        woo: "WooCommerce Setup",
-        woo_d: "Inject WooCommerce REST API keys to synchronize stock limits, active pricing, and catalog items.",
-        shopify: "Shopify Syncing",
-        shopify_d: "Configure your Shopify custom app token and domain. JCaesar automatically polls inventory details.",
-        social: "Social Channels & WhatsApp Business",
-        social_d: "Bind WhatsApp Business Cloud API, Instagram DMs, and Facebook Messenger using Meta Developer webhooks for automated messaging."
-      },
-      smtp: {
-        title: "System Error Alerts & SMTP Configuration",
-        desc: "Set up SMTP pipelines to receive platform warning logs and send upgrade reminders.",
-        smtp_title: "SMTP Server",
-        smtp_d: "Inject SMTP_HOST, SMTP_USER, SMTP_PASS, and SMTP_PORT into your environment keys. The system handles all verification e-mails automatically.",
-        limits: "Automated Usage Threshold Reminders",
-        limits_d: "When accounts cross 80% or 100% of their plan allocations, SMTP triggers real-time HTML upgrade requests directly to their registered mail address."
-      },
-      api: {
-        title: "External REST API Reference & Troubleshooting",
-        desc: "Utilize J.Caesar's core REST APIs to establish bi-directional integrations and data sync workflows.",
-        sendMsgTitle: "1. Send Chat Message (Outbound API)",
-        sendMsgDesc: "Send manual or automated assistant responses to any active conversation from external scripts.",
-        crmTitle: "2. Add Contact to CRM",
-        crmDesc: "Programmatically synchronize leads or purchase data with your J.Caesar CRM dashboard.",
-        igTitle: "🚨 Instagram Messaging Troubleshooting Checklist",
-        igDesc: "If Instagram messages are not transmitting after connection, verify the following steps:"
-      }
-    }
-  }
-};
-
 export default function DocsPage() {
-  const currentLocale = useLocale();
-  const lang = DOCS_DATA[currentLocale] || DOCS_DATA["tr"]; // Fallback to TR if not mapped
+  const locale = useLocale();
+  const isTR = locale === "tr";
+
+  const t = {
+    badge: isTR ? "J.Caesar Bilgi Merkezi" : "J.Caesar Knowledge Hub",
+    title: isTR ? "Kullanıcı Kılavuzu" : "User Guide",
+    subtitle: isTR ? "& Platformu Keşfet" : "& Platform Guide",
+    desc: isTR
+      ? "J.Caesar platformunu adım adım öğrenin. Bot kurma, kanal bağlama, e-ticaret entegrasyonları ve sık sorulan sorular burada."
+      : "Learn J.Caesar step by step. Bot creation, channel setup, e-commerce integrations, and frequently asked questions — all here.",
+    tabs: {
+      overview: isTR ? "Genel Bakış" : "Overview",
+      bots: isTR ? "Bot Oluşturma" : "Bot Creation",
+      channels: isTR ? "Kanallar" : "Channels",
+      integrations: isTR ? "Entegrasyonlar" : "Integrations",
+      faq: "SSS / FAQ",
+    },
+  };
+
+  const overviewCards = [
+    {
+      icon: <Bot className="w-6 h-6 text-blue-500" />,
+      bg: "bg-blue-50",
+      title: isTR ? "Chatbot Kur, Eğit" : "Create & Train Bots",
+      desc: isTR
+        ? "Dakikalar içinde AI ajanı oluştur. PDF, URL veya metin yükle ve botunu eğit."
+        : "Create an AI agent in minutes. Upload PDFs, URLs, or text and train your bot.",
+    },
+    {
+      icon: <MessageSquare className="w-6 h-6 text-emerald-500" />,
+      bg: "bg-emerald-50",
+      title: isTR ? "Kanalları Bağla" : "Connect Channels",
+      desc: isTR
+        ? "WhatsApp, Instagram, Telegram, Facebook Messenger, Slack kanallarına entegre ol."
+        : "Integrate with WhatsApp, Instagram, Telegram, Facebook Messenger, and Slack.",
+    },
+    {
+      icon: <ShoppingBag className="w-6 h-6 text-purple-500" />,
+      bg: "bg-purple-50",
+      title: isTR ? "E-Ticaret Entegrasyonu" : "E-Commerce Integration",
+      desc: isTR
+        ? "Shopify ve WooCommerce mağazanı bağla. Bot ürün arar, sipariş takibi yapar."
+        : "Connect Shopify or WooCommerce. The bot searches products and tracks orders.",
+    },
+    {
+      icon: <Zap className="w-6 h-6 text-amber-500" />,
+      bg: "bg-amber-50",
+      title: isTR ? "Özel API & Webhook" : "Custom API & Webhooks",
+      desc: isTR
+        ? "Harici sistemlerinizden canlı veri çeken webhook araçları tanımla."
+        : "Define webhook tools that pull live data from your own backend systems.",
+    },
+  ];
+
+  const botSteps = [
+    {
+      num: "01",
+      title: isTR ? "\"Yeni Chatbot\" Butonuna Tıkla" : "Click \"New Chatbot\"",
+      desc: isTR
+        ? "Sol menüden Chatbots sayfasına git ve sağ üstteki \"+ New Bot\" butonuna tıkla."
+        : "Go to the Chatbots page from the left menu and click the \"+ New Bot\" button at the top right.",
+    },
+    {
+      num: "02",
+      title: isTR ? "Bot Adı ve Kişiliğini Belirle" : "Set Name & Personality",
+      desc: isTR
+        ? "Botunuza isim ver, karşılama mesajı ve AI talimatlarını (sistem promptu) yaz. Dili ve yanıt tonunu belirle."
+        : "Give your bot a name, set a welcome message, and write AI instructions (system prompt). Set language and tone.",
+    },
+    {
+      num: "03",
+      title: isTR ? "Knowledge Base Ekle" : "Add Knowledge Base",
+      desc: isTR
+        ? "\"Sources\" sekmesinden URL gir, PDF yükle veya doğrudan metin yapıştır. Bot bu verileri kullanarak cevap verir."
+        : "From the \"Sources\" tab, enter a URL, upload a PDF, or paste text. The bot uses this data to answer questions.",
+    },
+    {
+      num: "04",
+      title: isTR ? "Botu Test Et" : "Test Your Bot",
+      desc: isTR
+        ? "\"Test\" butonuna tıklayarak botunla konuş. Cevapların doğruluğunu kontrol et ve gerekirse kaynakları güncelle."
+        : "Click \"Test\" to chat with your bot. Verify answer accuracy and update sources if needed.",
+    },
+    {
+      num: "05",
+      title: isTR ? "Kanala Bağla ve Yayınla" : "Connect Channel & Go Live",
+      desc: isTR
+        ? "\"Settings → Channels\" sekmesinden WhatsApp, Instagram veya istediğin kanalı bağla. Bot anında yayına girer."
+        : "From \"Settings → Channels\", connect WhatsApp, Instagram, or any desired channel. The bot goes live immediately.",
+    },
+  ];
+
+  const channelGuides = [
+    {
+      icon: <MessageSquare className="w-5 h-5 text-emerald-500" />,
+      bg: "bg-emerald-50",
+      name: "WhatsApp Business",
+      badge: "Meta OAuth",
+      steps: isTR
+        ? [
+            "J.Caesar Settings → Channels → WhatsApp'a tıkla",
+            "\"Login with Facebook\" butonuna bas",
+            "Meta hesabınla giriş yap ve WhatsApp Business hesabını seç",
+            "Telefon numaranı onayla — bot otomatik bağlanır",
+          ]
+        : [
+            "Go to J.Caesar Settings → Channels → Click WhatsApp",
+            "Click the \"Login with Facebook\" button",
+            "Log in with your Meta account and select your WhatsApp Business account",
+            "Verify your phone number — bot connects automatically",
+          ],
+    },
+    {
+      icon: <Instagram className="w-5 h-5 text-pink-500" />,
+      bg: "bg-pink-50",
+      name: "Instagram DM",
+      badge: "Meta OAuth",
+      steps: isTR
+        ? [
+            "Instagram hesabın Profesyonel Hesap (İşletme veya İçerik Üretici) olmalı",
+            "J.Caesar Settings → Channels → Instagram → Login with Facebook",
+            "Meta'dan Instagram sayfanı seç ve \"Mesajlara Erişime İzin Ver\" onayını ver",
+            "Instagram App Review onayı bekleniyor olabilir — bu normal",
+          ]
+        : [
+            "Your Instagram account must be a Professional Account (Business or Creator)",
+            "J.Caesar Settings → Channels → Instagram → Login with Facebook",
+            "Select your Instagram page and grant \"Allow Access to Messages\"",
+            "Instagram App Review approval may be pending — this is normal",
+          ],
+    },
+    {
+      icon: <Facebook className="w-5 h-5 text-blue-600" />,
+      bg: "bg-blue-50",
+      name: "Facebook Messenger",
+      badge: "Meta OAuth",
+      steps: isTR
+        ? [
+            "Facebook Sayfana sahip olman gerekli (kişisel profil değil)",
+            "J.Caesar Settings → Channels → Facebook → Login with Facebook",
+            "Sayfanı seç ve Messenger erişimini onayla",
+            "Bot artık Facebook Sayfanın gelen mesajlarını cevaplayacak",
+          ]
+        : [
+            "You need a Facebook Page (not a personal profile)",
+            "J.Caesar Settings → Channels → Facebook → Login with Facebook",
+            "Select your page and confirm Messenger access",
+            "The bot will now reply to messages on your Facebook Page",
+          ],
+    },
+    {
+      icon: <Globe className="w-5 h-5 text-indigo-500" />,
+      bg: "bg-indigo-50",
+      name: "Web Widget",
+      badge: isTR ? "Embed Kodu" : "Embed Code",
+      steps: isTR
+        ? [
+            "J.Caesar Settings → Widget sekmesini aç",
+            "Renk, konum ve karşılama mesajını özelleştir",
+            "Embed kodunu kopyala (<script> etiketi)",
+            "Web sitendeki </body> etiketinden hemen önce yapıştır",
+          ]
+        : [
+            "Open J.Caesar Settings → Widget tab",
+            "Customize color, position, and welcome message",
+            "Copy the embed code (<script> tag)",
+            "Paste it just before the </body> tag on your website",
+          ],
+    },
+    {
+      icon: <MessageSquare className="w-5 h-5 text-sky-500" />,
+      bg: "bg-sky-50",
+      name: "Telegram",
+      badge: "BotFather",
+      steps: isTR
+        ? [
+            "Telegram'da @BotFather'ı aç → /newbot komutunu gönder",
+            "Botuna isim ver ve kullanıcı adı seç → token'ı kopyala",
+            "J.Caesar Settings → Channels → Telegram → Token'ı yapıştır",
+            "Bağlan — her bot için ayrı webhook otomatik kaydedilir",
+          ]
+        : [
+            "Open @BotFather on Telegram → Send /newbot command",
+            "Name your bot and pick a username → copy the token",
+            "J.Caesar Settings → Channels → Telegram → Paste the token",
+            "Connect — a unique webhook is auto-registered per bot",
+          ],
+    },
+  ];
+
+  const integrationGuides = [
+    {
+      icon: <ShoppingBag className="w-6 h-6 text-[#95BF47]" />,
+      bg: "bg-lime-50",
+      name: "Shopify",
+      steps: isTR
+        ? [
+            "Shopify Admin → Ayarlar → Uygulamalar → Özel uygulamalar geliştir",
+            "Uygulama oluştur → Admin API kapsamlarını yapılandır (read_products, read_orders)",
+            "Kur → Admin API access token'ı kopyala",
+            "J.Caesar Settings → Channels → Shopify → Domain ve token'ı gir",
+          ]
+        : [
+            "Shopify Admin → Settings → Apps → Develop apps",
+            "Create app → Configure Admin API scopes (read_products, read_orders)",
+            "Install → Copy the Admin API access token",
+            "J.Caesar Settings → Channels → Shopify → Enter domain and token",
+          ],
+    },
+    {
+      icon: <ShoppingCart className="w-6 h-6 text-[#96588a]" />,
+      bg: "bg-purple-50",
+      name: "WooCommerce",
+      steps: isTR
+        ? [
+            "WooCommerce → Ayarlar → Gelişmiş → REST API",
+            "\"Anahtar Ekle\" → İzinleri \"Okuma\" olarak ayarla → Oluştur",
+            "Consumer Key ve Consumer Secret'ı kopyala",
+            "J.Caesar Settings → Channels → WooCommerce → Bilgileri gir",
+          ]
+        : [
+            "WooCommerce → Settings → Advanced → REST API",
+            "\"Add Key\" → Set permissions to \"Read\" → Generate",
+            "Copy the Consumer Key and Consumer Secret",
+            "J.Caesar Settings → Channels → WooCommerce → Enter credentials",
+          ],
+    },
+    {
+      icon: <Zap className="w-6 h-6 text-amber-500" />,
+      bg: "bg-amber-50",
+      name: isTR ? "Özel API / Webhook Araçları" : "Custom API / Webhook Tools",
+      steps: isTR
+        ? [
+            "Chatbot Settings → AI Tools → \"Webhook Ekle\"",
+            "HTTP Method (GET/POST), URL ve header'ları tanımla",
+            "Dinamik parametreleri {{siparis_id}} formatında belirt",
+            "Bot konuşma sırasında bu değerleri kullanıcıdan alır ve API'yi çağırır",
+          ]
+        : [
+            "Chatbot Settings → AI Tools → \"Add Webhook\"",
+            "Define HTTP Method (GET/POST), URL, and headers",
+            "Specify dynamic parameters in {{order_id}} format",
+            "The bot collects these values from the user during conversation and calls your API",
+          ],
+    },
+  ];
+
+  const faqItems = [
+    {
+      q: isTR ? "Bot neden cevap vermiyor?" : "Why isn't the bot responding?",
+      a: isTR
+        ? "Kanalın durumunu kontrol et (Settings → Channels → CONNECTED olmalı). WhatsApp/Instagram için webhook'un doğru konfigüre edildiğinden emin ol."
+        : "Check channel status (Settings → Channels → must show CONNECTED). For WhatsApp/Instagram, ensure the webhook is correctly configured.",
+    },
+    {
+      q: isTR ? "Knowledge base nasıl güncellenir?" : "How do I update the knowledge base?",
+      a: isTR
+        ? "Chatbot Settings → Sources sekmesinden yeni kaynak ekleyebilir veya mevcut kaynağı silebilirsin. Değişiklikler otomatik olarak yeniden index'lenir."
+        : "From Chatbot Settings → Sources tab, add new sources or delete existing ones. Changes are automatically re-indexed.",
+    },
+    {
+      q: isTR ? "Mesaj limitim doldu, ne yapmalıyım?" : "My message limit is full, what should I do?",
+      a: isTR
+        ? "Settings → Billing sekmesinden planını yükselt veya ek mesaj paketi satın al. Ek kredi anında hesabına eklenir."
+        : "From Settings → Billing, upgrade your plan or purchase extra message credits. Additional credits are added to your account instantly.",
+    },
+    {
+      q: isTR ? "İnsan desteğine nasıl yönlendirilir?" : "How is handoff to a human triggered?",
+      a: isTR
+        ? "Kullanıcı 'insan ile konuşmak istiyorum' dediğinde bot otomatik olarak 'transfer_to_human' aracını çalıştırır. AI duraklar ve operatör bildirimi gelir."
+        : "When the user says they want to speak to a human, the bot automatically triggers the 'transfer_to_human' tool. AI pauses and an operator notification is sent.",
+    },
+    {
+      q: isTR ? "Birden fazla bot oluşturabilir miyim?" : "Can I create multiple bots?",
+      a: isTR
+        ? "Evet! Planınıza göre birden fazla chatbot oluşturabilirsiniz. Her bot kendi kaynakları, kanalları ve ayarlarıyla bağımsız çalışır."
+        : "Yes! Depending on your plan, you can create multiple chatbots. Each bot operates independently with its own sources, channels, and settings.",
+    },
+    {
+      q: isTR ? "Hangi dosya formatları destekleniyor?" : "Which file formats are supported?",
+      a: isTR
+        ? "PDF, TXT, DOCX formatları destekleniyor. Ayrıca web URL'si ve doğrudan metin yapıştırma da kullanılabilir."
+        : "PDF, TXT, and DOCX formats are supported. You can also use web URLs or paste text directly.",
+    },
+    {
+      q: isTR ? "Bot yanlış cevap verirse ne yapmalıyım?" : "What if the bot gives a wrong answer?",
+      a: isTR
+        ? "Sources sekmesinden ilgili kaynağı güncelle veya doğrudan Q&A kart ekle. Q&A kartları her zaman en yüksek önceliğe sahiptir."
+        : "Update the relevant source in the Sources tab or add a direct Q&A card. Q&A cards always have the highest priority.",
+    },
+    {
+      q: isTR ? "Telegram'da birden fazla bot bağlayabilir miyim?" : "Can I connect multiple Telegram bots?",
+      a: isTR
+        ? "Evet. Her chatbot için ayrı bir Telegram botu oluşturabilirsiniz. Her bot, BotFather'dan aldığı token ile ayrı bir webhook URL'ine kayıt edilir."
+        : "Yes. You can create a separate Telegram bot for each chatbot. Each bot is registered to a unique webhook URL with its BotFather token.",
+    },
+    {
+      q: isTR ? "Randevu sistemi nasıl çalışır?" : "How does the appointment system work?",
+      a: isTR
+        ? "Takvim sayfasından randevuları yönet. Google Takvim'i bağlayarak çakışma kontrolü yapabilirsin. Müşteriler booking linki üzerinden randevu alabilir."
+        : "Manage appointments from the Calendar page. Connect Google Calendar for collision detection. Customers can book through your booking link.",
+    },
+    {
+      q: isTR ? "Veri güvende mi?" : "Is my data secure?",
+      a: isTR
+        ? "Tüm API anahtarları şifrelenerek saklanır. Webhook'lar imza doğrulama ile korunur. Tüm iletişim HTTPS üzerinden gerçekleşir."
+        : "All API keys are stored encrypted. Webhooks are protected with signature verification. All communication is over HTTPS.",
+    },
+  ];
 
   return (
-    <div className="max-w-6xl mx-auto pb-40 space-y-12 animate-in fade-in duration-500">
-      
-      {/* Header Banner */}
-      <div className="relative rounded-[40px] bg-gradient-to-r from-zinc-900 to-black p-12 overflow-hidden shadow-2xl border border-zinc-800">
-        <div className="absolute top-0 right-0 w-80 h-80 bg-[radial-gradient(circle_at_70%_20%,rgba(99,102,241,0.15),transparent)] pointer-events-none" />
-        <div className="relative z-10 space-y-4 max-w-3xl">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-black uppercase tracking-widest">
-            <Sparkles className="w-3.5 h-3.5" />
-            {lang.badge}
-          </div>
-          <h1 className="text-4xl lg:text-5xl font-black text-white tracking-tight leading-none">
-            {lang.title} <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-indigo-200">{lang.subtitle}</span>
+    <div className="space-y-10 pb-20">
+      {/* Hero Header */}
+      <div className="relative rounded-[40px] overflow-hidden bg-gradient-to-br from-zinc-950 via-zinc-900 to-zinc-800 p-10 md:p-14 shadow-2xl shadow-black/20">
+        <div className="absolute top-0 right-0 w-64 h-64 rounded-full bg-blue-500/10 blur-3xl -translate-y-1/2 translate-x-1/4" />
+        <div className="absolute bottom-0 left-0 w-48 h-48 rounded-full bg-purple-500/10 blur-3xl translate-y-1/2 -translate-x-1/4" />
+        <div className="relative z-10 space-y-4">
+          <Badge className="bg-white/10 text-white border-none font-bold px-4 py-1 rounded-full text-xs">
+            <BookOpen className="w-3 h-3 mr-2" />
+            {t.badge}
+          </Badge>
+          <h1 className="text-4xl md:text-5xl font-black tracking-tight text-white leading-tight">
+            {t.title} <span className="text-blue-400">{t.subtitle}</span>
           </h1>
-          <p className="text-zinc-400 text-base font-medium leading-relaxed">
-            {lang.desc}
-          </p>
+          <p className="text-zinc-400 font-medium max-w-xl leading-relaxed">{t.desc}</p>
         </div>
       </div>
 
-      <Tabs defaultValue="overview" className="space-y-8">
-        
-        {/* Navigation Tabs */}
-        <TabsList className="bg-zinc-100 border p-1 rounded-2xl h-14 gap-2 w-full justify-start overflow-x-auto scrollbar-hide">
-          <TabsTrigger value="overview" className="rounded-xl font-bold px-5 data-[state=active]:bg-zinc-950 data-[state=active]:text-white transition-all">{lang.tabs.overview}</TabsTrigger>
-          <TabsTrigger value="rag" className="rounded-xl font-bold px-5 data-[state=active]:bg-zinc-950 data-[state=active]:text-white transition-all">{lang.tabs.rag}</TabsTrigger>
-          <TabsTrigger value="webhooks" className="rounded-xl font-bold px-5 data-[state=active]:bg-zinc-950 data-[state=active]:text-white transition-all">{lang.tabs.webhooks}</TabsTrigger>
-          <TabsTrigger value="channels" className="rounded-xl font-bold px-5 data-[state=active]:bg-zinc-950 data-[state=active]:text-white transition-all">{lang.tabs.channels}</TabsTrigger>
-          <TabsTrigger value="smtp" className="rounded-xl font-bold px-5 data-[state=active]:bg-zinc-950 data-[state=active]:text-white transition-all">{lang.tabs.smtp}</TabsTrigger>
-          <TabsTrigger value="api" className="rounded-xl font-bold px-5 data-[state=active]:bg-zinc-950 data-[state=active]:text-white transition-all">{lang.tabs.api}</TabsTrigger>
+      {/* Tabs */}
+      <Tabs defaultValue="overview">
+        <TabsList className="grid w-full grid-cols-5 rounded-2xl bg-muted/50 p-1 h-12">
+          <TabsTrigger value="overview" className="rounded-xl font-bold text-xs data-[state=active]:bg-white data-[state=active]:shadow">
+            {t.tabs.overview}
+          </TabsTrigger>
+          <TabsTrigger value="bots" className="rounded-xl font-bold text-xs data-[state=active]:bg-white data-[state=active]:shadow">
+            {t.tabs.bots}
+          </TabsTrigger>
+          <TabsTrigger value="channels" className="rounded-xl font-bold text-xs data-[state=active]:bg-white data-[state=active]:shadow">
+            {t.tabs.channels}
+          </TabsTrigger>
+          <TabsTrigger value="integrations" className="rounded-xl font-bold text-xs data-[state=active]:bg-white data-[state=active]:shadow">
+            {t.tabs.integrations}
+          </TabsTrigger>
+          <TabsTrigger value="faq" className="rounded-xl font-bold text-xs data-[state=active]:bg-white data-[state=active]:shadow">
+            {t.tabs.faq}
+          </TabsTrigger>
         </TabsList>
 
-        {/* OVERVIEW CONTENT */}
-        <TabsContent value="overview" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <Card className="rounded-[32px] border border-black/5 shadow-md bg-white p-8 space-y-4 hover:shadow-xl transition-all duration-300">
-              <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600">
-                <Bot className="w-6 h-6" />
-              </div>
-              <h3 className="text-xl font-black text-zinc-950">{lang.sections.overview.t1}</h3>
-              <p className="text-zinc-500 text-sm leading-relaxed">{lang.sections.overview.d1}</p>
-            </Card>
-
-            <Card className="rounded-[32px] border border-black/5 shadow-md bg-white p-8 space-y-4 hover:shadow-xl transition-all duration-300">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600">
-                <Database className="w-6 h-6" />
-              </div>
-              <h3 className="text-xl font-black text-zinc-950">{lang.sections.overview.t2}</h3>
-              <p className="text-zinc-500 text-sm leading-relaxed">{lang.sections.overview.d2}</p>
-            </Card>
-
-            <Card className="rounded-[32px] border border-black/5 shadow-md bg-white p-8 space-y-4 hover:shadow-xl transition-all duration-300">
-              <div className="w-12 h-12 rounded-2xl bg-violet-50 flex items-center justify-center text-violet-600">
-                <Users className="w-6 h-6" />
-              </div>
-              <h3 className="text-xl font-black text-zinc-950">{lang.sections.overview.t3}</h3>
-              <p className="text-zinc-500 text-sm leading-relaxed">{lang.sections.overview.d3}</p>
-            </Card>
-
-            <Card className="rounded-[32px] border border-black/5 shadow-md bg-white p-8 space-y-4 hover:shadow-xl transition-all duration-300">
-              <div className="w-12 h-12 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-600">
-                <Cpu className="w-6 h-6" />
-              </div>
-              <h3 className="text-xl font-black text-zinc-950">{lang.sections.overview.t4}</h3>
-              <p className="text-zinc-500 text-sm leading-relaxed">{lang.sections.overview.d4}</p>
-            </Card>
+        {/* ── GENEL BAKIŞ ── */}
+        <TabsContent value="overview" className="mt-8 space-y-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {overviewCards.map((card, i) => (
+              <Card key={i} className="rounded-[32px] border-black/5 hover:shadow-xl transition-all duration-300">
+                <CardContent className="p-8 flex gap-5">
+                  <div className={`w-12 h-12 rounded-2xl ${card.bg} flex items-center justify-center shrink-0`}>
+                    {card.icon}
+                  </div>
+                  <div className="space-y-1.5">
+                    <h3 className="font-black text-zinc-900">{card.title}</h3>
+                    <p className="text-sm text-muted-foreground font-medium leading-relaxed">{card.desc}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
-        </TabsContent>
 
-        {/* AI TRAINING & RAG CONTENT */}
-        <TabsContent value="rag" className="space-y-6">
-          <Card className="rounded-[32px] border border-black/5 shadow-lg bg-white p-8 space-y-6">
-            <div>
-              <h3 className="text-2xl font-black text-zinc-950">{lang.sections.rag.title}</h3>
-              <p className="text-zinc-500 text-sm mt-1">{lang.sections.rag.desc}</p>
-            </div>
-            
-            <div className="space-y-4 text-sm text-zinc-600">
-              {lang.sections.rag.steps.map((step: any, idx: number) => (
-                <div key={idx} className="p-6 rounded-2xl bg-zinc-50 border border-zinc-100 space-y-2">
-                  <h4 className="font-black text-zinc-800 text-base flex items-center gap-2">
-                    <CheckCircle className="w-5 h-5 text-indigo-600" />
-                    {step.title}
-                  </h4>
-                  <p className="leading-relaxed pl-7">{step.content}</p>
-                </div>
-              ))}
-            </div>
+          <Card className="rounded-[32px] border-black/5 bg-gradient-to-br from-blue-50 to-indigo-50">
+            <CardContent className="p-8 space-y-4">
+              <div className="flex items-center gap-3">
+                <Sparkles className="w-5 h-5 text-blue-500" />
+                <h3 className="font-black text-zinc-900 text-lg">
+                  {isTR ? "J.Caesar ile neler yapabilirsiniz?" : "What can you do with J.Caesar?"}
+                </h3>
+              </div>
+              <div className="grid sm:grid-cols-2 gap-3">
+                {(isTR
+                  ? [
+                      "7/24 otomatik müşteri hizmeti",
+                      "WhatsApp, Instagram, Telegram'da AI bot",
+                      "Shopify & WooCommerce sipariş takibi",
+                      "Google Takvim entegrasyonu ile randevu",
+                      "CRM — müşteri kaydı ve kanban görünümü",
+                      "Özel API araçları ile harici veri çekme",
+                    ]
+                  : [
+                      "24/7 automated customer service",
+                      "AI bot on WhatsApp, Instagram, Telegram",
+                      "Shopify & WooCommerce order tracking",
+                      "Google Calendar-integrated scheduling",
+                      "CRM — lead capture and kanban view",
+                      "Custom API tools to pull external data",
+                    ]
+                ).map((item, i) => (
+                  <div key={i} className="flex items-center gap-2 text-sm font-medium text-zinc-700">
+                    <CheckCircle className="w-4 h-4 text-blue-500 shrink-0" />
+                    {item}
+                  </div>
+                ))}
+              </div>
+            </CardContent>
           </Card>
         </TabsContent>
 
-        {/* CUSTOM API CONTENT */}
-        <TabsContent value="webhooks" className="space-y-6">
-          <Card className="rounded-[32px] border border-black/5 shadow-lg bg-white p-8 space-y-6">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">
-                <Terminal className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="text-2xl font-black text-zinc-950">{lang.sections.webhooks.title}</h3>
-                <p className="text-zinc-500 text-sm">{lang.sections.webhooks.desc}</p>
-              </div>
-            </div>
+        {/* ── BOT OLUŞTURMA ── */}
+        <TabsContent value="bots" className="mt-8 space-y-6">
+          <div className="space-y-4">
+            {botSteps.map((step, i) => (
+              <Card key={i} className="rounded-[28px] border-black/5 hover:shadow-lg transition-all duration-300">
+                <CardContent className="p-7 flex gap-6 items-start">
+                  <div className="w-14 h-14 rounded-2xl bg-zinc-950 text-white flex items-center justify-center font-black text-lg shrink-0">
+                    {step.num}
+                  </div>
+                  <div className="space-y-1 pt-1">
+                    <h3 className="font-black text-zinc-900 text-base">{step.title}</h3>
+                    <p className="text-sm text-muted-foreground font-medium leading-relaxed">{step.desc}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
 
-            <div className="space-y-6 text-sm text-zinc-600">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="p-6 rounded-2xl bg-zinc-50 border border-zinc-100 space-y-2">
-                  <h4 className="font-bold text-zinc-800">{lang.sections.webhooks.step1}</h4>
-                  <p className="text-zinc-500">{lang.sections.webhooks.step1_d}</p>
+          <Card className="rounded-[28px] border-amber-100 bg-amber-50">
+            <CardContent className="p-6 flex gap-4">
+              <AlertCircle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <p className="font-bold text-amber-900 text-sm">
+                  {isTR ? "İpucu: Sistem Promptu" : "Tip: System Prompt"}
+                </p>
+                <p className="text-sm text-amber-800 font-medium leading-relaxed">
+                  {isTR
+                    ? "Bot talimatlarına (sistem promptu) iş alanını, yanıt tonunu ve ne yapmaması gerektiğini açıkça yaz. Örn: \"Sen bir e-ticaret asistanısın. Politika dışı konularda yorum yapma.\""
+                    : "In the bot instructions (system prompt), clearly state the business context, response tone, and what it should NOT do. Example: \"You are an e-commerce assistant. Do not comment on off-topic subjects.\""}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ── KANALLAR ── */}
+        <TabsContent value="channels" className="mt-8 space-y-6">
+          {channelGuides.map((guide, i) => (
+            <Card key={i} className="rounded-[32px] border-black/5 hover:shadow-xl transition-all duration-300">
+              <CardHeader className="p-7 pb-4">
+                <div className="flex items-center gap-4">
+                  <div className={`w-12 h-12 rounded-2xl ${guide.bg} flex items-center justify-center`}>
+                    {guide.icon}
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <CardTitle className="text-lg font-black">{guide.name}</CardTitle>
+                    <Badge className="bg-zinc-100 text-zinc-600 border-none font-bold rounded-lg text-xs">
+                      {guide.badge}
+                    </Badge>
+                  </div>
                 </div>
-
-                <div className="p-6 rounded-2xl bg-zinc-50 border border-zinc-100 space-y-2">
-                  <h4 className="font-bold text-zinc-800">{lang.sections.webhooks.step2}</h4>
-                  <p className="text-zinc-500">{lang.sections.webhooks.step2_d}</p>
-                </div>
-              </div>
-
-              <div className="bg-zinc-950 text-zinc-200 p-6 rounded-2xl font-mono text-xs space-y-4">
-                <div>
-                  <span className="text-indigo-400">{lang.sections.webhooks.format}</span>
-                  <pre className="mt-2 text-zinc-400">{`{
-  "status": "success",
-  "data": {
-    "orderId": "TR-1982",
-    "deliveryDate": "2026-05-22",
-    "carrier": "Aras Kargo"
-  }
-}`}</pre>
-                </div>
-              </div>
-
-              <div className="p-6 rounded-2xl bg-amber-50 border border-amber-100 text-amber-900 space-y-3">
-                <h5 className="font-black flex items-center gap-2">
-                  <Lock className="w-5 h-5 text-amber-600" />
-                  {lang.sections.webhooks.security}
-                </h5>
-                <ul className="list-disc list-inside space-y-2 text-xs font-medium">
-                  {lang.sections.webhooks.sec_items.map((sec: string, i: number) => (
-                    <li key={i}>{sec}</li>
+              </CardHeader>
+              <CardContent className="px-7 pb-7">
+                <ol className="space-y-3">
+                  {guide.steps.map((step, j) => (
+                    <li key={j} className="flex items-start gap-3 text-sm text-zinc-700 font-medium">
+                      <span className="w-5 h-5 rounded-full bg-zinc-100 text-zinc-500 text-[10px] font-black flex items-center justify-center shrink-0 mt-0.5">
+                        {j + 1}
+                      </span>
+                      {step}
+                    </li>
                   ))}
-                </ul>
+                </ol>
+              </CardContent>
+            </Card>
+          ))}
+        </TabsContent>
+
+        {/* ── ENTEGRASYONLAR ── */}
+        <TabsContent value="integrations" className="mt-8 space-y-6">
+          {integrationGuides.map((guide, i) => (
+            <Card key={i} className="rounded-[32px] border-black/5 hover:shadow-xl transition-all duration-300">
+              <CardHeader className="p-7 pb-4">
+                <div className="flex items-center gap-4">
+                  <div className={`w-12 h-12 rounded-2xl ${guide.bg} flex items-center justify-center`}>
+                    {guide.icon}
+                  </div>
+                  <CardTitle className="text-lg font-black">{guide.name}</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="px-7 pb-7">
+                <ol className="space-y-3">
+                  {guide.steps.map((step, j) => (
+                    <li key={j} className="flex items-start gap-3 text-sm text-zinc-700 font-medium">
+                      <span className="w-5 h-5 rounded-full bg-zinc-100 text-zinc-500 text-[10px] font-black flex items-center justify-center shrink-0 mt-0.5">
+                        {j + 1}
+                      </span>
+                      {step}
+                    </li>
+                  ))}
+                </ol>
+              </CardContent>
+            </Card>
+          ))}
+
+          <Card className="rounded-[28px] border-blue-100 bg-blue-50">
+            <CardContent className="p-6 flex gap-4">
+              <Package className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <p className="font-bold text-blue-900 text-sm">
+                  {isTR ? "Trendyol Entegrasyonu" : "Trendyol Integration"}
+                </p>
+                <p className="text-sm text-blue-800 font-medium leading-relaxed">
+                  {isTR
+                    ? "Trendyol mağazanı bağlamak için Settings → Channels → Trendyol sayfasından Satıcı ID, API Anahtarı ve API Şifreni gir. Bot sipariş sorgulama ve ürün araması yapabilir."
+                    : "To connect your Trendyol store, go to Settings → Channels → Trendyol and enter your Supplier ID, API Key, and API Secret. The bot can then query orders and search products."}
+                </p>
               </div>
-            </div>
+            </CardContent>
           </Card>
         </TabsContent>
 
-        {/* CRM, SHOPIFY, CHANNELS CONTENT */}
-        <TabsContent value="channels" className="space-y-6">
-          <Card className="rounded-[32px] border border-black/5 shadow-lg bg-white p-8 space-y-6">
-            <div>
-              <h3 className="text-2xl font-black text-zinc-950">{lang.sections.channels.title}</h3>
-              <p className="text-zinc-500 text-sm mt-1">{lang.sections.channels.desc}</p>
-            </div>
+        {/* ── SSS ── */}
+        <TabsContent value="faq" className="mt-8 space-y-4">
+          <div className="space-y-3">
+            {faqItems.map((item, i) => (
+              <Card key={i} className="rounded-[24px] border-black/5 hover:shadow-lg transition-all duration-300">
+                <CardContent className="p-6 space-y-2">
+                  <div className="flex items-start gap-3">
+                    <HelpCircle className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
+                    <p className="font-black text-zinc-900 text-sm">{item.q}</p>
+                  </div>
+                  <div className="pl-7">
+                    <p className="text-sm text-muted-foreground font-medium leading-relaxed">{item.a}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
 
-            <div className="space-y-6">
-              <div className="p-6 rounded-2xl bg-zinc-50 border border-zinc-100 space-y-2">
-                <h4 className="font-black text-zinc-800 flex items-center gap-2">
-                  <Globe className="w-5 h-5 text-indigo-600" />
-                  {lang.sections.channels.woo}
-                </h4>
-                <p className="text-zinc-500 text-sm pl-7">{lang.sections.channels.woo_d}</p>
-              </div>
-
-              <div className="p-6 rounded-2xl bg-zinc-50 border border-zinc-100 space-y-2">
-                <h4 className="font-black text-zinc-800 flex items-center gap-2">
-                  <Sparkles className="w-5 h-5 text-purple-600" />
-                  {lang.sections.channels.shopify}
-                </h4>
-                <p className="text-zinc-500 text-sm pl-7">{lang.sections.channels.shopify_d}</p>
-              </div>
-
-              <div className="p-6 rounded-2xl bg-zinc-50 border border-zinc-100 space-y-2">
-                <h4 className="font-black text-zinc-800 flex items-center gap-2">
-                  <Users className="w-5 h-5 text-emerald-600" />
-                  {lang.sections.channels.social}
-                </h4>
-                <p className="text-zinc-500 text-sm pl-7">{lang.sections.channels.social_d}</p>
-              </div>
-            </div>
+          <Card className="rounded-[28px] border-zinc-100 bg-zinc-950 text-white">
+            <CardContent className="p-8 text-center space-y-4">
+              <h3 className="font-black text-xl">
+                {isTR ? "Hâlâ sorunuz mu var?" : "Still have questions?"}
+              </h3>
+              <p className="text-zinc-400 font-medium text-sm">
+                {isTR
+                  ? "Destek ekibimize ulaşın veya chatbot'unuzu açarak denemeye başlayın."
+                  : "Contact our support team or start experimenting with your chatbot."}
+              </p>
+              <a
+                href="mailto:support@jcaesars.com"
+                className="inline-flex items-center gap-2 bg-white text-zinc-900 font-black text-sm px-6 py-3 rounded-2xl hover:bg-zinc-100 transition-colors"
+              >
+                <ArrowRight className="w-4 h-4" />
+                support@jcaesars.com
+              </a>
+            </CardContent>
           </Card>
         </TabsContent>
-
-        {/* SMTP & MAIL ALERTING CONTENT */}
-        <TabsContent value="smtp" className="space-y-6">
-          <Card className="rounded-[32px] border border-black/5 shadow-lg bg-white p-8 space-y-6">
-            <div>
-              <h3 className="text-2xl font-black text-zinc-950">{lang.sections.smtp.title}</h3>
-              <p className="text-zinc-500 text-sm mt-1">{lang.sections.smtp.desc}</p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-sm text-zinc-600">
-              <div className="space-y-3">
-                <h4 className="font-bold text-zinc-800 flex items-center gap-2">
-                  <Settings className="w-5 h-5 text-indigo-500" /> {lang.sections.smtp.smtp_title}
-                </h4>
-                <p className="leading-relaxed">{lang.sections.smtp.smtp_d}</p>
-              </div>
-
-              <div className="space-y-3">
-                <h4 className="font-bold text-zinc-800 flex items-center gap-2">
-                  <Mail className="w-5 h-5 text-amber-500" /> {lang.sections.smtp.limits}
-                </h4>
-                <p className="leading-relaxed">{lang.sections.smtp.limits_d}</p>
-              </div>
-            </div>
-          </Card>
-        </TabsContent>
-
-        {/* DETAILED REST API & INSTAGRAM TROUBLESHOOTING */}
-        <TabsContent value="api" className="space-y-6">
-          <Card className="rounded-[32px] border border-black/5 shadow-lg bg-white p-8 space-y-6">
-            <div>
-              <h3 className="text-2xl font-black text-zinc-950">{lang.sections.api.title}</h3>
-              <p className="text-zinc-500 text-sm mt-1">{lang.sections.api.desc}</p>
-            </div>
-
-            {/* Outbound Messaging API */}
-            <div className="space-y-4 p-6 rounded-2xl bg-zinc-50 border border-zinc-100 text-sm text-zinc-600">
-              <h4 className="font-black text-zinc-950 text-base">{lang.sections.api.sendMsgTitle}</h4>
-              <p className="text-zinc-500">{lang.sections.api.sendMsgDesc}</p>
-              <div className="flex gap-2 items-center bg-zinc-900 text-zinc-200 px-3 py-1.5 rounded-lg w-max font-mono text-xs">
-                <Badge variant="outline" className="bg-indigo-900/50 text-indigo-300 border-indigo-700/50">POST</Badge>
-                <span>/api/conversations/&#123;id&#125;/messages</span>
-              </div>
-              
-              <Tabs defaultValue="curl" className="w-full">
-                <TabsList className="bg-zinc-200/50 p-0.5 rounded-lg h-9 gap-1">
-                  <TabsTrigger value="curl" className="text-xs rounded-md h-8 px-3">cURL</TabsTrigger>
-                  <TabsTrigger value="js" className="text-xs rounded-md h-8 px-3">JavaScript</TabsTrigger>
-                  <TabsTrigger value="py" className="text-xs rounded-md h-8 px-3">Python</TabsTrigger>
-                </TabsList>
-                <TabsContent value="curl" className="bg-zinc-950 text-zinc-300 p-4 rounded-xl font-mono text-xs overflow-x-auto mt-2 leading-relaxed">
-                  {`curl -X POST "https://jcaesars.com/api/conversations/cmpyj3o9l0009ny01rv9ckmt6/messages" \\
-  -H "Content-Type: application/json" \\
-  -d '{"content": "Merhaba, siparişiniz başarıyla kargoya verildi."}'`}
-                </TabsContent>
-                <TabsContent value="js" className="bg-zinc-950 text-zinc-300 p-4 rounded-xl font-mono text-xs overflow-x-auto mt-2 leading-relaxed">
-                  {`fetch("https://jcaesars.com/api/conversations/cmpyj3o9l0009ny01rv9ckmt6/messages", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    content: "Merhaba, siparişiniz başarıyla kargoya verildi."
-  })
-})
-.then(res => res.json())
-.then(data => console.log(data));`}
-                </TabsContent>
-                <TabsContent value="py" className="bg-zinc-950 text-zinc-300 p-4 rounded-xl font-mono text-xs overflow-x-auto mt-2 leading-relaxed">
-                  {`import requests
-
-url = "https://jcaesars.com/api/conversations/cmpyj3o9l0009ny01rv9ckmt6/messages"
-payload = {"content": "Merhaba, siparişiniz başarıyla kargoya verildi."}
-response = requests.post(url, json=payload)
-print(response.json())`}
-                </TabsContent>
-              </Tabs>
-            </div>
-
-            {/* CRM Contact API */}
-            <div className="space-y-4 p-6 rounded-2xl bg-zinc-50 border border-zinc-100 text-sm text-zinc-600">
-              <h4 className="font-black text-zinc-950 text-base">{lang.sections.api.crmTitle}</h4>
-              <p className="text-zinc-500">{lang.sections.api.crmDesc}</p>
-              <div className="flex gap-2 items-center bg-zinc-900 text-zinc-200 px-3 py-1.5 rounded-lg w-max font-mono text-xs">
-                <Badge variant="outline" className="bg-indigo-900/50 text-indigo-300 border-indigo-700/50">POST</Badge>
-                <span>/api/crm/contacts</span>
-              </div>
-              
-              <Tabs defaultValue="curl-crm" className="w-full">
-                <TabsList className="bg-zinc-200/50 p-0.5 rounded-lg h-9 gap-1">
-                  <TabsTrigger value="curl-crm" className="text-xs rounded-md h-8 px-3">cURL</TabsTrigger>
-                  <TabsTrigger value="js-crm" className="text-xs rounded-md h-8 px-3">JavaScript</TabsTrigger>
-                  <TabsTrigger value="py-crm" className="text-xs rounded-md h-8 px-3">Python</TabsTrigger>
-                </TabsList>
-                <TabsContent value="curl-crm" className="bg-zinc-950 text-zinc-300 p-4 rounded-xl font-mono text-xs overflow-x-auto mt-2 leading-relaxed">
-                  {`curl -X POST "https://jcaesars.com/api/crm/contacts" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "name": "Ahmet Yılmaz",
-    "email": "ahmet@domain.com",
-    "phone": "+905551234567",
-    "notes": "Premium Müşteri",
-    "externalId": "user_9921"
-  }'`}
-                </TabsContent>
-                <TabsContent value="js-crm" className="bg-zinc-950 text-zinc-300 p-4 rounded-xl font-mono text-xs overflow-x-auto mt-2 leading-relaxed">
-                  {`fetch("https://jcaesars.com/api/crm/contacts", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    name: "Ahmet Yılmaz",
-    email: "ahmet@domain.com",
-    phone: "+905551234567",
-    notes: "Premium Müşteri",
-    externalId: "user_9921"
-  })
-})
-.then(res => res.json())
-.then(data => console.log(data));`}
-                </TabsContent>
-                <TabsContent value="py-crm" className="bg-zinc-950 text-zinc-300 p-4 rounded-xl font-mono text-xs overflow-x-auto mt-2 leading-relaxed">
-                  {`import requests
-
-url = "https://jcaesars.com/api/crm/contacts"
-payload = {
-    "name": "Ahmet Yılmaz",
-    "email": "ahmet@domain.com",
-    "phone": "+905551234567",
-    "notes": "Premium Müşteri",
-    "externalId": "user_9921"
-}
-response = requests.post(url, json=payload)
-print(response.json())`}
-                </TabsContent>
-              </Tabs>
-            </div>
-
-            {/* Instagram Troubleshooting Guide */}
-            <div className="p-6 rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-900 space-y-4">
-              <h4 className="font-black flex items-center gap-2 text-base">
-                <CheckCircle className="w-5 h-5 text-indigo-600" />
-                {lang.sections.api.igTitle}
-              </h4>
-              <p className="text-sm font-medium text-indigo-800">{lang.sections.api.igDesc}</p>
-              
-              <ul className="space-y-3 text-xs font-semibold pl-4">
-                <li className="list-decimal leading-relaxed">
-                  <span className="text-zinc-900 font-bold block mb-0.5">1. Instagram Mobil Uygulamasında Mesaj Erişimi (Kritik)</span>
-                  Instagram mobil uygulamasını açın: <span className="font-mono bg-indigo-100/80 px-1 rounded text-indigo-900">Ayarlar & Gizlilik &gt; Mesajlar ve Hikaye Yanıtları &gt; Mesaj Kontrolleri</span> yolunu izleyin ve en altta bulunan <span className="font-bold underline text-indigo-950">"Mesajlara Erişime İzin Ver" (Allow Access to Messages)</span> seçeneğini aktif konuma getirin. Bu seçenek kapalıyken webhooks çalışmaz.
-                </li>
-                <li className="list-decimal leading-relaxed">
-                  <span className="text-zinc-900 font-bold block mb-0.5">2. Meta Uygulama Canlı Modu (Live Mode)</span>
-                  Meta Developer paneline giderek uygulamanızın durumunu kontrol edin. Geliştirme modundaki uygulamalarda webhook olayları yalnızca Meta panelindeki "Roller" sekmesine eklediğiniz Admin/Tester hesapları için tetiklenir. Normal kullanıcılar için canlı modu aktif etmelisiniz.
-                </li>
-                <li className="list-decimal leading-relaxed">
-                  <span className="text-zinc-900 font-bold block mb-0.5">3. Facebook Login Sırasında Yetki Kapsamı</span>
-                  Instagram bağlantısını sağlarken Facebook Login penceresinde karşınıza gelen tüm sayfa ve Instagram hesaplarını işaretlediğinizden emin olun. Herhangi bir sayfayı dışarıda bırakmak jeton yetkisini kısıtlar.
-                </li>
-                <li className="list-decimal leading-relaxed">
-                  <span className="text-zinc-900 font-bold block mb-0.5">4. İzinleri ve Bağlantıyı Yenileme</span>
-                  Token geçerliliğinin kaybolması veya Facebook şifre değişikliği durumlarında J.Caesar kanal ayarlarından Instagram kanalını silip baştan bağlayarak en güncel Page Token'ı sisteme yükleyin.
-                </li>
-              </ul>
-            </div>
-          </Card>
-        </TabsContent>
-
       </Tabs>
     </div>
   );
 }
-

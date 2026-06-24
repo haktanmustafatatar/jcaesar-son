@@ -64,3 +64,42 @@ export async function getWooProduct(config: WooCommerceConfig, productId: string
     return null;
   }
 }
+
+export async function getWooOrdersByEmail(config: WooCommerceConfig, email: string) {
+  try {
+    const { baseUrl, consumerKey, consumerSecret } = config;
+    const auth = Buffer.from(`${consumerKey}:${consumerSecret}`).toString("base64");
+    
+    const url = `${baseUrl}/wp-json/wc/v3/orders?email=${encodeURIComponent(email)}`;
+    
+    const response = await fetch(url, {
+      headers: {
+        "Authorization": `Basic ${auth}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`WooCommerce API error: ${response.statusText}`);
+    }
+
+    const orders = await response.json();
+    return orders.map((o: any) => ({
+      id: o.id,
+      number: o.number,
+      status: o.status,
+      date_created: o.date_created,
+      total: o.total,
+      currency: o.currency,
+      line_items: o.line_items.map((item: any) => ({
+        name: item.name,
+        quantity: item.quantity,
+        price: item.price
+      })),
+      shipping: o.shipping
+    }));
+  } catch (error) {
+    console.error("[WooCommerceIntegration] Get orders failed:", error);
+    return [];
+  }
+}

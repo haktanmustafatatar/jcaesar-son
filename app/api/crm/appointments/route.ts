@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { addNotificationJob } from "@/lib/queue";
+import { decrypt } from "@/lib/crypto";
+import { google } from "googleapis";
+import { sendEmail } from "@/lib/email";
+import crypto from "crypto";
 
 export async function GET() {
   try {
@@ -113,13 +117,49 @@ export async function POST(req: NextRequest) {
     const conflictingCount = await prisma.appointment.count({
       where: {
         chatbotId,
+        status: { not: "CANCELLED" },
         startTime: { lt: slotEnd },
         endTime: { gt: appDate }
       }
     });
 
+    // Check GCal events collision
+    const channel = await prisma.channel.findFirst({
+      where: { chatbotId, type: "GOOGLE_CALENDAR", status: "CONNECTED" }
+    });
+
+    let gcalOverlaps = 0;
+    if (channel) {
+      try {
+        const decrypted = decrypt(channel.config as string);
+        const config = JSON.parse(decrypted);
+
+        const oauth2Client = new google.auth.OAuth2(
+          config.clientId || process.env.GOOGLE_CLIENT_ID,
+          config.clientSecret || process.env.GOOGLE_CLIENT_SECRET
+        );
+
+        oauth2Client.setCredentials({
+          refresh_token: config.refreshToken
+        });
+
+        const calendar = google.calendar({ version: "v3", auth: oauth2Client });
+        const response = await calendar.events.list({
+          calendarId: "primary",
+          timeMin: appDate.toISOString(),
+          timeMax: slotEnd.toISOString(),
+          singleEvents: true
+        });
+        gcalOverlaps = (response.data.items || []).length;
+      } catch (err) {
+        console.error("[GCalCollisionCheck] Failed to check:", err);
+      }
+    }
+
+    const totalOverlaps = conflictingCount + gcalOverlaps;
+
     const maxCapacity = activeStaff.length > 0 ? activeStaff.length : staffCapacity;
-    if (conflictingCount >= maxCapacity) {
+    if (totalOverlaps >= maxCapacity) {
       return NextResponse.json({ error: "Seçilen saat diliminde tüm çalışanlarımız doludur. Lütfen başka bir saat seçiniz." }, { status: 400 });
     }
 
@@ -127,6 +167,7 @@ export async function POST(req: NextRequest) {
     const busyStaffIds = (await prisma.appointment.findMany({
       where: {
         chatbotId,
+        status: { not: "CANCELLED" },
         startTime: { lt: slotEnd },
         endTime: { gt: appDate },
         staffId: { not: null }
@@ -140,10 +181,49 @@ export async function POST(req: NextRequest) {
     // Find contact if email provided
     let contactId = null;
     if (contactEmail) {
-      const contact = await (prisma as any).crmContact.findFirst({
+      const contact = await prisma.crmContact.findFirst({
         where: { email: contactEmail, chatbotId }
       });
       contactId = contact?.id;
+    }
+
+    // Generate cancellation token
+    const cancelToken = crypto.randomUUID();
+
+    // Create event on Google Calendar if channel is connected
+    let gcalEventId = null;
+    if (channel) {
+      try {
+        const decrypted = decrypt(channel.config as string);
+        const config = JSON.parse(decrypted);
+
+        const oauth2Client = new google.auth.OAuth2(
+          config.clientId || process.env.GOOGLE_CLIENT_ID,
+          config.clientSecret || process.env.GOOGLE_CLIENT_SECRET
+        );
+
+        oauth2Client.setCredentials({
+          refresh_token: config.refreshToken
+        });
+
+        const calendar = google.calendar({ version: "v3", auth: oauth2Client });
+        const response = await calendar.events.insert({
+          calendarId: "primary",
+          requestBody: {
+            summary: title,
+            description: description || "Dashboard scheduled appointment.",
+            start: {
+              dateTime: appDate.toISOString(),
+            },
+            end: {
+              dateTime: slotEnd.toISOString(),
+            },
+          },
+        });
+        gcalEventId = response.data.id;
+      } catch (err) {
+        console.error("[GCalCreate] Failed to write event:", err);
+      }
     }
 
     const appointment = await prisma.appointment.create({
@@ -157,6 +237,8 @@ export async function POST(req: NextRequest) {
         endTime: slotEnd,
         price: Number(price) || 0,
         paymentStatus: Number(price) > 0 ? "UNPAID" : "PAID",
+        cancelToken,
+        gcalEventId
       },
       include: {
         contact: true,
@@ -164,6 +246,44 @@ export async function POST(req: NextRequest) {
         staff: true
       }
     });
+
+    // Send confirmation email
+    if (contactEmail) {
+      const cancelLink = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/booking/cancel/${cancelToken}`;
+      sendEmail({
+        to: contactEmail,
+        subject: `Randevunuz Onaylandı: ${title}`,
+        html: `
+          <div style="font-family: sans-serif; padding: 24px; max-width: 600px; border: 1px solid #eaeaea; border-radius: 16px;">
+            <h2 style="color: #4f46e5; margin-bottom: 16px;">Randevunuz Onaylandı</h2>
+            <p style="font-size: 15px; color: #374151; line-height: 1.6;">
+              Merhaba, <strong>${title}</strong> randevunuz başarıyla oluşturuldu ve onaylandı.
+            </p>
+            <div style="background-color: #f9fafb; padding: 16px; border-radius: 8px; margin: 24px 0; border-left: 4px solid #4f46e5;">
+              <p style="margin: 0 0 8px 0; font-size: 14px; color: #4b5563;">
+                <strong>Tarih:</strong> ${appDate.toLocaleDateString("tr-TR")}
+              </p>
+              <p style="margin: 0 0 8px 0; font-size: 14px; color: #4b5563;">
+                <strong>Saat:</strong> ${appDate.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })} - ${slotEnd.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })}
+              </p>
+              <p style="margin: 0; font-size: 14px; color: #4b5563;">
+                <strong>Açıklama:</strong> ${description || "-"}
+              </p>
+            </div>
+            <p style="font-size: 13px; color: #6b7280; line-height: 1.5; margin-bottom: 24px;">
+              Eğer randevu planınız değişirse, aşağıdaki butona tıklayarak randevunuzu anında iptal edebilirsiniz.
+            </p>
+            <a href="${cancelLink}" 
+               style="display: inline-block; background-color: #ef4444; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 14px;">
+              Randevuyu İptal Et
+            </a>
+            <p style="font-size: 12px; color: #9ca3af; margin-top: 32px; border-top: 1px solid #eaeaea; padding-top: 16px;">
+              Bu otomatik bir e-postadır. J.Caesar Agent.
+            </p>
+          </div>
+        `
+      }).catch(err => console.error("Failed to send booking email:", err));
+    }
 
     // Schedule automated reminder if contact exists
     if (appointment.chatbot) {

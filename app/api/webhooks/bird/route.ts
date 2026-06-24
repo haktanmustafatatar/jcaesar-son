@@ -102,13 +102,25 @@ export async function POST(req: NextRequest) {
     const contactPhone = platform === "whatsapp" ? senderId : null;
 
     console.log(`[BirdWebhook] Contact info: name=${contactName}, annotations=${JSON.stringify(payload.sender?.contact?.annotations)}`);
+
+    const birdAttachments = [];
+    if (payload.body?.type === "IMAGE" && payload.body?.image?.url) {
+      birdAttachments.push({ type: "image", url: payload.body.image.url });
+    } else if (payload.body?.type === "VIDEO" && payload.body?.video?.url) {
+      birdAttachments.push({ type: "video", url: payload.body.video.url });
+    } else if (payload.body?.type === "DOCUMENT" && payload.body?.document?.url) {
+      birdAttachments.push({ type: "document", url: payload.body.document.url });
+    } else if (payload.body?.type === "AUDIO" && payload.body?.audio?.url) {
+      birdAttachments.push({ type: "audio", url: payload.body.audio.url });
+    }
+
     await channelQueue.add("process-inbound", {
       type: "inbound",
       chatbotId: channel.chatbotId,
       channel: platform,
       recipientId: senderId,
       message: text,
-      attachments: [],
+      attachments: birdAttachments,
       platformMetadata: { messageId, event, birdConnectorId: receiverConnectorId },
       contactInfo: { contactName, contactPhone }
     });

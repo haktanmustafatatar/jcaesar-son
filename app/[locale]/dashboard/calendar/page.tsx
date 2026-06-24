@@ -17,7 +17,8 @@ import {
   Users,
   Briefcase,
   Sliders,
-  DollarSign
+  DollarSign,
+  Copy
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -85,13 +86,9 @@ export default function UserCalendarPage() {
   const [isSaving, setIsSaving] = useState(false);
 
   const [selectedChatbotFilter, setSelectedChatbotFilter] = useState<string>("ALL");
-  const [isGCalConnected, setIsGCalConnected] = useState(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("jcaesar_gcal_connected") === "true";
-    }
-    return false;
-  });
+  const [isGCalConnected, setIsGCalConnected] = useState(false);
   const [isGCalLoading, setIsGCalLoading] = useState(false);
+  const [calendarView, setCalendarView] = useState<"month" | "week" | "day">("month");
 
   const filteredAppointments = selectedChatbotFilter === "ALL"
     ? appointments
@@ -99,19 +96,40 @@ export default function UserCalendarPage() {
 
   const totalRevenue = filteredAppointments.reduce((acc, app) => acc + (app.price || 0), 0);
 
-  const handleToggleGCal = () => {
+  const handleToggleGCal = async () => {
+    if (!activeChatbotId) {
+      toast.error("Lütfen önce bir sohbet botu seçin.");
+      return;
+    }
+
     setIsGCalLoading(true);
-    setTimeout(() => {
-      setIsGCalLoading(false);
-      const nextState = !isGCalConnected;
-      setIsGCalConnected(nextState);
-      localStorage.setItem("jcaesar_gcal_connected", String(nextState));
-      if (nextState) {
-        toast.success("Google Calendar başarıyla bağlandı!");
+    try {
+      if (isGCalConnected) {
+        // Disconnect
+        const res = await fetch(`/api/integrations/google/status?chatbotId=${activeChatbotId}`, {
+          method: "DELETE"
+        });
+        if (res.ok) {
+          setIsGCalConnected(false);
+          toast.success("Google Calendar bağlantısı kesildi.");
+        } else {
+          toast.error("Bağlantı kesilemedi.");
+        }
       } else {
-        toast.success("Google Calendar bağlantısı kesildi.");
+        // Connect
+        const res = await fetch(`/api/integrations/google/authorize?chatbotId=${activeChatbotId}`);
+        const data = await res.json();
+        if (data.url) {
+          window.location.href = data.url;
+        } else {
+          toast.error(data.error || "OAuth adresi alınamadı.");
+        }
       }
-    }, 1200);
+    } catch (err) {
+      toast.error("Bir hata oluştu.");
+    } finally {
+      setIsGCalLoading(false);
+    }
   };
 
   // Scheduling Configurations state
@@ -182,6 +200,16 @@ export default function UserCalendarPage() {
         if (data) setSchedSettings(data);
       })
       .catch(() => {});
+
+    // Fetch Google Calendar status
+    setIsGCalLoading(true);
+    fetch(`/api/integrations/google/status?chatbotId=${activeChatbotId}`)
+      .then(res => res.json())
+      .then(data => {
+        setIsGCalConnected(!!data.connected);
+      })
+      .catch(() => {})
+      .finally(() => setIsGCalLoading(false));
   }, [activeChatbotId]);
 
   const handleSaveSettings = async () => {
@@ -393,6 +421,140 @@ export default function UserCalendarPage() {
     return <div className="bg-white rounded-[40px] border border-zinc-200 shadow-sm overflow-hidden">{rows}</div>;
   };
 
+  const renderWeekView = () => {
+    const startOfWeekDate = startOfWeek(selectedDate, { weekStartsOn: 1 });
+    const weekDays = Array.from({ length: 7 }).map((_, i) => addDays(startOfWeekDate, i));
+    const hours = Array.from({ length: 13 }).map((_, i) => 8 + i); // 08:00 to 20:00
+
+    return (
+      <div className="bg-white rounded-[40px] border border-zinc-200 shadow-sm overflow-hidden text-left">
+        <div className="grid grid-cols-8 border-b border-zinc-100 bg-zinc-50/50">
+          <div className="p-4 border-r border-zinc-100 font-black text-[10px] uppercase text-zinc-400 flex items-center justify-center">Saat</div>
+          {weekDays.map((day, idx) => {
+            const isToday = isSameDay(day, new Date());
+            return (
+              <div key={idx} className="p-4 border-r border-zinc-100 last:border-0 text-center flex flex-col items-center justify-center">
+                <span className="text-[10px] font-black uppercase text-zinc-400">{format(day, "E", { locale: dateLocale })}</span>
+                <span className={`text-sm font-black w-7 h-7 flex items-center justify-center rounded-lg mt-1 ${isToday ? "bg-primary text-white" : "text-zinc-950"}`}>
+                  {format(day, "d")}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+        
+        <div className="divide-y divide-zinc-100">
+          {hours.map((hour) => {
+            const timeString = `${String(hour).padStart(2, "0")}:00`;
+            return (
+              <div key={hour} className="grid grid-cols-8">
+                <div className="p-3 border-r border-zinc-100 font-bold text-xs text-zinc-500 flex items-center justify-center bg-zinc-50/20">{timeString}</div>
+                {weekDays.map((day, dIdx) => {
+                  const cellAppointments = filteredAppointments.filter(app => {
+                    const appStart = new Date(app.startTime);
+                    return isSameDay(appStart, day) && appStart.getHours() === hour;
+                  });
+
+                  return (
+                    <div 
+                      key={dIdx} 
+                      className="p-2 border-r border-zinc-100 last:border-0 min-h-[70px] hover:bg-zinc-50/50 transition-colors cursor-pointer relative"
+                      onClick={() => {
+                        const targetDate = new Date(day);
+                        targetDate.setHours(hour, 0, 0, 0);
+                        setNewApp(prev => ({
+                          ...prev,
+                          startTime: format(targetDate, "yyyy-MM-dd'T'HH:mm"),
+                          chatbotId: activeChatbotId || (chatbots.length > 0 ? chatbots[0].id : "")
+                        }));
+                        setIsModalOpen(true);
+                      }}
+                    >
+                      <div className="space-y-1">
+                        {cellAppointments.map((app, aIdx) => (
+                          <div 
+                            key={aIdx} 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedDate(day);
+                            }}
+                            className="text-[9px] font-bold p-1 rounded bg-primary/5 text-primary border border-primary/10 truncate"
+                          >
+                            {app.title}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  const renderDayView = () => {
+    const hours = Array.from({ length: 13 }).map((_, i) => 8 + i); // 08:00 to 20:00
+    const dayAppointments = filteredAppointments.filter(app => isSameDay(new Date(app.startTime), selectedDate));
+
+    return (
+      <div className="bg-white rounded-[40px] border border-zinc-200 shadow-sm overflow-hidden text-left">
+        <div className="p-6 border-b border-zinc-100 bg-zinc-50/50 flex justify-between items-center">
+          <h4 className="font-black text-sm text-zinc-950">Günlük Plan & Saatlik Akış</h4>
+          <span className="text-xs font-bold text-zinc-500">{format(selectedDate, "dd MMMM yyyy", { locale: dateLocale })}</span>
+        </div>
+        
+        <div className="divide-y divide-zinc-100">
+          {hours.map((hour) => {
+            const timeString = `${String(hour).padStart(2, "0")}:00`;
+            const hourAppointments = dayAppointments.filter(app => new Date(app.startTime).getHours() === hour);
+
+            return (
+              <div key={hour} className="grid grid-cols-[100px_1fr] min-h-[80px]">
+                <div className="p-4 border-r border-zinc-100 font-bold text-xs text-zinc-500 flex items-center justify-center bg-zinc-50/20">{timeString}</div>
+                <div 
+                  className="p-4 hover:bg-zinc-50/50 transition-colors cursor-pointer flex flex-col justify-center gap-1.5"
+                  onClick={() => {
+                    const targetDate = new Date(selectedDate);
+                    targetDate.setHours(hour, 0, 0, 0);
+                    setNewApp(prev => ({
+                      ...prev,
+                      startTime: format(targetDate, "yyyy-MM-dd'T'HH:mm"),
+                      chatbotId: activeChatbotId || (chatbots.length > 0 ? chatbots[0].id : "")
+                    }));
+                    setIsModalOpen(true);
+                  }}
+                >
+                  {hourAppointments.length === 0 ? (
+                    <span className="text-[10px] font-bold text-zinc-300 opacity-0 hover:opacity-100 transition-opacity">Boş Dilim - Tıkla ve Oluştur</span>
+                  ) : (
+                    hourAppointments.map((app, aIdx) => (
+                      <div 
+                        key={aIdx} 
+                        onClick={(e) => e.stopPropagation()}
+                        className="p-2.5 rounded-xl border border-primary/10 bg-primary/[0.03] text-primary flex items-center justify-between"
+                      >
+                        <div>
+                          <p className="text-xs font-black">{app.title}</p>
+                          <p className="text-[10px] text-primary/70 font-semibold mt-0.5">{app.contact?.name || "Müşterimiz"} · {app.contact?.email || ""}</p>
+                        </div>
+                        <Badge className="bg-primary text-white text-[9px] font-black border-none">
+                          {format(new Date(app.startTime), "HH:mm")} - {format(new Date(app.endTime), "HH:mm")}
+                        </Badge>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
   const selectedDayAppointments = filteredAppointments.filter(app => isSameDay(new Date(app.startTime), selectedDate));
 
   if (isLoading) {
@@ -477,13 +639,41 @@ export default function UserCalendarPage() {
           <div className="flex flex-col lg:flex-row gap-8">
             <div className="flex-1">
               {/* Custom Calendar Month Picker Header */}
-              <div className="flex items-center justify-between mb-6 bg-white p-6 rounded-[32px] border border-zinc-200 shadow-sm">
-                <h3 className="text-xl font-black text-zinc-950 capitalize">
-                  {format(currentMonth, "MMMM yyyy", { locale: dateLocale })}
-                </h3>
-                <div className="flex items-center gap-2">
+              <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 mb-6 bg-white p-6 rounded-[32px] border border-zinc-200 shadow-sm text-left">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                  <h3 className="text-xl font-black text-zinc-950 capitalize min-w-[150px]">
+                    {format(currentMonth, "MMMM yyyy", { locale: dateLocale })}
+                  </h3>
+
+                  {/* Calendar View Switcher */}
+                  <div className="flex bg-zinc-100 p-1 rounded-xl gap-0.5 max-w-fit">
+                    <Button 
+                      variant="ghost" 
+                      onClick={() => setCalendarView("month")}
+                      className={`rounded-lg font-bold text-xs h-8 px-3 ${calendarView === "month" ? "bg-white text-zinc-950 shadow-sm" : "text-zinc-500 hover:text-zinc-950 bg-transparent"}`}
+                    >
+                      Ay
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      onClick={() => setCalendarView("week")}
+                      className={`rounded-lg font-bold text-xs h-8 px-3 ${calendarView === "week" ? "bg-white text-zinc-950 shadow-sm" : "text-zinc-500 hover:text-zinc-950 bg-transparent"}`}
+                    >
+                      Hafta
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      onClick={() => setCalendarView("day")}
+                      className={`rounded-lg font-bold text-xs h-8 px-3 ${calendarView === "day" ? "bg-white text-zinc-950 shadow-sm" : "text-zinc-500 hover:text-zinc-950 bg-transparent"}`}
+                    >
+                      Gün
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
                   <Select value={selectedChatbotFilter} onValueChange={setSelectedChatbotFilter}>
-                    <SelectTrigger className="w-48 h-10 rounded-xl bg-zinc-50 border-zinc-200 font-bold text-xs text-zinc-700">
+                    <SelectTrigger className="w-44 h-10 rounded-xl bg-zinc-50 border-zinc-200 font-bold text-xs text-zinc-700">
                       <SelectValue placeholder="Tüm Ajanlar" />
                     </SelectTrigger>
                     <SelectContent className="rounded-2xl">
@@ -493,32 +683,57 @@ export default function UserCalendarPage() {
                       ))}
                     </SelectContent>
                   </Select>
-                  <Button variant="outline" size="icon" className="rounded-xl border-zinc-200 h-10 w-10" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}>
+
+                  {/* Copy Booking Link Button */}
+                  {activeChatbotId && (
+                    <Button 
+                      variant="outline" 
+                      className="rounded-xl border-zinc-200 font-bold h-10 px-4 text-xs text-zinc-700 hover:bg-zinc-50 bg-transparent"
+                      onClick={() => {
+                        const origin = typeof window !== "undefined" ? window.location.origin : "https://jcaesars.com";
+                        const bookingLink = `${origin}/booking/${activeChatbotId}`;
+                        navigator.clipboard.writeText(bookingLink);
+                        toast.success("Rezervasyon linki kopyalandı!");
+                      }}
+                    >
+                      <Copy className="w-4 h-4 mr-2" />
+                      Booking Link
+                    </Button>
+                  )}
+
+                  <Button variant="outline" size="icon" className="rounded-xl border-zinc-200 h-10 w-10 bg-transparent" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}>
                     <ChevronLeft className="w-4 h-4" />
                   </Button>
-                  <Button variant="outline" className="rounded-xl border-zinc-200 font-bold h-10 px-4" onClick={() => setCurrentMonth(new Date())}>
+                  <Button variant="outline" className="rounded-xl border-zinc-200 font-bold h-10 px-4 bg-transparent" onClick={() => {
+                    setCurrentMonth(new Date());
+                    setSelectedDate(new Date());
+                  }}>
                     Bugün
                   </Button>
-                  <Button variant="outline" size="icon" className="rounded-xl border-zinc-200 h-10 w-10" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}>
+                  <Button variant="outline" size="icon" className="rounded-xl border-zinc-200 h-10 w-10 bg-transparent" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}>
                     <ChevronRight className="w-4 h-4" />
                   </Button>
-                  <Button onClick={() => setIsModalOpen(true)} className="ml-4 rounded-xl bg-zinc-950 text-white font-bold h-10 px-6 hover:scale-105 transition-all">
+                  <Button onClick={() => setIsModalOpen(true)} className="ml-2 rounded-xl bg-zinc-950 text-white font-bold h-10 px-5 hover:scale-102 transition-all">
                     <Plus className="w-4 h-4 mr-2" />
                     Yeni Rezervasyon
                   </Button>
                 </div>
               </div>
 
-              {/* Day column headers */}
-              <div className="grid grid-cols-7 mb-2 px-2">
-                {Array.from({ length: 7 }).map((_, i) => (
-                  <div key={i} className="text-center text-[10px] font-black uppercase tracking-widest text-zinc-400 py-2">
-                    {format(addDays(startOfWeek(new Date(), { weekStartsOn: 1 }), i), "E", { locale: dateLocale })}
-                  </div>
-                ))}
-              </div>
+              {/* Day column headers (Only for Month view) */}
+              {calendarView === "month" && (
+                <div className="grid grid-cols-7 mb-2 px-2">
+                  {Array.from({ length: 7 }).map((_, i) => (
+                    <div key={i} className="text-center text-[10px] font-black uppercase tracking-widest text-zinc-400 py-2">
+                      {format(addDays(startOfWeek(new Date(), { weekStartsOn: 1 }), i), "E", { locale: dateLocale })}
+                    </div>
+                  ))}
+                </div>
+              )}
 
-              {renderCells()}
+              {calendarView === "month" && renderCells()}
+              {calendarView === "week" && renderWeekView()}
+              {calendarView === "day" && renderDayView()}
             </div>
 
             {/* Right sidebar: Selected day's appointment capacity flow */}

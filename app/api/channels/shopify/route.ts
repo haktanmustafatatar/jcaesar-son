@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
-import { searchShopifyProducts } from "@/lib/integrations/shopify";
+import { searchShopifyProducts, registerShopifyWebhook } from "@/lib/integrations/shopify";
 import { encrypt } from "@/lib/crypto";
 
 /**
@@ -72,6 +72,17 @@ export async function POST(req: NextRequest) {
         },
       });
     }
+
+    // Register proactive webhooks in Shopify
+    const webhookBaseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://jcaesars.com";
+    const webhookAddress = `${webhookBaseUrl}/api/webhooks/shopify`;
+    const shopifyConfig = { shopDomain, accessToken };
+    await registerShopifyWebhook(shopifyConfig, "orders/create", webhookAddress).catch(err => {
+      console.error("[ShopifyConnect] Webhook registration for orders/create failed:", err);
+    });
+    await registerShopifyWebhook(shopifyConfig, "orders/fulfilled", webhookAddress).catch(err => {
+      console.error("[ShopifyConnect] Webhook registration for orders/fulfilled failed:", err);
+    });
 
     return NextResponse.json({
       success: true,

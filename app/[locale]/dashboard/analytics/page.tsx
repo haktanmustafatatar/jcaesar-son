@@ -48,17 +48,20 @@ import { Progress } from "@/components/ui/progress";
 
 export default function AnalyticsPage() {
   const [period, setPeriod] = useState("7d");
+  const [chatbotFilter, setChatbotFilter] = useState<string>("all");
   const [data, setData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     fetchAnalytics();
-  }, [period]);
+  }, [period, chatbotFilter]);
 
   const fetchAnalytics = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch(`/api/analytics?period=${period}`);
+      const query = new URLSearchParams({ period });
+      if (chatbotFilter !== "all") query.set("chatbotId", chatbotFilter);
+      const res = await fetch(`/api/analytics?${query.toString()}`);
       if (res.ok) {
         const json = await res.json();
         setData(json);
@@ -70,27 +73,27 @@ export default function AnalyticsPage() {
     }
   };
 
-  const satisfactionScore = useMemo(() => {
-    const sentimentData = data?.sentimentData;
-    if (!sentimentData || sentimentData.length === 0) return 0;
-    const positive = sentimentData.find((s: any) => s.name === 'POSITIVE')?.value || 0;
-    const total = sentimentData.reduce((acc: number, curr: any) => acc + curr.value, 0);
-    return total > 0 ? Math.round((positive / total) * 100) : 0;
-  }, [data]);
-
   if (!data && isLoading) {
     return <div className="flex items-center justify-center h-[60vh] font-bold text-muted-foreground animate-pulse">Intelligence is loading...</div>;
   }
 
-  const { totalConversions, resolutionRate, totalCost, sourceData, sentimentData, trendData, botPerformance } = data || {
-    totalConversions: 0,
-    resolutionRate: 0,
-    totalCost: 0,
-    sourceData: [],
-    sentimentData: [],
-    trendData: [],
-    botPerformance: []
-  };
+  const {
+    totalConversions = 0,
+    conversionsChangePercent = null,
+    resolutionRate = 0,
+    resolutionChangePercent = null,
+    satisfactionScore = null,
+    aiSavings = 0,
+    handoffRate = 0,
+    avgResponseTimeMs = null,
+    knowledgeGaps = 0,
+    totalCost = 0,
+    sourceData = [],
+    sentimentData = [],
+    trendData = [],
+    botPerformance = [],
+    chatbots = [],
+  } = data || {};
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -112,6 +115,18 @@ export default function AnalyticsPage() {
     return null;
   };
 
+  const formatChange = (val: number | null) => {
+    if (val === null) return null;
+    const sign = val >= 0 ? "+" : "";
+    return `${sign}${val}%`;
+  };
+
+  const formatResponseTime = (ms: number | null) => {
+    if (ms === null) return "N/A";
+    if (ms < 1000) return `${ms}ms`;
+    return `${(ms / 1000).toFixed(1)}s`;
+  };
+
   return (
     <div className="space-y-10">
       {/* Header & Controls */}
@@ -121,35 +136,51 @@ export default function AnalyticsPage() {
             <p className="text-muted-foreground font-medium">Deep insights into your AI ecosystem and visitor behavior.</p>
          </div>
          
-         <div className="flex items-center gap-3 bg-white/50 backdrop-blur-md p-1.5 rounded-2xl border border-black/5 shadow-sm">
-            <div className="flex gap-1">
-              {["24h", "7d", "30d", "90d"].map((p) => (
-                <Button 
-                  key={p} 
-                  variant={period === p ? "default" : "ghost"} 
-                  size="sm"
-                  onClick={() => setPeriod(p)}
-                  className={`h-9 px-4 rounded-xl font-bold text-xs transition-all ${period === p ? "shadow-lg shadow-primary/20" : "text-muted-foreground"}`}
-                >
-                  {p.toUpperCase()}
-                </Button>
-              ))}
-            </div>
-            <div className="w-px h-6 bg-muted mx-1" />
-            <Button variant="outline" size="sm" className="h-9 px-4 rounded-xl font-bold text-xs gap-2 border-black/5 hover:bg-white shadow-sm transition-all">
-              <Download className="w-3.5 h-3.5" />
-              Export
-            </Button>
+         <div className="flex flex-wrap items-center gap-3">
+           {/* Chatbot Filter */}
+           {chatbots.length > 1 && (
+             <Select value={chatbotFilter} onValueChange={setChatbotFilter}>
+               <SelectTrigger className="h-9 w-44 rounded-xl border-black/5 bg-white text-xs font-bold shadow-sm">
+                 <SelectValue placeholder="All Bots" />
+               </SelectTrigger>
+               <SelectContent className="rounded-2xl">
+                 <SelectItem value="all" className="font-bold">All Bots</SelectItem>
+                 {chatbots.map((bot: any) => (
+                   <SelectItem key={bot.id} value={bot.id} className="font-medium">{bot.name}</SelectItem>
+                 ))}
+               </SelectContent>
+             </Select>
+           )}
+           <div className="flex items-center gap-3 bg-white/50 backdrop-blur-md p-1.5 rounded-2xl border border-black/5 shadow-sm">
+              <div className="flex gap-1">
+                {["24h", "7d", "30d", "90d"].map((p) => (
+                  <Button 
+                    key={p} 
+                    variant={period === p ? "default" : "ghost"} 
+                    size="sm"
+                    onClick={() => setPeriod(p)}
+                    className={`h-9 px-4 rounded-xl font-bold text-xs transition-all ${period === p ? "shadow-lg shadow-primary/20" : "text-muted-foreground"}`}
+                  >
+                    {p.toUpperCase()}
+                  </Button>
+                ))}
+              </div>
+              <div className="w-px h-6 bg-muted mx-1" />
+              <Button variant="outline" size="sm" className="h-9 px-4 rounded-xl font-bold text-xs gap-2 border-black/5 hover:bg-white shadow-sm transition-all">
+                <Download className="w-3.5 h-3.5" />
+                Export
+              </Button>
+           </div>
          </div>
       </div>
 
       {/* KPI Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {[
-          { title: "Total Conversions", value: totalConversions.toLocaleString(), change: "+12.5%", icon: MessageSquare, color: "text-blue-500", chartColor: "#3b82f6" },
-          { title: "Resolution Rate", value: `${resolutionRate}%`, change: "+4.3%", icon: Target, color: "text-emerald-500", chartColor: "#10b981" },
-          { title: "Satisfaction Score", value: `${satisfactionScore}/100`, change: "+2.1%", icon: Users, color: "text-pink-500", chartColor: "#ec4899" },
-          { title: "AI Savings (USD)", value: `$${(totalConversions * 2.5).toLocaleString()}`, change: "+18%", icon: Zap, color: "text-amber-500", chartColor: "#f59e0b" },
+          { title: "Total Conversions", value: totalConversions.toLocaleString(), change: formatChange(conversionsChangePercent), positive: conversionsChangePercent === null || conversionsChangePercent >= 0, icon: MessageSquare, color: "text-blue-500", chartColor: "#3b82f6" },
+          { title: "Resolution Rate", value: `${resolutionRate}%`, change: formatChange(resolutionChangePercent), positive: resolutionChangePercent === null || resolutionChangePercent >= 0, icon: Target, color: "text-emerald-500", chartColor: "#10b981" },
+          { title: "Satisfaction Score", value: satisfactionScore !== null ? `${satisfactionScore}/100` : "N/A", change: null, positive: true, icon: Users, color: "text-pink-500", chartColor: "#ec4899" },
+          { title: "AI Savings (USD)", value: `$${aiSavings.toLocaleString()}`, change: null, positive: true, icon: Zap, color: "text-amber-500", chartColor: "#f59e0b" },
         ].map((stat, i) => (
           <motion.div
             key={stat.title}
@@ -163,9 +194,13 @@ export default function AnalyticsPage() {
                      <div className={`p-2.5 rounded-2xl bg-white shadow-sm ring-1 ring-black/[0.03] ${stat.color}`}>
                         <stat.icon className="w-5 h-5" />
                      </div>
-                     <Badge className="bg-emerald-500/10 text-emerald-600 border-none rounded-lg text-[10px] font-bold">
-                        <ArrowUpRight className="w-3 h-3 mr-1" /> {stat.change}
-                     </Badge>
+                     {stat.change !== null ? (
+                       <Badge className={`${stat.positive ? "bg-emerald-500/10 text-emerald-600" : "bg-red-500/10 text-red-600"} border-none rounded-lg text-[10px] font-bold`}>
+                          {stat.positive ? <ArrowUpRight className="w-3 h-3 mr-1" /> : <ArrowDownRight className="w-3 h-3 mr-1" />} {stat.change}
+                       </Badge>
+                     ) : (
+                       <Badge className="bg-zinc-100 text-zinc-500 border-none rounded-lg text-[10px] font-bold">LIVE</Badge>
+                     )}
                   </div>
                   <div className="space-y-1">
                      <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest">{stat.title}</p>
@@ -191,6 +226,31 @@ export default function AnalyticsPage() {
             </Card>
           </motion.div>
         ))}
+      </div>
+
+      {/* Secondary Metrics Row */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <Card className="rounded-[28px] border-black/5 bg-white/60 backdrop-blur-xl px-6 py-5 flex items-center gap-4">
+          <div className="p-2.5 rounded-2xl bg-orange-50 text-orange-500"><Clock className="w-5 h-5" /></div>
+          <div>
+            <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest">Avg Response Time</p>
+            <p className="text-xl font-black">{formatResponseTime(avgResponseTimeMs)}</p>
+          </div>
+        </Card>
+        <Card className="rounded-[28px] border-black/5 bg-white/60 backdrop-blur-xl px-6 py-5 flex items-center gap-4">
+          <div className="p-2.5 rounded-2xl bg-purple-50 text-purple-500"><Share2 className="w-5 h-5" /></div>
+          <div>
+            <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest">Handoff Rate</p>
+            <p className="text-xl font-black">{handoffRate}%</p>
+          </div>
+        </Card>
+        <Card className="rounded-[28px] border-black/5 bg-white/60 backdrop-blur-xl px-6 py-5 flex items-center gap-4">
+          <div className="p-2.5 rounded-2xl bg-red-50 text-red-500"><Filter className="w-5 h-5" /></div>
+          <div>
+            <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest">Knowledge Gaps</p>
+            <p className="text-xl font-black">{knowledgeGaps}</p>
+          </div>
+        </Card>
       </div>
 
       {/* Main Charts Grid */}

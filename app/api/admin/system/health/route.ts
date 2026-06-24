@@ -2,8 +2,12 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { redis } from "@/lib/ratelimit";
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
+    const token = req.headers.get("x-health-token");
+    if (token !== process.env.HEALTH_CHECK_TOKEN) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     const startTime = Date.now();
     
     // Check Database (with graceful catch)

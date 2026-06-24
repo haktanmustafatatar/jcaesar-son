@@ -17,12 +17,13 @@ export async function POST(
       return NextResponse.json({ error: "Too many requests. Please slow down." }, { status: 429 });
     }
 
-    const { messages, conversationId: existingId } = await req.json();
+    const { messages: rawMessages, conversationId: existingId } = await req.json();
     
-    if (!messages || !Array.isArray(messages) || messages.length === 0) {
+    if (!rawMessages || !Array.isArray(rawMessages) || rawMessages.length === 0) {
       return NextResponse.json({ error: "Messages are required" }, { status: 400 });
     }
 
+    const messages = rawMessages.slice(-20);
     const lastMessage = messages[messages.length - 1];
     const userMessageContent = lastMessage.content;
 

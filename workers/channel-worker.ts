@@ -559,6 +559,28 @@ export const channelWorker = new Worker(
           where: { chatbotId, type: channel.toUpperCase() as any },
           data: { status: "ERROR" },
         });
+
+        const chatbot = await prisma.chatbot.findUnique({
+          where: { id: chatbotId },
+          select: { userId: true }
+        });
+
+        const ch = await prisma.channel.findFirst({
+          where: { chatbotId, type: channel.toUpperCase() as any }
+        });
+        const channelName = ch?.name || channel;
+
+        if (chatbot) {
+          await prisma.notification.create({
+            data: {
+              userId: chatbot.userId,
+              title: "Kanal Bağlantı Hatası",
+              message: `${channelName} kanalında kritik bir hata oluştu. Lütfen entegrasyon ayarlarını kontrol edin.`,
+              type: "ERROR",
+              link: `/dashboard/chatbots/${chatbotId}/integrations`
+            }
+          });
+        }
       } else {
         console.log(`[ChannelWorker] Non-critical or transient error (e.g. policy window/rate limit/validation/missing config). Leaving channel status as-is.`);
       }

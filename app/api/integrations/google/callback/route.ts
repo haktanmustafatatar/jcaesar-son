@@ -19,20 +19,23 @@ export async function GET(req: NextRequest) {
     }
 
     let chatbotId = "";
-    let clientId = "";
-    let clientSecret = "";
 
     try {
       const parsedState = JSON.parse(decodeURIComponent(state));
-      chatbotId = parsedState.chatbotId;
-      clientId = parsedState.clientId;
-      clientSecret = parsedState.clientSecret;
+      chatbotId = typeof parsedState === "object" ? parsedState.chatbotId : parsedState;
     } catch (err) {
-      return new Response("Invalid state parameter", { status: 400 });
+      chatbotId = decodeURIComponent(state || "");
     }
 
-    if (!chatbotId || !clientId || !clientSecret) {
-      return new Response("State parameter is missing chatbotId, clientId, or clientSecret", { status: 400 });
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+
+    if (!chatbotId) {
+      return new Response("State parameter is missing chatbotId", { status: 400 });
+    }
+
+    if (!clientId || !clientSecret) {
+      return new Response("Platform is missing GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET", { status: 500 });
     }
 
     const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/integrations/google/callback`;

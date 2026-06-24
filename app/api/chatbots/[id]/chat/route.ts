@@ -23,8 +23,8 @@ export async function POST(
       return NextResponse.json({ error: "Messages are required" }, { status: 400 });
     }
 
-    // Cost Optimization: Only send last 6 messages for context
-    const messages = rawMessages.slice(-6);
+    // Cost Optimization: Only send last 20 messages for context
+    const messages = rawMessages.slice(-20);
     const lastMessage = messages[messages.length - 1];
     const message = lastMessage.content;
 

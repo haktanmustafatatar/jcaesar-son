@@ -26,7 +26,8 @@ export async function checkPlanLimits(chatbotId: string) {
       return { allowed: true }; // Default to allowed for standalone or untracked
     }
 
-    const { plan, id: orgId } = chatbot.organization;
+    const { plan, id: orgId, messageLimitOverride } = chatbot.organization;
+    const effectiveLimit = messageLimitOverride ?? plan.messageLimit;
 
     // 1. Check Message Limits (for current month)
     const startOfMonth = new Date();
@@ -40,18 +41,18 @@ export async function checkPlanLimits(chatbotId: string) {
       }
     });
 
-    if (messageCount >= plan.messageLimit) {
+    if (messageCount >= effectiveLimit) {
       // Trigger limit reached notification if not already sent
       await createLimitNotification(chatbot.userId, chatbot.user?.email || undefined, chatbot.user?.name || undefined, orgId, plan.name, "100%");
-      return { allowed: false, reason: "MESSAGE_LIMIT_REACHED", limit: plan.messageLimit };
+      return { allowed: false, reason: "MESSAGE_LIMIT_REACHED", limit: effectiveLimit };
     }
 
     // Check for 80% threshold
-    if (messageCount >= plan.messageLimit * 0.8) {
+    if (messageCount >= effectiveLimit * 0.8) {
       await createLimitNotification(chatbot.userId, chatbot.user?.email || undefined, chatbot.user?.name || undefined, orgId, plan.name, "80%");
     }
 
-    return { allowed: true, current: messageCount, limit: plan.messageLimit };
+    return { allowed: true, current: messageCount, limit: effectiveLimit };
   } catch (error) {
     console.error("[PlanGuard] Error checking limits:", error);
     return { allowed: true }; // Allow on error to avoid blocking users

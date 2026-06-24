@@ -31,7 +31,7 @@ import { toast } from "sonner";
 interface ConnectModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  type: "WHATSAPP" | "INSTAGRAM" | "FACEBOOK" | "SHOPIFY" | "WOOCOMMERCE" | "GOOGLE_CALENDAR" | "TELEGRAM" | "SLACK" | null;
+  type: "WHATSAPP" | "INSTAGRAM" | "FACEBOOK" | "SHOPIFY" | "WOOCOMMERCE" | "GOOGLE_CALENDAR" | "TELEGRAM" | "SLACK" | "TRENDYOL" | null;
   chatbotId: string;
   onSuccess: () => void;
 }
@@ -64,6 +64,11 @@ export function ConnectModal({
   const [calClientSecret, setCalClientSecret] = useState("");
   const [calRefreshToken, setCalRefreshToken] = useState("");
 
+  // Trendyol fields
+  const [trendyolSupplierId, setTrendyolSupplierId] = useState("");
+  const [trendyolApiKey, setTrendyolApiKey] = useState("");
+  const [trendyolApiSecret, setTrendyolApiSecret] = useState("");
+
   // Telegram fields
   const [telegramBotToken, setTelegramBotToken] = useState("");
 
@@ -81,6 +86,7 @@ export function ConnectModal({
     GOOGLE_CALENDAR: "Google Calendar Booking",
     TELEGRAM: "Connect Telegram Bot",
     SLACK: "Connect Slack Workspace",
+    TRENDYOL: "Trendyol Mağazasını Bağla",
   };
 
   const descriptions: Record<string, string> = {
@@ -92,6 +98,7 @@ export function ConnectModal({
     GOOGLE_CALENDAR: "Allow the AI to book appointments directly to your primary calendar.",
     TELEGRAM: "Connect your Telegram bot created via BotFather to enable AI-powered messaging.",
     SLACK: "Connect a Slack channel so your AI agent can respond to workspace messages.",
+    TRENDYOL: "Trendyol satıcı hesabınızı bağlayarak AI'nın ürün araması ve sipariş sorgulama yapmasını sağlayın.",
   };
 
   const isMetaType = type === "WHATSAPP" || type === "INSTAGRAM" || type === "FACEBOOK";
@@ -105,6 +112,9 @@ export function ConnectModal({
     setCalClientId("");
     setCalClientSecret("");
     setCalRefreshToken("");
+    setTrendyolSupplierId("");
+    setTrendyolApiKey("");
+    setTrendyolApiSecret("");
     setTelegramBotToken("");
     setSlackBotToken("");
     setSlackChannelId("");
@@ -244,35 +254,45 @@ export function ConnectModal({
   };
 
   const handleCalendarConnect = async () => {
-    if (!calClientId || !calClientSecret || !calRefreshToken) {
-      setError("All Google Calendar fields are required");
-      return;
-    }
     setIsLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/chatbots/${chatbotId}/channels`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type: "GOOGLE_CALENDAR",
-          name: "Google Calendar",
-          config: { clientId: calClientId, clientSecret: calClientSecret, refreshToken: calRefreshToken },
-        }),
-      });
-      if (res.ok) {
-        toast.success("Google Calendar connected!");
-        onSuccess();
-        onOpenChange(false);
-        resetForm();
+      const res = await fetch(`/api/integrations/google/authorize?chatbotId=${chatbotId}`);
+      const data = await res.json();
+      if (res.ok && data.url) {
+        window.location.href = data.url;
       } else {
-        setError("Failed to connect Google Calendar.");
+        setError(data.error || "Failed to initiate Google Calendar connection.");
       }
     } catch (err) {
       setError("Connection failed.");
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleTrendyolConnect = async () => {
+    if (!trendyolSupplierId || !trendyolApiKey || !trendyolApiSecret) {
+      setError("Supplier ID, API Key ve API Secret zorunludur");
+      return;
+    }
+    setIsLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/channels/trendyol", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chatbotId, supplierId: trendyolSupplierId, apiKey: trendyolApiKey, apiSecret: trendyolApiSecret }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success("Trendyol mağazası bağlandı!");
+        onSuccess(); onOpenChange(false); resetForm();
+      } else {
+        setError(data.error || "Trendyol bağlantısı başarısız.");
+      }
+    } catch { setError("Bağlantı hatası."); }
+    finally { setIsLoading(false); }
   };
 
   const handleSubmit = () => {
@@ -282,6 +302,7 @@ export function ConnectModal({
     if (type === "GOOGLE_CALENDAR") return handleCalendarConnect();
     if (type === "TELEGRAM") return handleTelegramConnect();
     if (type === "SLACK") return handleSlackConnect();
+    if (type === "TRENDYOL") return handleTrendyolConnect();
   };
 
   const iconMap: Record<string, React.ReactNode> = {
@@ -293,6 +314,7 @@ export function ConnectModal({
     GOOGLE_CALENDAR: <ShieldCheck className="w-8 h-8 text-white" />,
     TELEGRAM: <Key className="w-8 h-8 text-white" />,
     SLACK: <Link2 className="w-8 h-8 text-white" />,
+    TRENDYOL: <ShoppingBag className="w-8 h-8 text-white" />,
   };
 
   const iconBgMap: Record<string, string> = {
@@ -304,6 +326,7 @@ export function ConnectModal({
     GOOGLE_CALENDAR: "bg-[#4285F4]",
     TELEGRAM: "bg-[#229ED9]",
     SLACK: "bg-[#4A154B]",
+    TRENDYOL: "bg-[#F27A1A]",
   };
 
   return (
@@ -563,39 +586,81 @@ export function ConnectModal({
             </div>
           )}
 
-          {/* Google Calendar */}
-          {type === "GOOGLE_CALENDAR" && (
+          {/* Trendyol */}
+          {type === "TRENDYOL" && (
             <div className="space-y-5">
               <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 pl-1">Client ID</Label>
+                <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 pl-1">Supplier ID</Label>
                 <div className="relative">
-                  <Input value={calClientId} onChange={(e) => setCalClientId(e.target.value)} className="h-14 rounded-2xl bg-zinc-50 border-zinc-100 pl-12 font-mono text-xs focus:bg-white transition-all shadow-none" placeholder="...apps.googleusercontent.com" />
+                  <Input
+                    value={trendyolSupplierId}
+                    onChange={(e) => setTrendyolSupplierId(e.target.value)}
+                    className="h-14 rounded-2xl bg-zinc-50 border-zinc-100 pl-12 font-mono text-xs focus:bg-white transition-all shadow-none"
+                    placeholder="123456"
+                  />
                   <Globe className="w-4 h-4 text-zinc-400 absolute left-4 top-1/2 -translate-y-1/2" />
                 </div>
               </div>
               <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 pl-1">Client Secret</Label>
+                <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 pl-1">API Key</Label>
                 <div className="relative">
-                  <Input value={calClientSecret} onChange={(e) => setCalClientSecret(e.target.value)} type="password" className="h-14 rounded-2xl bg-zinc-50 border-zinc-100 pl-12 font-mono text-xs focus:bg-white transition-all shadow-none" placeholder="GOCSPX-..." />
-                  <Lock className="w-4 h-4 text-zinc-400 absolute left-4 top-1/2 -translate-y-1/2" />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 pl-1">Refresh Token</Label>
-                <div className="relative">
-                  <Input value={calRefreshToken} onChange={(e) => setCalRefreshToken(e.target.value)} type="password" className="h-14 rounded-2xl bg-zinc-50 border-zinc-100 pl-12 font-mono text-xs focus:bg-white transition-all shadow-none" placeholder="1//..." />
+                  <Input
+                    value={trendyolApiKey}
+                    onChange={(e) => setTrendyolApiKey(e.target.value)}
+                    type="password"
+                    className="h-14 rounded-2xl bg-zinc-50 border-zinc-100 pl-12 font-mono text-xs focus:bg-white transition-all shadow-none"
+                    placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                  />
                   <Key className="w-4 h-4 text-zinc-400 absolute left-4 top-1/2 -translate-y-1/2" />
                 </div>
               </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 pl-1">API Secret</Label>
+                <div className="relative">
+                  <Input
+                    value={trendyolApiSecret}
+                    onChange={(e) => setTrendyolApiSecret(e.target.value)}
+                    type="password"
+                    className="h-14 rounded-2xl bg-zinc-50 border-zinc-100 pl-12 font-mono text-xs focus:bg-white transition-all shadow-none"
+                    placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                  />
+                  <Lock className="w-4 h-4 text-zinc-400 absolute left-4 top-1/2 -translate-y-1/2" />
+                </div>
+              </div>
+              <div className="bg-orange-50 border border-orange-100 rounded-2xl p-4">
+                <p className="text-[11px] text-orange-800 font-medium leading-relaxed">
+                  <strong>Bilgileri nereden alırsınız:</strong> Trendyol Satıcı Paneli → Entegrasyon Bilgileri → API Entegrasyonu sayfasından Satıcı ID, API Key ve API Secret bilgilerinizi kopyalayın.
+                </p>
+              </div>
+              <Button
+                onClick={handleSubmit}
+                disabled={isLoading || !trendyolSupplierId || !trendyolApiKey || !trendyolApiSecret}
+                className="w-full h-16 rounded-3xl bg-[#F27A1A] hover:bg-[#d96a15] text-white font-black text-lg shadow-2xl shadow-orange-500/10 transition-all hover:scale-[1.02] active:scale-[0.98]"
+              >
+                {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : (
+                  <><Link2 className="w-5 h-5 mr-2" />Trendyol Bağla</>
+                )}
+              </Button>
+            </div>
+          )}
+
+          {/* Google Calendar */}
+          {type === "GOOGLE_CALENDAR" && (
+            <div className="space-y-5">
+              <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4">
+                <p className="text-[11px] text-blue-800 font-medium leading-relaxed">
+                  <strong>Google Calendar Bağlantısı:</strong> Chatbot'unuzun randevuları doğrudan takviminize kaydedebilmesi ve çakışmaları kontrol edebilmesi için Google hesabınızı bağlayın.
+                </p>
+              </div>
               <Button 
                 onClick={handleSubmit}
-                disabled={isLoading || !calClientId || !calClientSecret || !calRefreshToken}
+                disabled={isLoading}
                 className="w-full h-16 rounded-3xl bg-[#4285F4] hover:bg-[#3367d6] text-white font-black text-lg shadow-2xl shadow-blue-500/10 transition-all hover:scale-[1.02] active:scale-[0.98]"
               >
                 {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : (
                   <>
                     <Link2 className="w-5 h-5 mr-2" />
-                    Connect Calendar
+                    Google ile Bağlan
                   </>
                 )}
               </Button>
