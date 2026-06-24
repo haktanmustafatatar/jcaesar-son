@@ -444,12 +444,12 @@ export default function InboxPage() {
   };
 
   return (
-    <div className="h-[calc(100vh-10rem)] lg:h-[calc(100vh-8.5rem)] flex gap-4 overflow-hidden max-w-full">
+    <div className="h-[calc(100vh-10rem)] lg:h-[calc(100vh-8.5rem)] flex gap-3 overflow-hidden -mx-4 lg:-mx-6 xl:-mx-4">
       
       {/* 1. Conversations List Column */}
       <div 
         className={`
-          w-full md:w-[280px] lg:w-[300px] xl:w-[340px] flex flex-col bg-white/60 backdrop-blur-xl rounded-[32px] border border-black/5 shadow-2xl shadow-black/[0.02]
+          w-full md:w-[260px] lg:w-[260px] xl:w-[300px] flex flex-col bg-white/60 backdrop-blur-xl rounded-[32px] border border-black/5 shadow-2xl shadow-black/[0.02]
           ${mobileView === "list" ? "flex" : "hidden md:flex"}
         `}
       >
@@ -885,7 +885,7 @@ export default function InboxPage() {
 
       {/* 3. CRM / Metadata Right Column */}
       {selectedConv && (
-        <div className="w-[260px] lg:w-[280px] hidden lg:flex flex-col gap-6 overflow-y-auto pb-10">
+        <div className="w-[240px] lg:w-[240px] xl:w-[260px] hidden lg:flex flex-col gap-6 overflow-y-auto pb-10">
           
           {/* User Profile Card */}
           <div className="bg-white/60 backdrop-blur-xl rounded-[32px] border border-black/5 p-6 space-y-6">

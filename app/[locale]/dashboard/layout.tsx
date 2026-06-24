@@ -142,7 +142,7 @@ export default async function DashboardLayout({
       <DashboardSidebar planName={planName} />
       <div className="lg:ml-72">
         <DashboardHeader />
-        <main className="p-6 lg:p-8">{children}</main>
+        <main className="p-4 lg:p-6">{children}</main>
       </div>
     </div>
   );
