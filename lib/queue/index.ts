@@ -1,31 +1,21 @@
 import { Queue } from "bullmq";
-import IORedis from "ioredis";
+import { createBullMQConnection } from "@/lib/redis";
 
-// Redis connection
-const redisConnection = new IORedis(process.env.REDIS_URL || "redis://localhost:6379", {
-  maxRetriesPerRequest: null,
-  enableReadyCheck: false,
-});
+// Shared BullMQ connection for all queues
+const redisConnection = createBullMQConnection();
 
 redisConnection.on("error", (err) => {
-  console.warn("[Redis] Connection error (expected during build):", err.message);
+  if (process.env.NODE_ENV !== "production") {
+    console.warn("[Redis/Queue] Connection error:", err.message);
+  }
 });
 
 // Queue tanımları
 export const queues = {
-  // Crawl işlemleri
   crawl: new Queue("crawl", { connection: redisConnection }),
-
-  // Embedding işlemleri
   embedding: new Queue("embedding", { connection: redisConnection }),
-
-  // Bildirim işlemleri
   notification: new Queue("notification", { connection: redisConnection }),
-
-  // Kanal mesaj işlemleri
   channel: new Queue("channel", { connection: redisConnection }),
-
-  // Token kullanım loglama
   tokenUsage: new Queue("token-usage", { connection: redisConnection }),
 };
 
@@ -42,7 +32,7 @@ export type CrawlJob = {
   knowledgeSourceId?: string;
   userId: string;
   urls?: string[];
-  content?: string; // For manual text/qna bypass
+  content?: string;
 };
 
 export type EmbeddingJob = {
@@ -79,56 +69,92 @@ export type TokenUsageJob = {
   completionTokens: number;
 };
 
-// Job ekleme fonksiyonları
+// ─── Tenant Fairness Helpers ─────────────────────────────────────────────────
+
+/**
+ * Per-tenant rate limiter using Redis.
+ * Returns true if the action is allowed, false if the tenant is over limit.
+ * Key format: `tenant_rl:{scope}:{id}` with a sliding 60s window.
+ */
+async function isTenantAllowed(scope: string, id: string, limitPerMinute = 30): Promise<boolean> {
+  try {
+    const { redis } = await import("@/lib/redis");
+    const key = `tenant_rl:${scope}:${id}`;
+    const now = Date.now();
+    const windowMs = 60_000;
+
+    // Sorted set: member = timestamp, score = timestamp
+    const pipe = redis.pipeline();
+    pipe.zremrangebyscore(key, 0, now - windowMs);   // remove old entries
+    pipe.zadd(key, now, `${now}-${Math.random()}`);   // add current
+    pipe.zcard(key);                                   // count in window
+    pipe.expire(key, 120);                             // auto-expire
+    const results = await pipe.exec();
+
+    const count = (results?.[2]?.[1] as number) ?? 0;
+    return count <= limitPerMinute;
+  } catch {
+    return true; // fail open
+  }
+}
+
+// ─── Job Ekleme Fonksiyonları ─────────────────────────────────────────────────
+
 export async function addCrawlJob(data: CrawlJob) {
+  // Per-user fairness: max 5 crawl jobs per minute per user
+  const allowed = await isTenantAllowed("crawl", data.userId, 5);
+  if (!allowed) {
+    console.warn(`[Queue] Tenant rate limit hit for user ${data.userId} on crawl queue`);
+    throw new Error("TENANT_RATE_LIMIT: Too many crawl jobs. Please wait before submitting more.");
+  }
+
   return queues.crawl.add(`crawl-${data.type}`, data, {
     attempts: 5,
-    backoff: {
-      type: "exponential",
-      delay: 10000,
-    },
+    backoff: { type: "exponential", delay: 10000 },
     removeOnComplete: 500,
     removeOnFail: 200,
+    priority: 1,
   });
 }
 
 export async function addEmbeddingJob(data: EmbeddingJob) {
   return queues.embedding.add("create-embedding", data, {
     attempts: 5,
-    backoff: {
-      type: "exponential",
-      delay: 5000,
-    },
+    backoff: { type: "exponential", delay: 5000 },
   });
 }
 
 export async function addNotificationJob(data: NotificationJob) {
   return queues.notification.add(`notify-${data.type}`, data, {
     attempts: 5,
-    backoff: {
-      type: "exponential",
-      delay: 10000,
-    },
+    backoff: { type: "exponential", delay: 10000 },
   });
 }
 
 export async function addChannelJob(data: ChannelJob) {
+  // Per-chatbot fairness: max CHANNEL_RATE_LIMIT msgs/min (default 30)
+  const limit = parseInt(process.env.CHANNEL_RATE_LIMIT || "30", 10);
+  const allowed = await isTenantAllowed("channel", data.chatbotId, limit);
+  if (!allowed) {
+    console.warn(`[Queue] Channel rate limit hit for chatbot ${data.chatbotId}`);
+    // Don't throw — just delay the job by 10s instead of dropping it
+    return queues.channel.add(`channel-${data.channel}`, data, {
+      attempts: 3,
+      backoff: { type: "fixed", delay: 5000 },
+      delay: 10_000,
+    });
+  }
+
   return queues.channel.add(`channel-${data.channel}`, data, {
     attempts: 3,
-    backoff: {
-      type: "fixed",
-      delay: 5000,
-    },
+    backoff: { type: "fixed", delay: 5000 },
   });
 }
 
 export async function addTokenUsageJob(data: TokenUsageJob) {
   return queues.tokenUsage.add("log-token-usage", data, {
     attempts: 5,
-    backoff: {
-      type: "exponential",
-      delay: 1000,
-    },
+    backoff: { type: "exponential", delay: 1000 },
   });
 }
 
@@ -142,13 +168,7 @@ export async function getQueueStatus() {
     queues.tokenUsage.getJobCounts(),
   ]);
 
-  return {
-    crawl,
-    embedding,
-    notification,
-    channel,
-    tokenUsage,
-  };
+  return { crawl, embedding, notification, channel, tokenUsage };
 }
 
 // Queue'yu temizle

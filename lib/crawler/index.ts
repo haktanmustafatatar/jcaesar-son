@@ -139,7 +139,7 @@ let totalBytes = 0;
       for (let i = 0; i < totalPages; i += BATCH_SIZE) {
         const batchPages = crawlResult.data.slice(i, i + BATCH_SIZE);
         
-        await Promise.all(batchPages.map(async (page) => {
+        await Promise.all(batchPages.map(async (page: any) => {
           const content = page.markdown || page.content || "";
           if (content.trim().length < 100) return;
 
@@ -187,6 +187,7 @@ let totalBytes = 0;
     const pages = await internalCrawl(normalizedUrl, maxDepth, Math.min(limit, maxUrls), concurrency);
     
     let indexedCount = 0;
+  let totalBytes = 0;
     const totalPages = pages.length;
     const BATCH_SIZE = 10;
 

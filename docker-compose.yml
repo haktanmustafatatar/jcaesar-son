@@ -9,14 +9,21 @@ services:
     ports:
       - "3000:3000"
     environment:
-      # Direct connection to the database (bypassing pgbouncer to avoid auth/scram errors in local dev)
       - DATABASE_URL=postgresql://jcaesar_user:jcaesar_password@db:5432/jcaesar_db
       - REDIS_URL=redis://redis:6379
     env_file:
       - .env
     depends_on:
-      - pgbouncer
-      - redis
+      pgbouncer:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 4
+      start_period: 30s
 
   # Prisma Schema Migration Runner
   migration:
@@ -43,8 +50,10 @@ services:
     env_file:
       - .env
     depends_on:
-      - pgbouncer
-      - redis
+      pgbouncer:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
   # Database: PostgreSQL + pgvector
   db:
@@ -59,6 +68,12 @@ services:
       - "127.0.0.1:5432:5432"
     volumes:
       - jcaesar_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U jcaesar_user -d jcaesar_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   # PgBouncer Connection Pooler
   pgbouncer:
@@ -73,7 +88,14 @@ services:
     ports:
       - "127.0.0.1:6432:5432"
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h localhost -p 5432 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
 
   # Redis for Queues (Persistence Enabled)
   redis:
@@ -85,6 +107,12 @@ services:
       - "127.0.0.1:6379:6379"
     volumes:
       - jcaesar_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
 
   # Prometheus for Metrics
   prometheus:

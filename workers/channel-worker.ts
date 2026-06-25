@@ -1,18 +1,13 @@
 import { Worker } from "bullmq";
-import IORedis from "ioredis";
+import * as Sentry from "@sentry/nextjs";
 import { prisma } from "@/lib/prisma";
 import { performRAGSearch, generateRAGResponse, logTokenUsage, LLMModel } from "@/lib/ai";
 import { downloadImageAsBase64, downloadWhatsAppImageAsBase64 } from "@/lib/media";
 import { triggerWebhook } from "@/lib/webhook";
+import { logger } from "@/lib/logger";
+import { createBullMQConnection } from "@/lib/redis";
 
-const redisConnection = new IORedis(process.env.REDIS_URL || "redis://localhost:6379", {
-  maxRetriesPerRequest: null,
-  enableReadyCheck: false,
-});
-
-redisConnection.on("error", (err) => {
-  console.warn("[Redis/ChannelWorker] Connection error (expected during build):", err.message);
-});
+const workerLog = logger.child({ worker: "channel" });
 
 // Meta (WhatsApp, Instagram, Facebook) API
 async function sendMetaMessage({
@@ -36,7 +31,6 @@ async function sendMetaMessage({
   let payload: any;
 
   if (channel === "whatsapp") {
-    // WhatsApp Cloud API
     const pId = phoneNumberId || process.env.WHATSAPP_PHONE_NUMBER_ID;
     url = `https://graph.facebook.com/v22.0/${pId}/messages`;
     payload = {
@@ -47,7 +41,6 @@ async function sendMetaMessage({
       text: { body: message },
     };
   } else if (channel === "instagram") {
-    // Instagram Graph API
     const igId = phoneNumberId || configPageId || instagramId;
     if (!igId) {
       throw new Error("Instagram channel config eksik: instagramId veya pageId bulunamadı.");
@@ -58,7 +51,6 @@ async function sendMetaMessage({
       message: { text: message },
     };
   } else {
-    // Facebook Messenger
     const senderId = phoneNumberId || "me";
     url = `https://graph.facebook.com/v22.0/${senderId}/messages`;
     payload = {
@@ -101,7 +93,6 @@ async function sendBirdMessage({
 
   const url = `https://api.bird.com/workspaces/${workspaceId}/channels/${connectorId}/messages`;
 
-  // Instagram/Facebook use 'id' as identifierKey, WhatsApp uses 'phonenumber'
   const identifierKey = channel === "instagram" || channel === "facebook" ? "id" : "phonenumber";
 
   const payload = {
@@ -237,7 +228,7 @@ export const channelWorker = new Worker(
   async (job) => {
     const { type, channel, recipientId, message: userMessage, attachments = [], chatbotId, conversationId: existingConversationId, platformMetadata, contactInfo } = job.data;
 
-    console.log(`[ChannelWorker] Processing job ${job.id} - ${channel} (${type})`);
+    workerLog.info({ jobId: job.id, channel, type }, "Processing job");
 
     try {
       if (type === "inbound") {
@@ -253,7 +244,7 @@ export const channelWorker = new Worker(
           where: {
             chatbotId,
             channel: channel.toUpperCase() as any,
-            channelUserId: recipientId, // Inbound job puts senderId in recipientId slot
+            channelUserId: recipientId,
             status: "ACTIVE"
           },
           orderBy: { createdAt: "desc" }
@@ -271,10 +262,8 @@ export const channelWorker = new Worker(
               contactPhone: contactInfo?.contactPhone || null,
             }
           });
-          // Trigger conversation.created webhook event
           triggerWebhook(chatbotId, "conversation.created", conversation);
         } else if (contactInfo?.contactName && !conversation.contactName) {
-          // Update contact info if missing
           await prisma.conversation.update({
             where: { id: conversation.id },
             data: {
@@ -285,20 +274,17 @@ export const channelWorker = new Worker(
           conversation = { ...conversation, contactName: contactInfo.contactName };
         }
 
-        // If handoff is active (aiEnabled: false), skip AI response
         if (!conversation.aiEnabled) {
-          console.log(`[ChannelWorker] Handoff aktif, AI atlandı. Conv: ${conversation.id}, Son güncelleme: ${conversation.updatedAt}`);
+          workerLog.info({ conversationId: conversation.id }, "Handoff aktif, AI atlandı");
           return { skipped: "handoff_active" };
         }
 
-        // Load Channel Config early for both media downloads and response routing
         const channelConfig = await prisma.channel.findFirst({
           where: { chatbotId, type: channel.toUpperCase() as any, status: "CONNECTED" }
         });
         if (!channelConfig) throw new Error("Channel configuration lost");
         const config = channelConfig.config as any;
 
-        // Process attachments (e.g. download images as base64)
         const processedAttachments: Array<{ type: string; data: string; mimeType?: string }> = [];
         for (const att of attachments) {
           if (att.type === "image" && att.url) {
@@ -306,10 +292,10 @@ export const channelWorker = new Worker(
               let imageData;
               if (att.url.startsWith("whatsapp_media_id:")) {
                 const mediaId = att.url.split("whatsapp_media_id:")[1];
-                console.log(`[ChannelWorker] Fetching and downloading WhatsApp image: ${mediaId}`);
+                workerLog.info({ mediaId }, "Fetching WhatsApp image");
                 imageData = await downloadWhatsAppImageAsBase64(mediaId, config.accessToken);
               } else {
-                console.log(`[ChannelWorker] Downloading standard image attachment: ${att.url}`);
+                workerLog.info({ url: att.url }, "Downloading image attachment");
                 imageData = await downloadImageAsBase64(att.url);
               }
               processedAttachments.push({
@@ -318,7 +304,7 @@ export const channelWorker = new Worker(
                 mimeType: imageData.mimeType
               });
             } catch (err) {
-              console.error(`[ChannelWorker] Failed to download image from ${att.url}:`, err);
+              workerLog.error({ url: att.url, err }, "Failed to download image");
               processedAttachments.push({
                 type: "text_fallback",
                 data: `[Görsel yüklenemedi: ${att.url}]`
@@ -332,14 +318,12 @@ export const channelWorker = new Worker(
           }
         }
 
-        // Format user message content for DB history
         let displayMessage = userMessage || "";
         if (attachments && attachments.length > 0) {
-          const attachmentLabels = attachments.map((att: any) => `[${att.type === 'image' ? 'Görsel' : att.type === 'share' ? 'Gönderi' : 'Ek'}: ${att.url}]`).join(" ");
+          const attachmentLabels = attachments.map((att: any) => `[${att.type === "image" ? "Görsel" : att.type === "share" ? "Gönderi" : "Ek"}: ${att.url}]`).join(" ");
           displayMessage = displayMessage ? `${displayMessage} ${attachmentLabels}` : attachmentLabels;
         }
 
-        // Save User Message
         await prisma.message.create({
           data: {
             conversationId: conversation.id,
@@ -348,7 +332,6 @@ export const channelWorker = new Worker(
           }
         });
 
-        // Construct refined query text for RAG Search
         let aiQueryText = userMessage || "";
         for (const att of processedAttachments) {
           if (att.type === "text_fallback") {
@@ -358,13 +341,11 @@ export const channelWorker = new Worker(
           }
         }
 
-        // 1. Perform RAG Search
         const { context, sources, lowConfidence } = await performRAGSearch({
           chatbotId,
           query: aiQueryText || "görsel",
         });
 
-        // 2. Clear Chat History (last 10)
         const history = await prisma.message.findMany({
           where: { conversationId: conversation.id },
           orderBy: { createdAt: "asc" },
@@ -376,7 +357,6 @@ export const channelWorker = new Worker(
           content: m.content
         }));
 
-        // 3. Generate AI Response
         const aiResponse = await generateRAGResponse({
           messages: formattedMessages,
           model: (chatbot.model as any) || "gpt-4o",
@@ -387,13 +367,11 @@ export const channelWorker = new Worker(
           attachments: processedAttachments as any
         });
 
-        // 4. Send Response back to Channel
         let sendResult;
         if (["whatsapp", "instagram", "facebook"].includes(channel)) {
-          // Use Bird API if channel was created via Bird
           const isBirdChannel = config.provider === "bird" || (!config.accessToken && channelConfig.phoneNumberId);
           if (isBirdChannel) {
-            console.log(`[ChannelWorker] Using Bird API to send ${channel} response`);
+            workerLog.info({ channel }, "Using Bird API");
             sendResult = await sendBirdMessage({
               recipientId,
               message: aiResponse.text,
@@ -429,7 +407,6 @@ export const channelWorker = new Worker(
           });
         }
 
-        // 5. Save Assistant Message
         await prisma.message.create({
           data: {
             conversationId: conversation.id,
@@ -442,7 +419,6 @@ export const channelWorker = new Worker(
           }
         });
 
-        // 6. Log Token Usage for Billing
         await logTokenUsage({
           userId: chatbot.userId,
           chatbotId: chatbot.id,
@@ -525,7 +501,6 @@ export const channelWorker = new Worker(
           throw new Error(`Unsupported channel: ${channel}`);
       }
 
-      // Mesajı veritabanına kaydet
       await prisma.message.create({
         data: {
           conversationId: existingConversationId,
@@ -534,18 +509,17 @@ export const channelWorker = new Worker(
         },
       });
 
-      console.log(`[ChannelWorker] Job ${job.id} completed`);
-
+      workerLog.info({ jobId: job.id }, "Job completed");
       return result;
     } catch (error) {
-      console.error(`[ChannelWorker] Job ${job.id} failed:`, error);
+      Sentry.captureException(error, { extra: { jobId: job.id, channel, type } });
+      workerLog.error({ jobId: job.id, err: error }, "Job failed");
 
-      // Sadece kritik kimlik doğrulama / izin hatalarında kanalı ERROR durumuna getir
       const errMsg = error instanceof Error ? error.message : String(error);
-      
+
       const isTrueAuthError =
-        !errMsg.includes("Object with ID 'undefined'") && // phoneNumberId undefined ise auth hatası değil
-        !errMsg.includes("Object with ID 'me'") &&        // pageId eksik ise auth hatası değil
+        !errMsg.includes("Object with ID 'undefined'") &&
+        !errMsg.includes("Object with ID 'me'") &&
         (errMsg.includes("OAuthException") && (
           errMsg.includes("190") ||
           errMsg.includes("expired") ||
@@ -554,7 +528,7 @@ export const channelWorker = new Worker(
         ));
 
       if (isTrueAuthError) {
-        console.warn(`[ChannelWorker] Critical auth/permission error detected. Setting channel status to ERROR.`);
+        workerLog.warn({ channel }, "Critical auth error — setting channel to ERROR status");
         await prisma.channel.updateMany({
           where: { chatbotId, type: channel.toUpperCase() as any },
           data: { status: "ERROR" },
@@ -582,49 +556,31 @@ export const channelWorker = new Worker(
           });
         }
       } else {
-        console.log(`[ChannelWorker] Non-critical or transient error (e.g. policy window/rate limit/validation/missing config). Leaving channel status as-is.`);
+        workerLog.info({ channel }, "Non-critical/transient error — leaving channel status as-is");
       }
 
       throw error;
     }
   },
   {
-    connection: redisConnection,
+    connection: createBullMQConnection(),
     concurrency: 10,
   }
 );
 
 // Rate limit yönetimi için Meta API özel kuyruk
 export const metaRateLimiter = {
-  // WhatsApp: 80 mesaj/dakika
-  whatsapp: {
-    limit: 80,
-    window: 60000,
-    current: 0,
-    resetTime: Date.now() + 60000,
-  },
-  // Instagram: 100 mesaj/dakika
-  instagram: {
-    limit: 100,
-    window: 60000,
-    current: 0,
-    resetTime: Date.now() + 60000,
-  },
-  // Facebook: 100 mesaj/dakika
-  facebook: {
-    limit: 100,
-    window: 60000,
-    current: 0,
-    resetTime: Date.now() + 60000,
-  },
+  whatsapp: { limit: 80, window: 60000, current: 0, resetTime: Date.now() + 60000 },
+  instagram: { limit: 100, window: 60000, current: 0, resetTime: Date.now() + 60000 },
+  facebook: { limit: 100, window: 60000, current: 0, resetTime: Date.now() + 60000 },
 };
 
 channelWorker.on("completed", (job) => {
-  console.log(`[ChannelWorker] Job ${job.id} completed`);
+  workerLog.debug({ jobId: job.id }, "Job completed");
 });
 
 channelWorker.on("failed", (job, err) => {
-  console.error(`[ChannelWorker] Job ${job?.id} failed:`, err.message);
+  workerLog.error({ jobId: job?.id, err: err.message }, "Job failed");
 });
 
-console.log("[ChannelWorker] Started");
+workerLog.info("Started");

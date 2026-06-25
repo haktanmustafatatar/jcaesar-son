@@ -1,6 +1,10 @@
 import { prisma } from "@/lib/prisma";
 import { addCrawlJob } from "@/lib/queue";
 import { subDays, subWeeks, subMonths, isSameDay } from "date-fns";
+import * as Sentry from "@sentry/nextjs";
+import { logger } from "@/lib/logger";
+
+const schedulerLog = logger.child({ worker: "scheduler" });
 
 /**
  * Istanbul Timezone Helper (UTC+3)
@@ -14,8 +18,8 @@ function getIstanbulDate() {
 async function checkAndTriggerSchedules() {
   const trDate = getIstanbulDate();
   const currentHour = trDate.getHours();
-  
-  console.log(`[Scheduler] Checking schedules at ${trDate.toISOString()} (Istanbul Hour: ${currentHour})`);
+
+  schedulerLog.info({ istanbulHour: currentHour }, "Checking schedules");
 
   // Sadece gece yarısı (00:00 - 01:00 arası) tarama yapalım
   if (currentHour !== 0) return;
@@ -41,7 +45,7 @@ async function checkAndTriggerSchedules() {
         shouldTrigger = true;
       } else {
         const isAlreadyCrawledToday = isSameDay(lastCrawled, trDate);
-        
+
         if (!isAlreadyCrawledToday) {
           if (schedule === "daily") {
             shouldTrigger = true;
@@ -54,43 +58,42 @@ async function checkAndTriggerSchedules() {
       }
 
       if (shouldTrigger && ds.chatbot) {
-        console.log(`[Scheduler] Triggering auto-sync for ${ds.name} (ID: ${ds.id})`);
-        
-        // Retrain endpoint'indeki temizlik mantığını burada da uygulayalım
-        // Önce temizleyelim ki mükerrer veri olmasın (User request: "Tertemiz bir sayfa mı açalım")
+        schedulerLog.info({ dataSourceId: ds.id, name: ds.name }, "Triggering auto-sync");
+
         await prisma.$transaction([
           prisma.document.deleteMany({ where: { dataSourceId: ds.id } }),
           prisma.dataSourceUrl.deleteMany({ where: { dataSourceId: ds.id } }),
           prisma.dataSource.update({
             where: { id: ds.id },
-            data: { 
-              status: "PENDING", 
+            data: {
+              status: "PENDING",
               crawlStatus: "Auto-Refresh Starting...",
-              pagesCount: 0 
+              pagesCount: 0
             }
           })
         ]);
 
         if (ds.type === "WEBSITE" && ds.url) {
-           await addCrawlJob({
-             type: "crawl-website",
-             url: ds.url,
-             chatbotId: ds.chatbotId,
-             dataSourceId: ds.id,
-             userId: ds.chatbot.userId,
-             maxDepth: ds.crawlDepth,
-             limit: 100,
-           });
+          await addCrawlJob({
+            type: "crawl-website",
+            url: ds.url,
+            chatbotId: ds.chatbotId,
+            dataSourceId: ds.id,
+            userId: ds.chatbot.userId,
+            maxDepth: ds.crawlDepth,
+            limit: 100,
+          });
         }
       }
     }
   } catch (error) {
-    console.error("[Scheduler] Error checking schedules:", error);
+    Sentry.captureException(error, { extra: { worker: "scheduler", task: "checkAndTriggerSchedules" } });
+    schedulerLog.error({ err: error }, "Error checking schedules");
   }
 }
 
 async function checkAndResolveStaleHandoffs() {
-  console.log("[Scheduler] Checking for stale human handoff conversations...");
+  schedulerLog.info("Checking for stale human handoff conversations");
   try {
     const staleHandoffConversations = await prisma.conversation.findMany({
       where: {
@@ -99,9 +102,9 @@ async function checkAndResolveStaleHandoffs() {
         updatedAt: { lt: new Date(Date.now() - 2 * 60 * 60 * 1000) } // 2 saat
       }
     });
-    
+
     if (staleHandoffConversations.length > 0) {
-      console.log(`[Scheduler] Found ${staleHandoffConversations.length} stale handoff conversations to re-enable.`);
+      schedulerLog.info({ count: staleHandoffConversations.length }, "Re-enabling AI for stale handoff conversations");
     }
 
     for (const conv of staleHandoffConversations) {
@@ -116,15 +119,16 @@ async function checkAndResolveStaleHandoffs() {
           createdBy: "system"
         }
       });
-      console.log(`[Scheduler] Re-enabled AI for conversation ${conv.id}`);
+      schedulerLog.info({ conversationId: conv.id }, "Re-enabled AI for conversation");
     }
   } catch (error) {
-    console.error("[Scheduler] Error in handoff inactivity check:", error);
+    Sentry.captureException(error, { extra: { worker: "scheduler", task: "checkAndResolveStaleHandoffs" } });
+    schedulerLog.error({ err: error }, "Error in handoff inactivity check");
   }
 }
 
 // Her saat başı kontrol et
-console.log("[Scheduler] Background worker initialized");
+schedulerLog.info("Background worker initialized");
 setInterval(checkAndTriggerSchedules, 60 * 60 * 1000);
 // Her 30 dakikada bir kontrol et
 setInterval(checkAndResolveStaleHandoffs, 30 * 60 * 1000);

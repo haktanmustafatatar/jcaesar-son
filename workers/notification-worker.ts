@@ -1,14 +1,9 @@
 import { Worker } from "bullmq";
-import IORedis from "ioredis";
+import * as Sentry from "@sentry/nextjs";
+import { logger } from "@/lib/logger";
+import { createBullMQConnection } from "@/lib/redis";
 
-const redisConnection = new IORedis(process.env.REDIS_URL || "redis://localhost:6379", {
-  maxRetriesPerRequest: null,
-  enableReadyCheck: false,
-});
-
-redisConnection.on("error", (err) => {
-  console.warn("[Redis/NotificationWorker] Connection error (expected during build):", err.message);
-});
+const workerLog = logger.child({ worker: "notification" });
 
 // SendGrid email gönderimi
 async function sendEmail({
@@ -24,7 +19,7 @@ async function sendEmail({
 }) {
   const apiKey = process.env.SENDGRID_API_KEY;
   if (!apiKey) {
-    console.warn("[NotificationWorker] SENDGRID_API_KEY not set, skipping email");
+    workerLog.warn("SENDGRID_API_KEY not set, skipping email");
     return { success: false, skipped: true };
   }
 
@@ -49,7 +44,7 @@ async function sendEmail({
     throw new Error(`SendGrid error: ${error}`);
   }
 
-  console.log(`[Email] Sent to: ${to}, Subject: ${subject}`);
+  workerLog.info({ to, subject }, "Email sent");
   return { success: true };
 }
 
@@ -82,7 +77,7 @@ export const notificationWorker = new Worker(
   async (job) => {
     const { type, to, subject, body, template, data } = job.data;
 
-    console.log(`[NotificationWorker] Processing job ${job.id} - ${type}`);
+    workerLog.info({ jobId: job.id, type }, "Processing job");
 
     try {
       switch (type) {
@@ -95,24 +90,23 @@ export const notificationWorker = new Worker(
           break;
 
         case "push":
-          // TODO: Push notification entegrasyonu (Firebase, OneSignal vb.)
-          console.log(`[Push] To: ${to}, Body: ${body}`);
+          workerLog.info({ to, body }, "Push notification (not yet integrated)");
           break;
 
         default:
           throw new Error(`Unknown notification type: ${type}`);
       }
 
-      console.log(`[NotificationWorker] Job ${job.id} completed`);
-
+      workerLog.info({ jobId: job.id }, "Job completed");
       return { success: true };
     } catch (error) {
-      console.error(`[NotificationWorker] Job ${job.id} failed:`, error);
+      Sentry.captureException(error, { extra: { jobId: job.id, type } });
+      workerLog.error({ jobId: job.id, err: error }, "Job failed");
       throw error;
     }
   },
   {
-    connection: redisConnection,
+    connection: createBullMQConnection(),
     concurrency: 5,
   }
 );
@@ -145,7 +139,7 @@ To avoid service interruption, consider upgrading your plan or purchasing additi
 
 Best regards,
 J.Caesar Agent Team
-  `;
+`;
 
   // Queue'ya ekle
   const { queues } = await import("@/lib/queue");
@@ -165,11 +159,11 @@ J.Caesar Agent Team
 }
 
 notificationWorker.on("completed", (job) => {
-  console.log(`[NotificationWorker] Job ${job.id} completed`);
+  workerLog.debug({ jobId: job.id }, "Job completed");
 });
 
 notificationWorker.on("failed", (job, err) => {
-  console.error(`[NotificationWorker] Job ${job?.id} failed:`, err.message);
+  workerLog.error({ jobId: job?.id, err: err.message }, "Job failed");
 });
 
-console.log("[NotificationWorker] Started");
+workerLog.info("Started");
