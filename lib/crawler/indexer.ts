@@ -88,7 +88,7 @@ export class NeuralIndexer {
     dataSourceId?: string;
     knowledgeSourceId?: string;
   }) {
-    if (!content || content.trim().length < 10) {
+    if (!content || content.trim().length < 100) {
       console.warn(`[NeuralIndexer] Skipping thin content for ${url || title}`);
       return 0;
     }

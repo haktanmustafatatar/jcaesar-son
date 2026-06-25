@@ -69,8 +69,10 @@ export async function crawlWebsite({
   const normalizedUrl = normalizeUrl(rawUrl);
   console.log(`[Crawler] Starting crawl for ${normalizedUrl}`);
 
-  // Determine concurrency based on user's plan
+
+  // Determine concurrency and URL cap based on user's plan
   let concurrency = 5; // Default for Starter
+  let maxUrls = 100;   // Starter: 100 pages
   if (userId) {
     const subscription = await prisma.subscription.findFirst({
       where: { userId, status: "ACTIVE" },
@@ -79,8 +81,10 @@ export async function crawlWebsite({
     if (subscription?.plan) {
       if (subscription.plan.isEnterprise || subscription.plan.slug === "enterprise") {
         concurrency = 20;
+        maxUrls = 10000;
       } else if (subscription.plan.slug === "pro") {
         concurrency = 10;
+        maxUrls = 1000;
       }
     }
   }
@@ -116,7 +120,7 @@ export async function crawlWebsite({
       console.log(`[Crawler] Attempting Firecrawl full crawl for ${normalizedUrl}...`);
       const firecrawl = await getFirecrawl();
       const crawlResult = await firecrawl.crawlUrl(normalizedUrl, {
-        limit,
+        limit: Math.min(limit, maxUrls),
         maxDepth,
         scrapeOptions: {
           formats: ["markdown"],
@@ -180,7 +184,7 @@ let totalBytes = 0;
 
     // 5. Fallback: Internal HTTP+JSDOM Scraper (no Playwright)
     console.log(`[Crawler] Running internal HTTP fallback for ${normalizedUrl}`);
-    const pages = await internalCrawl(normalizedUrl, maxDepth, limit, concurrency);
+    const pages = await internalCrawl(normalizedUrl, maxDepth, Math.min(limit, maxUrls), concurrency);
     
     let indexedCount = 0;
     const totalPages = pages.length;
