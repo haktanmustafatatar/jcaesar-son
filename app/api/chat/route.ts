@@ -81,12 +81,12 @@ export async function POST(req: NextRequest) {
     });
 
     // RAG: İlgili dokümanları ara
-    const { context, sources } = await performRAGSearch({
+  const { context, sources, lowConfidence } = await performRAGSearch({
       query: message,
       chatbotId,
       messages: previousMessages.map(m => ({ role: m.role.toLowerCase(), content: m.content })),
       limit: 8,
-      minSimilarity: 0.35,
+    // minSimilarity: default 0.40 from performRAGSearch
     });
 
     // Mesajları formatla
@@ -99,11 +99,20 @@ export async function POST(req: NextRequest) {
     const data = new StreamData();
 
     // Stream yanıtı
+  // Low-confidence clarification: prompt user to be more specific
+  let effectiveContext = context || "No specific context found.";
+  if (lowConfidence || context === "NO_CONTEXT_FOUND") {
+    effectiveContext = `NOT_ENOUGH_CONTEXT
+Kullanıcı sorusu: "${message}"
+Sonuç: Yeterli bilgi bulunamadı veya sonuçlar belirsiz.
+Yanıt: Kullanıcıdan daha spesifik bilgi iste (ürün adı, marka, kategori, yaş grubu gibi).`;
+  }
+
     const result = await streamRAGResponse({
       messages: messages,
       model: model as any,
       systemPrompt: chatbot.systemPrompt,
-      context: context || "No specific context found.",
+    context: effectiveContext,
       chatbotId,
       conversationId: conversation.id,
       temperature: chatbot.temperature,

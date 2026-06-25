@@ -27,6 +27,48 @@ export class NeuralIndexer {
   }
 
   /**
+   * Extract structured metadata from content using regex patterns.
+   * Targets Turkish e-commerce: brand, category, price, SKU, ageGroup.
+   */
+  static extractMetadata(content: string, title: string, url?: string): Record<string, any> {
+    const meta: Record<string, any> = {};
+
+    // Price: matches "149,90 TL", "149.90 TL", "TL 149", "₺149"
+    const priceMatch = content.match(/(?:₺|TL\s*)[\s]?(\d{1,6}[.,]\d{2})|(?:(\d{1,6}[.,]\d{2})\s*(?:TL|₺))/i);
+    if (priceMatch) {
+      const raw = (priceMatch[1] || priceMatch[2]).replace(",", ".");
+      const parsed = parseFloat(raw);
+      if (!isNaN(parsed)) meta.price = parsed;
+    }
+
+    // SKU: matches "SKU:", "Ürün Kodu:", "Model No:", "Stok Kodu:"
+    const skuMatch = content.match(/(?:SKU|Ürün Kodu|Model No|Stok Kodu|Ürün No)[:\s]+([A-Z0-9\-]{3,30})/i);
+    if (skuMatch) meta.sku = skuMatch[1].trim();
+
+    // Brand: matches "Marka:", "Brand:" followed by value
+    const brandMatch = content.match(/(?:Marka|Brand)[:\s]+([\w\s\-&]{2,40}?)(?:\n|\r|,|\.|\||$)/im);
+    if (brandMatch) meta.brand = brandMatch[1].trim();
+
+    // Category from URL path (e.g. /kategori/oyuncak or /category/toys)
+    if (url) {
+      const catMatch = url.match(/(?:kategori|category|cat|c)\/([^/?#]+)/i);
+      if (catMatch) meta.category = catMatch[1].replace(/-/g, " ");
+    }
+
+    // Age group: matches "3-6 yaş", "0+ ay", "12+ ay" etc.
+    const ageMatch = content.match(/(\d+)\s*[\-+]\s*(\d+)?\s*(yaş|ay|yıl)/i);
+    if (ageMatch) meta.ageGroup = ageMatch[0].trim();
+
+    // Title-based brand extraction: first word of title if all-caps or known pattern
+    if (!meta.brand && title) {
+      const titleBrand = title.match(/^([A-Z][A-Z0-9\-&]{1,20})\s/);
+      if (titleBrand) meta.brand = titleBrand[1];
+    }
+
+    return meta;
+  }
+
+  /**
    * Core function to index a piece of content (web page, file, or raw text)
    */
   static async indexContent({
@@ -52,6 +94,10 @@ export class NeuralIndexer {
     }
 
     console.log(`[NeuralIndexer] Indexing: ${title} (${url || "Manual Source"})`);
+
+    // 0. Extract structured metadata from content + merge with caller-provided metadata
+    const extractedMeta = NeuralIndexer.extractMetadata(content, title, url);
+    const mergedMetadata = { ...extractedMeta, ...metadata };
 
     // 1. Chunking
     const chunks = this.chunkText(content);
@@ -85,7 +131,7 @@ export class NeuralIndexer {
               ${chunk},
               ${url || null},
               ${title},
-              ${JSON.stringify(metadata)}::jsonb,
+              ${JSON.stringify(mergedMetadata)}::jsonb,
               ${vectorStr}::vector,
               NOW(),
               NOW()

@@ -122,7 +122,7 @@ export async function POST(
     });
 
     // RAG: İlgili dokümanları ara
-    const { context, sources } = await performRAGSearch({
+    const { context, sources, lowConfidence } = await performRAGSearch({
       chatbotId: chatbot.id,
       query: message,
       limit: 5,

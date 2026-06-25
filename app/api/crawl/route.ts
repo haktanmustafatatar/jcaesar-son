@@ -17,7 +17,27 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const { chatbotId, url, type = "crawl-website", maxDepth = 3, limit = 100 } = await req.json();
+
+  // Look up user's active subscription to determine page limit
+  const subscription = await prisma.subscription.findFirst({
+    where: {
+      userId: user.id,
+      status: "ACTIVE"
+    },
+    include: { plan: true }
+  });
+
+  // Determine page limit based on plan
+  let defaultPageLimit = 100; // Starter default
+  if (subscription?.plan) {
+    if (subscription.plan.isEnterprise || subscription.plan.slug === "enterprise") {
+      defaultPageLimit = 10000;
+    } else if (subscription.plan.slug === "pro") {
+      defaultPageLimit = 1000;
+    }
+  }
+
+  const { chatbotId, url, type = "crawl-website", maxDepth = 3, limit = defaultPageLimit } = await req.json();
 
     // Chatbot'u kontrol et — user.id ile (clerkId değil!)
     const chatbot = await prisma.chatbot.findFirst({

@@ -63,12 +63,11 @@ export async function POST(
     }
 
     // 2. Perform RAG Search
-    const { context } = await performRAGSearch({
+    const { context, lowConfidence } = await performRAGSearch({
       chatbotId,
       query: queryText,
       messages: messages, // Pass conversation history for better context
       limit: 8,
-      minSimilarity: 0.35,
     });
 
     // 3. Stream Response & Log Usage

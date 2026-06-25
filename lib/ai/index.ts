@@ -37,7 +37,7 @@ export const LLM_MODELS = {
 export type LLMModel = keyof typeof LLM_MODELS;
 
 // Embedding modeli (Phase 2 Upgrade reverted to match existing vectors)
-export const embeddingModel = openai.embedding("text-embedding-3-small");
+export const embeddingModel = openai.embedding("text-embedding-3-large");
 
 // Text embedding oluştur
 export async function createEmbedding(text: string) {
@@ -137,7 +137,35 @@ If the user provides an image or photo:
 1. Data Privacy: Never mention you are using "training data" or "context".
 2. Strict Knowledge: Rely ONLY on the provided context and YOUR TOOLS to answer questions. If information is missing and no relevant tool is available, say "I don't have enough information about this" and ask for clarification.
 3. Use Tools: If a user asks about their order status, products, or booking an appointment, you MUST check if a relevant tool (like shopify or calendar) is available and use it. Do not give generic advice if a tool can provide the real answer.
-4. No Hallucinations: Do not invent prices, brands, or features.
+4. No Hallucinations: NEVER invent, guess, or extrapolate prices, SKUs, product codes, brand names, stock levels, or any factual claim. If the information is not explicitly present in the Knowledge Hub Context or returned by a tool, you MUST decline and ask the user for more details.
+
+
+### Hallucination Guard (CRITICAL — READ CAREFULLY)
+PRICE / SKU / BRAND rules — ZERO tolerance for fabrication:
+- If a price is NOT in the context: respond "Bu ürünün fiyatı hakkında bilgim bulunmuyor. Lütfen ürün adını veya kodunu belirterek tekrar sorun."
+- If a SKU / product code is NOT in the context: respond "Bu ürün kodunu sistemimde bulamadım. Lütfen kodu doğrulayıp tekrar deneyin."
+- If a brand is NOT in the context: respond "Bu markaya ait ürün bilgisi bulunamadı. Farklı bir marka veya ürün adı dener misiniz?"
+- NEVER say a product "costs X TL", "is priced at X", or give ANY numeric price unless that exact price appears verbatim in the context.
+- NEVER confirm stock availability, discount, or promotion unless explicitly stated in context.
+- NEVER speculate about future prices, upcoming sales, or competitor pricing.
+
+Few-shot refusal examples (follow these exactly when context lacks the answer):
+
+User: "XYZ-99999 ürününün fiyatı nedir?"
+CORRECT: "XYZ-99999 kodlu ürünü sistemimde bulamadım. Lütfen ürün adını veya doğru kodu paylaşır mısınız?"
+WRONG: "XYZ-99999 ürünü 299 TL'dir." ← NEVER do this
+
+User: "Bu hafta indirim var mı?"
+CORRECT: "Güncel kampanya bilgisine şu an erişimim yok. Güncel indirimler için lütfen web sitemizi ziyaret edin veya müşteri hizmetlerimizle iletişime geçin."
+WRONG: "Evet, bu hafta %20 indirim var!" ← NEVER do this
+
+User: "ACME marka ürünler kaç lira?"
+CORRECT: "ACME markasına ait ürün bilgisi elimde bulunmuyor. Başka bir marka ya da ürün adıyla aramayı dener misiniz?"
+WRONG: "ACME ürünleri 150-500 TL arasında değişmektedir." ← NEVER do this
+
+User: "Rakibiniz daha ucuz mu?"
+CORRECT: "Rakip fiyatları hakkında bilgi sahibi değilim ve karşılaştırma yapamam. Size en iyi hizmeti sunmak için buradayım."
+WRONG: "Evet, rakiplerimizden daha uygunuz." ← NEVER do this
 
 ### Lead Generation & CRM (MANDATORY IF ENABLED)
 If the user shows interest or asks to be contacted:
@@ -251,7 +279,36 @@ If the user provides an image or photo:
 1. Data Privacy: Never mention you are using "training data" or "context".
 2. Strict Knowledge: Rely ONLY on the provided context and YOUR TOOLS to answer questions. If information is missing and no relevant tool is available, say "I don't have enough information about this" and ask for clarification.
 3. Use Tools: If a user asks about their order status, products, or booking an appointment, you MUST check if a relevant tool (like shopify or calendar) is available and use it. Do not give generic advice if a tool can provide the real answer.
-4. No Hallucinations: Do not invent prices, brands, or features.
+4. No Hallucinations: NEVER invent, guess, or extrapolate prices, SKUs, product codes, brand names, stock levels, or any factual claim. If the information is not explicitly present in the Knowledge Hub Context or returned by a tool, you MUST decline and ask the user for more details.
+
+5. Brand/SKU/Price Policy: See "### Hallucination Guard" section above for zero-tolerance fabrication rules.
+
+### Hallucination Guard (CRITICAL — READ CAREFULLY)
+PRICE / SKU / BRAND rules — ZERO tolerance for fabrication:
+- If a price is NOT in the context: respond "Bu ürünün fiyatı hakkında bilgim bulunmuyor. Lütfen ürün adını veya kodunu belirterek tekrar sorun."
+- If a SKU / product code is NOT in the context: respond "Bu ürün kodunu sistemimde bulamadım. Lütfen kodu doğrulayıp tekrar deneyin."
+- If a brand is NOT in the context: respond "Bu markaya ait ürün bilgisi bulunamadı. Farklı bir marka veya ürün adı dener misiniz?"
+- NEVER say a product "costs X TL", "is priced at X", or give ANY numeric price unless that exact price appears verbatim in the context.
+- NEVER confirm stock availability, discount, or promotion unless explicitly stated in context.
+- NEVER speculate about future prices, upcoming sales, or competitor pricing.
+
+Few-shot refusal examples (follow these exactly when context lacks the answer):
+User: "XYZ-99999 ürününün fiyatı nedir?"
+CORRECT: "XYZ-99999 kodlu ürünü sistemimde bulamadım. Lütfen ürün adını veya doğru kodu paylaşır mısınız?"
+WRONG: "XYZ-99999 ürünü 299 TL'dir." ← NEVER do this
+
+User: "Bu hafta indirim var mı?"
+CORRECT: "Güncel kampanya bilgisine şu an erişimim yok. Güncel indirimler için lütfen web sitemizi ziyaret edin veya müşteri hizmetlerimizle iletişime geçin."
+WRONG: "Evet, bu hafta %20 indirim var!" ← NEVER do this
+
+User: "ACME marka ürünler kaç lira?"
+CORRECT: "ACME markasına ait ürün bilgisi elimde bulunmuyor. Başka bir marka ya da ürün adıyla aramayı dener misiniz?"
+WRONG: "ACME ürünleri 150-500 TL arasında değişmektedir." ← NEVER do this
+
+User: "Rakibiniz daha ucuz mu?"
+CORRECT: "Rakip fiyatları hakkında bilgi sahibi değilim ve karşılaştırma yapamam. Size en iyi hizmeti sunmak için buradayım."
+WRONG: "Evet, rakiplerimizden daha uygunuz." ← NEVER do this
+
 
 ### Lead Generation & CRM (MANDATORY IF ENABLED)
 If the user shows interest or asks to be contacted:
@@ -441,7 +498,7 @@ export async function performRAGSearch({
   chatbotId,
   query,
   limit = 8,
-  minSimilarity = 0.35, 
+  minSimilarity = 0.40,
   messages = [],
 }: {
   chatbotId: string;
@@ -538,12 +595,17 @@ export async function performRAGSearch({
 
   const whereClause = Prisma.join(whereConditions, ' OR ');
 
+  // Brand metadata pre-filter: narrows results to exact brand when query mentions one
+  const brandFilter = intentData.brand
+    ? Prisma.sql` AND metadata->>'brand' ILIKE ${'%' + intentData.brand + '%'}`
+    : Prisma.sql``;
+
   // 3. Hybrid Search: Vector Search + BM25 FTS
   const documents: any[] = await prisma.$queryRaw`
     WITH filtered_docs AS (
       SELECT id, content, title, url, metadata, embedding
       FROM "Document"
-      WHERE ${whereClause}
+        WHERE (${whereClause})${brandFilter}
     )
     SELECT 
       d.id, d.content, d.title, d.url, d.metadata,
@@ -575,14 +637,50 @@ export async function performRAGSearch({
   const finalDocs = Array.from(rrfScores.values())
     .filter(doc => doc.vector_score >= minSimilarity)
     .sort((a, b) => b.rrf_score - a.rrf_score)
-    .slice(0, limit);
+    .slice(0, 20); // Top 20 candidates for re-ranking
 
   // Fallback: Clarification mechanism if no context is found
   if (finalDocs.length === 0) {
-     return { context: "NO_CONTEXT_FOUND", sources: [] };
+    return { context: "NO_CONTEXT_FOUND", sources: [], lowConfidence: true };
   }
 
-  const context = finalDocs
+  // 6. Re-ranking layer (Cohere rerank-multilingual-v3.0)
+  let rerankedDocs = finalDocs;
+  if (process.env.COHERE_API_KEY && finalDocs.length > 0) {
+    try {
+      const response = await fetch("https://api.cohere.ai/v1/rerank", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${process.env.COHERE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "rerank-multilingual-v3.0",
+          query: searchTerms,
+          documents: finalDocs.map(d => d.content),
+          top_n: limit,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // Map reranked indices back to original docs
+        rerankedDocs = data.results.map((r: any) => finalDocs[r.index]);
+        console.log(`[RAG Search] Cohere rerank: ${finalDocs.length} → ${rerankedDocs.length}`);
+      } else {
+        console.warn(`[RAG Search] Cohere rerank failed (${response.status}), falling back to RRF order`);
+        rerankedDocs = finalDocs.slice(0, limit);
+      }
+    } catch (err) {
+      console.warn(`[RAG Search] Cohere rerank error:`, err);
+      rerankedDocs = finalDocs.slice(0, limit); // Fallback to RRF
+    }
+  } else {
+    // No COHERE_API_KEY: fallback to RRF top-N
+    rerankedDocs = finalDocs.slice(0, limit);
+  }
+
+  const context = rerankedDocs
     .map((doc) => {
       // Truncate content if too long to save tokens, focusing on the most relevant part
       const content = doc.content.length > 800 ? doc.content.substring(0, 800) + "..." : doc.content;
@@ -590,13 +688,15 @@ export async function performRAGSearch({
     })
     .join("\n\n---\n\n");
 
-  const sources = finalDocs.map((doc) => ({
+  const sources = rerankedDocs.map((doc) => ({
     title: doc.title,
     url: doc.url,
     similarity: doc.vector_score, // Exposed for UI
   }));
 
-  return { context, sources };
+  const lowConfidence = rerankedDocs.length < 3 || (rerankedDocs[0]?.vector_score ?? 0) < 0.50;
+
+  return { context, sources, lowConfidence };
 }
 
 /**

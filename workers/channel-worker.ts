@@ -359,7 +359,7 @@ export const channelWorker = new Worker(
         }
 
         // 1. Perform RAG Search
-        const { context, sources } = await performRAGSearch({
+        const { context, sources, lowConfidence } = await performRAGSearch({
           chatbotId,
           query: aiQueryText || "görsel",
         });

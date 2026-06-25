@@ -69,6 +69,22 @@ export async function crawlWebsite({
   const normalizedUrl = normalizeUrl(rawUrl);
   console.log(`[Crawler] Starting crawl for ${normalizedUrl}`);
 
+  // Determine concurrency based on user's plan
+  let concurrency = 5; // Default for Starter
+  if (userId) {
+    const subscription = await prisma.subscription.findFirst({
+      where: { userId, status: "ACTIVE" },
+      include: { plan: true }
+    });
+    if (subscription?.plan) {
+      if (subscription.plan.isEnterprise || subscription.plan.slug === "enterprise") {
+        concurrency = 20;
+      } else if (subscription.plan.slug === "pro") {
+        concurrency = 10;
+      }
+    }
+  }
+
   try {
     // 1. Update status to CRAWLING
     if (dataSourceId) {
@@ -108,13 +124,20 @@ export async function crawlWebsite({
         }
       });
 
-      if (crawlResult.success && crawlResult.data && crawlResult.data.length > 0) {
-        console.log(`[Crawler] Firecrawl successful. Found ${crawlResult.data.length} pages.`);
+    if (crawlResult.success && crawlResult.data && crawlResult.data.length > 0) {
+      console.log(`[Crawler] Firecrawl successful. Found ${crawlResult.data.length} pages.`);
+      
+      let indexedCount = 0;
+let totalBytes = 0;
+      const totalPages = crawlResult.data.length;
+      const BATCH_SIZE = 10;
+
+      for (let i = 0; i < totalPages; i += BATCH_SIZE) {
+        const batchPages = crawlResult.data.slice(i, i + BATCH_SIZE);
         
-        let indexedCount = 0;
-        for (const page of crawlResult.data) {
+        await Promise.all(batchPages.map(async (page) => {
           const content = page.markdown || page.content || "";
-          if (content.trim().length < 10) continue;
+          if (content.trim().length < 100) return;
 
           await NeuralIndexer.indexContent({
             content,
@@ -126,43 +149,81 @@ export async function crawlWebsite({
             knowledgeSourceId
           });
           indexedCount++;
+        totalBytes += Buffer.byteLength(content, 'utf8');
+        }));
+
+        // Progress update
+        const progress = Math.round((indexedCount / totalPages) * 100);
+        if (dataSourceId) {
+          await prisma.dataSource.update({
+            where: { id: dataSourceId },
+            data: {
+              crawlStatus: `Indexing: ${indexedCount}/${totalPages} pages (${progress}%)`,
+              pagesCount: indexedCount
+            }
+          });
         }
-        
-        await NeuralIndexer.updateStatus(
-          dataSourceId || knowledgeSourceId!, 
-          dataSourceId ? "data" : "knowledge", 
-          "COMPLETED",
-          { lastCrawledAt: new Date(), pagesCount: indexedCount }
-        );
-        return { success: true, pagesCount: indexedCount };
       }
+
+      await NeuralIndexer.updateStatus(
+        dataSourceId || knowledgeSourceId!,
+        dataSourceId ? "data" : "knowledge",
+        "COMPLETED",
+        { lastCrawledAt: new Date(), pagesCount: indexedCount, fileSize: totalBytes }
+      );
+
+      return { success: true, pagesCount: indexedCount };
+    }
     } catch (err) {
       console.warn(`[Crawler] Firecrawl failed, falling back to internal scraper:`, err);
     }
 
     // 5. Fallback: Internal HTTP+JSDOM Scraper (no Playwright)
     console.log(`[Crawler] Running internal HTTP fallback for ${normalizedUrl}`);
-    const pages = await internalCrawl(normalizedUrl, maxDepth, limit);
+    const pages = await internalCrawl(normalizedUrl, maxDepth, limit, concurrency);
     
     let indexedCount = 0;
-    for (const page of pages) {
-      await NeuralIndexer.indexContent({
-        content: page.markdown,
-        title: page.metadata.title,
-        url: page.metadata.sourceURL,
-        metadata: page.metadata,
-        chatbotId,
-        dataSourceId,
-        knowledgeSourceId
-      });
-      indexedCount++;
+    const totalPages = pages.length;
+    const BATCH_SIZE = 10;
+
+    for (let i = 0; i < totalPages; i += BATCH_SIZE) {
+      const batchPages = pages.slice(i, i + BATCH_SIZE);
+      
+      await Promise.all(batchPages.map(async (page) => {
+      const content = page.markdown || "";
+      if (content.trim().length < 100) return;
+
+        await NeuralIndexer.indexContent({
+          content: page.markdown,
+          title: page.metadata.title,
+          url: page.metadata.sourceURL,
+          metadata: page.metadata,
+          chatbotId,
+          dataSourceId,
+          knowledgeSourceId
+        });
+        indexedCount++;
+        totalBytes += Buffer.byteLength(content, 'utf8');
+      }));
+
+      // Progress update
+      const progress = Math.round((indexedCount / totalPages) * 100);
+      if (dataSourceId) {
+        await prisma.dataSource.update({
+          where: { id: dataSourceId },
+          data: {
+            crawlStatus: `Indexing: ${indexedCount}/${totalPages} pages (${progress}%)`,
+            pagesCount: indexedCount
+          }
+        });
+      }
     }
 
     await NeuralIndexer.updateStatus(
-      dataSourceId || knowledgeSourceId!, 
-      dataSourceId ? "data" : "knowledge", 
+      dataSourceId || knowledgeSourceId!,
+      dataSourceId ? "data" : "knowledge",
       "COMPLETED",
-      { lastCrawledAt: new Date(), pagesCount: indexedCount }
+      { lastCrawledAt: new Date(), pagesCount: indexedCount, fileSize: totalBytes }
     );
 
     return { success: true, pagesCount: indexedCount };
@@ -277,7 +338,7 @@ async function httpScrape(url: string, retries = 2): Promise<{ markdown: string;
   for (let i = 0; i <= retries; i++) {
     try {
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 25000); // Timeout optimization
+      const timeout = setTimeout(() => controller.abort(), 30000); // Timeout optimization
 
       const response = await fetch(url, {
         headers: {
@@ -438,7 +499,7 @@ export async function processDocument({
 /**
  * Internal crawling logic using HTTP + JSDOM (server-safe, no Playwright)
  */
-async function internalCrawl(startUrl: string, maxDepth: number, limit: number) {
+async function internalCrawl(startUrl: string, maxDepth: number, limit: number, concurrency: number = 5) {
   const pages: { markdown: string; metadata: { title: string; sourceURL: string } }[] = [];
   const visited = new Set<string>();
   const queue: { url: string; depth: number }[] = [{ url: startUrl, depth: 0 }];
@@ -450,7 +511,7 @@ async function internalCrawl(startUrl: string, maxDepth: number, limit: number) 
     return pages;
   }
 
-  const CONCURRENCY = 5;
+  const CONCURRENCY = concurrency;
 
   while (queue.length > 0 && pages.length < limit) {
     const batchSize = Math.min(CONCURRENCY, limit - pages.length, queue.length);
