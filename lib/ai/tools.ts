@@ -81,7 +81,7 @@ export async function getChatbotTools(chatbotId: string, conversationId?: string
   }
 
   // 3. Trendyol Tool
-  const trendyolChannel = decryptedChannels.find(c => String(c.type) === "TRENDYOL" && c.status === "CONNECTED");
+  const trendyolChannel = decryptedChannels.find(c => c.type === "TRENDYOL" && c.status === "CONNECTED");
   if (trendyolChannel) {
     const config = trendyolChannel.config as any as TrendyolConfig;
     tools.search_trendyol_products = tool({

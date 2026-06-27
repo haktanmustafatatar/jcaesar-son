@@ -532,6 +532,7 @@ enum ChannelType {
   SHOPIFY
   WOOCOMMERCE
   GOOGLE_CALENDAR
+  TRENDYOL
 }
 
 enum ChannelStatus {

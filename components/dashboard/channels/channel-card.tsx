@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 interface ChannelCardProps {
-  type: "WHATSAPP" | "INSTAGRAM" | "FACEBOOK" | "SHOPIFY" | "WOOCOMMERCE" | "GOOGLE_CALENDAR";
+  type: "WHATSAPP" | "INSTAGRAM" | "FACEBOOK" | "SHOPIFY" | "WOOCOMMERCE" | "GOOGLE_CALENDAR" | "TRENDYOL";
   status: "CONNECTED" | "DISCONNECTED" | "ERROR" | "PENDING";
   name: string;
   details?: string;
@@ -65,7 +65,8 @@ export function ChannelCard({
     FACEBOOK: <Facebook className="w-6 h-6 text-blue-600" />,
     SHOPIFY: <ShoppingBag className="w-6 h-6 text-[#95bf47]" />,
     WOOCOMMERCE: <ShoppingCart className="w-6 h-6 text-[#96588a]" />,
-    GOOGLE_CALENDAR: <Calendar className="w-6 h-6 text-[#4285F4]" />
+    GOOGLE_CALENDAR: <Calendar className="w-6 h-6 text-[#4285F4]" />,
+    TRENDYOL: <ShoppingBag className="w-6 h-6 text-[#F27A1A]" />
   };
 
   const statusColors = {

@@ -1325,11 +1325,11 @@ function SettingsPage() {
                       onDisconnect={() => handleDisconnect(channels.find(c => c.type === "WOOCOMMERCE")?.id)}
                     />
                     <ChannelCard 
-                      type={"TRENDYOL" as any}
-                      status={(channels.find(c => (c.type as string) === "TRENDYOL")?.status as any) || "DISCONNECTED"}
+                      type="TRENDYOL"
+                      status={channels.find(c => c.type === "TRENDYOL")?.status || "DISCONNECTED"}
                       name="Trendyol"
-                      onConnect={() => { setConnectType("TRENDYOL" as any); setConnectModalOpen(true); }}
-                      onDisconnect={() => handleDisconnect(channels.find(c => (c.type as string) === "TRENDYOL")?.id)}
+                      onConnect={() => { setConnectType("TRENDYOL"); setConnectModalOpen(true); }}
+                      onDisconnect={() => handleDisconnect(channels.find(c => c.type === "TRENDYOL")?.id)}
                     />
                     <ChannelCard 
                       type="GOOGLE_CALENDAR"
