@@ -1324,13 +1324,23 @@ function SettingsPage() {
                       onConnect={() => { setConnectType("WOOCOMMERCE"); setConnectModalOpen(true); }}
                       onDisconnect={() => handleDisconnect(channels.find(c => c.type === "WOOCOMMERCE")?.id)}
                     />
-                    <ChannelCard 
-                      type="TRENDYOL"
-                      status={channels.find(c => c.type === "TRENDYOL")?.status || "DISCONNECTED"}
-                      name="Trendyol"
-                      onConnect={() => { setConnectType("TRENDYOL"); setConnectModalOpen(true); }}
-                      onDisconnect={() => handleDisconnect(channels.find(c => c.type === "TRENDYOL")?.id)}
-                    />
+                    <div className="relative">
+                      <div className="absolute inset-0 z-10 rounded-[32px] bg-white/70 backdrop-blur-[2px] flex flex-col items-center justify-center gap-2 cursor-not-allowed">
+                        <span className="bg-[#F27A1A] text-white text-xs font-black uppercase tracking-widest px-4 py-1.5 rounded-full shadow-md">
+                          🚀 Çok Yakında
+                        </span>
+                        <span className="text-xs text-zinc-500 font-medium">Bu özellik yakında kullanıma sunulacak</span>
+                      </div>
+                      <div className="pointer-events-none select-none opacity-50">
+                        <ChannelCard 
+                          type="TRENDYOL"
+                          status="DISCONNECTED"
+                          name="Trendyol"
+                          onConnect={() => {}}
+                          onDisconnect={() => {}}
+                        />
+                      </div>
+                    </div>
                     <ChannelCard 
                       type="GOOGLE_CALENDAR"
                       status={channels.find(c => c.type === "GOOGLE_CALENDAR")?.status || "DISCONNECTED"}
