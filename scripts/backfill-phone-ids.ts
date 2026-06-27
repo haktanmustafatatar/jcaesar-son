@@ -9,10 +9,18 @@ async function main() {
       type: {
         in: ["WHATSAPP", "INSTAGRAM", "FACEBOOK"]
       },
-      // Bird kanallarını hariç tut (id'si 'bird_' ile başlayanlar)
-      NOT: {
-        id: { startsWith: "bird_" }
-      }
+      // Bird kanallarını hariç tut:
+      // 1. id'si 'bird_' ile başlayanlar (AND id NOT LIKE 'bird_%')
+      // 2. config->>'provider' = 'bird' olanlar
+      NOT: [
+        { id: { startsWith: "bird_" } },
+        {
+          config: {
+            path: ["provider"],
+            equals: "bird"
+          }
+        }
+      ]
     }
   });
 
@@ -22,6 +30,12 @@ async function main() {
     const config = channel.config as any;
     if (!config) {
       console.log(`Channel ${channel.id} (${channel.type}) has no config. Skipping.`);
+      continue;
+    }
+
+    // Runtime guard (defense-in-depth) — Bird kanalı sızmasın
+    if (channel.id.startsWith("bird_") || config?.provider === "bird") {
+      console.log(`Channel ${channel.id} skipped (Bird provider).`);
       continue;
     }
 
