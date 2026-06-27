@@ -36,8 +36,8 @@ export const LLM_MODELS = {
 
 export type LLMModel = keyof typeof LLM_MODELS;
 
-// Embedding modeli (Phase 2 Upgrade reverted to match existing vectors)
-export const embeddingModel = openai.embedding("text-embedding-3-large");
+// Embedding modeli — text-embedding-3-small (1536 dim, DB vektörleriyle uyumlu)
+export const embeddingModel = openai.embedding("text-embedding-3-small");
 
 // Text embedding oluştur
 export async function createEmbedding(text: string) {
