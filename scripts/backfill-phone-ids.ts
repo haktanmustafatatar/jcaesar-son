@@ -8,6 +8,10 @@ async function main() {
     where: {
       type: {
         in: ["WHATSAPP", "INSTAGRAM", "FACEBOOK"]
+      },
+      // Bird kanallarını hariç tut (id'si 'bird_' ile başlayanlar)
+      NOT: {
+        id: { startsWith: "bird_" }
       }
     }
   });
