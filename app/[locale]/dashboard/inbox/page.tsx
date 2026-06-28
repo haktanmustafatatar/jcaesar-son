@@ -80,6 +80,8 @@ export default function InboxPage() {
   const [mobileView, setMobileView] = useState<"list" | "chat">("list");
   
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const listScrollRef = useRef<HTMLDivElement>(null);
+  const listScrollTopRef = useRef<number>(0);
 
   // Status Filter Tab & CRM Form states
   const [activeTab, setActiveTab] = useState<"active" | "closed">("active");
@@ -176,6 +178,9 @@ export default function InboxPage() {
 
   const fetchConversations = async (silent = false) => {
     if (!silent) setIsLoading(true);
+    // Scroll pozisyonunu fetch'ten ÖNCE senkron kaydet
+    const savedScrollTop = listScrollRef.current?.scrollTop ?? listScrollTopRef.current;
+    listScrollTopRef.current = savedScrollTop;
     try {
       const res = await fetch("/api/conversations");
       if (res.ok) {
@@ -185,6 +190,15 @@ export default function InboxPage() {
           setSelectedId(data[0].id);
           setIsAiActive(data[0].aiEnabled);
         }
+        // Restore scroll — iki frame + timeout ile garantile
+        const restoreScroll = () => {
+          if (listScrollRef.current && savedScrollTop > 0) {
+            listScrollRef.current.scrollTop = savedScrollTop;
+          }
+        };
+        requestAnimationFrame(() => { restoreScroll(); requestAnimationFrame(restoreScroll); });
+        setTimeout(restoreScroll, 50);
+        setTimeout(restoreScroll, 150);
       }
     } catch (error) {
       console.error("Error fetching conversations:", error);
@@ -434,6 +448,45 @@ export default function InboxPage() {
     }
   };
 
+  /**
+   * Mesaj içeriğinde [Görsel: https://...] pattern'ini <img> olarak render eder.
+   * Regex: /\[Görsel: (https?:\/\/[^\]]+)\]/g
+   */
+  const renderMessageContent = (content: string) => {
+    const imageRegex = /\[Görsel: (https?:\/\/[^\]]+)\]/g;
+    const parts: React.ReactNode[] = [];
+    let lastIndex = 0;
+    let match;
+    let key = 0;
+
+    while ((match = imageRegex.exec(content)) !== null) {
+      // Text before the image tag
+      if (match.index > lastIndex) {
+        parts.push(<span key={key++}>{content.slice(lastIndex, match.index)}</span>);
+      }
+      // The image itself
+      parts.push(
+        <img
+          key={key++}
+          src={match[1]}
+          alt="Görsel"
+          className="max-w-full max-h-64 rounded-2xl mt-2 mb-1 object-contain border border-black/5 shadow-sm"
+          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+        />
+      );
+      lastIndex = match.index + match[0].length;
+    }
+
+    // Remaining text after last match
+    if (lastIndex < content.length) {
+      parts.push(<span key={key++}>{content.slice(lastIndex)}</span>);
+    }
+
+    // No images found — return plain text
+    if (parts.length === 0) return <>{content}</>;
+    return <>{parts}</>;
+  };
+
   const formatTime = (date: string) => {
     const d = new Date(date);
     const now = new Date();
@@ -451,7 +504,7 @@ export default function InboxPage() {
       {/* 1. Conversations List Column */}
       <div 
         className={`
-          w-full md:w-[260px] lg:w-[260px] xl:w-[300px] flex flex-col bg-white/60 backdrop-blur-xl rounded-[32px] border border-black/5 shadow-2xl shadow-black/[0.02]
+          w-full md:w-[260px] lg:w-[260px] xl:w-[300px] flex flex-col bg-white/60 backdrop-blur-xl rounded-[32px] border border-black/5 shadow-2xl shadow-black/[0.02] min-h-0 overflow-hidden
           ${mobileView === "list" ? "flex" : "hidden md:flex"}
         `}
       >
@@ -525,7 +578,11 @@ export default function InboxPage() {
           </div>
         </div>
 
-        <ScrollArea className="flex-1 px-4 pb-4">
+        <div 
+          ref={listScrollRef} 
+          className="flex-1 overflow-y-auto px-4 pb-4"
+          onScroll={(e) => { listScrollTopRef.current = (e.target as HTMLDivElement).scrollTop; }}
+        >
           {isLoading ? (
             <div className="space-y-3 p-4">
               <div className="h-16 bg-muted/40 animate-pulse rounded-2xl" />
@@ -612,7 +669,7 @@ export default function InboxPage() {
               })}
             </div>
           )}
-        </ScrollArea>
+        </div>
       </div>
 
       {/* 2. Chat Feed / Main Window */}
@@ -770,7 +827,7 @@ export default function InboxPage() {
                                     : "bg-white text-zinc-800 rounded-bl-sm ring-1 ring-black/[0.03]"}
                               `}
                             >
-                              {msg.content}
+                              {renderMessageContent(msg.content)}
                               
                               {sources && sources.length > 0 && (
                                 <div className="mt-4 pt-3 border-t border-muted/50 flex flex-col gap-2">
@@ -896,14 +953,34 @@ export default function InboxPage() {
              
              <div className="flex flex-col items-center text-center gap-3">
                <div className="w-24 h-24 rounded-[32px] overflow-hidden p-1.5 bg-gradient-to-br from-primary/20 to-primary/5 shadow-xl shadow-primary/5">
-                  <Avatar className="w-full h-full rounded-[24px]">
-                     <AvatarImage src={selectedConv.contactProfilePic || selectedConv.user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedConv.id}`} className="object-cover" />
-                     <AvatarFallback className="text-2xl">{(selectedConv.contactName || selectedConv.user?.name || selectedConv.channelUserId || "U").charAt(0)}</AvatarFallback>
-                  </Avatar>
+                  {selectedConv.contactProfilePic ? (
+                    <img
+                      src={selectedConv.contactProfilePic}
+                      alt={selectedConv.contactName || "Profil"}
+                      className="w-full h-full rounded-[24px] object-cover"
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                    />
+                  ) : (
+                    <Avatar className="w-full h-full rounded-[24px]">
+                      <AvatarImage src={selectedConv.user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedConv.id}`} className="object-cover" />
+                      <AvatarFallback className="text-2xl flex items-center justify-center bg-primary/5">
+                        {(() => {
+                          const cfg = channelConfig[selectedConv.channel?.toLowerCase()] || channelConfig.widget;
+                          const Icon = cfg.icon;
+                          return <Icon className={`w-8 h-8 ${cfg.color}`} />;
+                        })()}
+                      </AvatarFallback>
+                    </Avatar>
+                  )}
                </div>
                <div>
                  <h3 className="font-black text-lg">{selectedConv.contactName || selectedConv.user?.name || selectedConv.channelUserId || "Ziyaretçi"}</h3>
-                 <p className="text-xs text-muted-foreground font-medium flex items-center justify-center gap-1">
+                 {selectedConv.contactPhone && (
+                   <p className="text-xs text-muted-foreground font-medium flex items-center justify-center gap-1 mt-0.5">
+                     <Phone className="w-3 h-3" /> {selectedConv.contactPhone}
+                   </p>
+                 )}
+                 <p className="text-xs text-muted-foreground font-medium flex items-center justify-center gap-1 mt-0.5">
                    <Mail className="w-3 h-3" /> {selectedConv.contactEmail || selectedConv.user?.email || "E-posta yok"}
                  </p>
                  
