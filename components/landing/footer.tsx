@@ -109,9 +109,14 @@ export function Footer() {
         {/* Global Compliance & Rights */}
         <div className="mt-24 pt-8 border-t border-black/[0.03] flex flex-col sm:flex-row justify-between items-center gap-6">
           <div className="flex items-center gap-6">
-             <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest">
-               {t("copyright", { year: new Date().getFullYear() })}
-             </p>
+             <div className="flex flex-col gap-1">
+               <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest">
+                 {t("copyright", { year: new Date().getFullYear() })}
+               </p>
+               <p className="text-[10px] font-bold text-zinc-400/80 uppercase tracking-widest">
+                 THE KAISERS GROUP LTD
+               </p>
+             </div>
              <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-zinc-50 border border-black/[0.03] text-[9px] font-black text-zinc-400 uppercase tracking-tighter">
                 <Cpu className="w-3 h-3" />
                 Architecture v2.4.0
