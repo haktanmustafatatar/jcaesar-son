@@ -38,10 +38,8 @@ export const metadata: Metadata = {
       "Build AI chatbots trained on your website content, documents, and knowledge base.",
     type: "website",
   },
-  verification: {
-    other: {
-      "facebook-domain-verification": "8y2kqjrcnj4nx8ngpbxudx96umxn19",
-    },
+  other: {
+    "facebook-domain-verification": "8y2kqjrcnj4nx8ngpbxudx96umxn19",
   },
 };
 
